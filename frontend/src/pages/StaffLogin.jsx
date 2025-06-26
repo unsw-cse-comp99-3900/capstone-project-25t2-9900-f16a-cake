@@ -1,19 +1,30 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Box, Typography, TextField, Button, Paper, Divider } from "@mui/material";
 
 function StaffLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // 这里可以调用后端API进行登录验证
-    alert(`Staff 用户名: ${username}\n密码: ${password}`);
+    // 暂时模拟登录成功
+    if (username && password) {
+      alert(`Staff 登录成功！\n用户名: ${username}`);
+      // 登录成功后跳转到LandingPage
+      navigate("/staff-landing");
+    } else {
+      alert("请输入用户名和密码");
+    }
   };
 
   const handleSSOLogin = () => {
     // 这里写 SSO 登录逻辑，比如跳转到 SSO 登录页
     alert("跳转到 SSO 登录");
+    // SSO登录成功后也可以跳转到LandingPage
+    // navigate("/staff-landing");
   };
 
   return (
