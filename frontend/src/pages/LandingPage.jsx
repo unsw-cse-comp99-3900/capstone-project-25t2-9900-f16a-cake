@@ -29,16 +29,6 @@ function LandingPage() {
       <Box sx={{ position: "fixed", left: 16, bottom: 16 }}>
         <Button variant="contained" color="secondary">Suggest an Update</Button>
       </Box>
-
-      {/* 右下角 AI chat 圆形按钮 */}
-      <Box sx={{ position: "fixed", right: 16, bottom: 16 }}>
-        <Button
-          variant="contained"
-          sx={{ borderRadius: "50%", width: 64, height: 64, background: "#FFD600", color: "black", fontWeight: "bold", fontSize: 16, boxShadow: 3 }}
-        >
-          AI<br/>chat
-        </Button>
-      </Box>
     </Box>
   );
 }
