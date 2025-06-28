@@ -1,7 +1,9 @@
 import React from "react";
 import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography } from "@mui/material";
+import { useNavigate } from 'react-router-dom';
 
 function TopNavBar() {
+  const navigate = useNavigate();
   return (
     <AppBar
       position="fixed"
@@ -29,7 +31,7 @@ function TopNavBar() {
         >
           Staff Landing
         </Typography>
-        <Button variant="outlined" sx={{ mx: 1 }}>Search</Button>
+        <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
         <Button variant="outlined" sx={{ mx: 1 }}>scenario</Button>
         {/* 右侧头像和登出 */}
         <Box sx={{ flexGrow: 1 }} />
