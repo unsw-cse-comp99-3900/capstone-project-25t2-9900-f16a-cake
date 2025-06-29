@@ -1,0 +1,46 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 环境变量和配置
+.env
+*.env
+
+# 本地数据库、日志和临时文件
+*.db
+*.sqlite3
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+
+# 虚拟环境文件夹（常见命名方式）
+.venv/
+venv/
+env/
+ENV/
+
+# VSCode、PyCharm 等IDE配置
+.vscode/
+.idea/
+
+# Mac OS系统文件
+.DS_Store
+
+# Pip缓存
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 覆盖 Flask 默认测试数据库
+instance/
+*.db
+*.sqlite
+
+# 覆盖 Jupyter Notebook 检查点
+.ipynb_checkpoints
+
+# 其它你本地特有的临时/私有文件
+*.bak
+*.swp
