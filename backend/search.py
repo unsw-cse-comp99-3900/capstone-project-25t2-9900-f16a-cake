@@ -108,38 +108,3 @@ def calculate_similarity(query_encoded, db_encoded, query_text, db_title):
     # Combined score with higher keyword weight
     final_score = 0.75 * keyword_sim + 0.25 * title_sim
     return final_score
-
-if __name__ == "__main__":
-    print("Keyword + Title Word-Level Matching Search System (type exit/quit to stop)\n")
-    while True:
-        query = input("Enter your search query: ").strip()
-        if query.lower() in ['exit', 'quit']:
-            print("Exiting.")
-            break
-
-        extracted = extract_keywords(query)
-        query_encoded = multi_hot_encode(extracted)
-
-        results = []
-        for item in DATABASE:
-            score = calculate_similarity(query_encoded, item["keywords_encoded"], query, item["title"])
-            results.append({
-                "title": item["title"],
-                "url": item["url"],
-                "score": score
-            })
-
-        results = sorted(results, key=lambda x: x["score"], reverse=True)
-
-        shown = 0
-        for res in results:
-            if res["score"] > 0:
-                shown += 1
-                print(f"{shown}. {res['title']}")
-                print(f"   {res['url']}")
-                if shown == 5:
-                    break
-
-        if shown == 0:
-            print("No relevant content found.")
-        print("-" * 40)
