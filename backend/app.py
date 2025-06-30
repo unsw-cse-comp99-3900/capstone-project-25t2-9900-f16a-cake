@@ -38,14 +38,17 @@ def sso_login():
     # 可以考虑带一个 ?next= 参数指明回跳页面
     return jsonify({"success": True, "role": "staff", "message": "SSO Login success!"})
 
-@app.route('/api/quick_search', methods=['POST'])
-def quick_search():
+# ---- search接口 ----
+@app.route('/api/search', methods=['POST'])
+def search_api():
     data = request.get_json()
-    query = data.get("query", "")
+    query = data.get("query", "").strip()
 
-    # 复用你的算法逻辑
+    # 关键词提取和多热编码
     extracted = extract_keywords(query)
     query_encoded = multi_hot_encode(extracted)
+
+    # 遍历所有条目，计算分数
     results = []
     for item in DATABASE:
         score = calculate_similarity(query_encoded, item["keywords_encoded"], query, item["title"])
@@ -54,9 +57,11 @@ def quick_search():
             "url": item["url"],
             "score": score
         })
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
-    results = [r for r in results if r["score"] > 0][:5]   # 只返回前5个分数大于0的
-    return jsonify({"results": results})
+
+    # 按分数排序，只返回相关度>0的前5个
+    filtered = sorted([r for r in results if r["score"] > 0], key=lambda x: x["score"], reverse=True)[:5]
+
+    return jsonify({"results": filtered})
 
 # profile接口暂时不使用，因为前端没有调用
 '''

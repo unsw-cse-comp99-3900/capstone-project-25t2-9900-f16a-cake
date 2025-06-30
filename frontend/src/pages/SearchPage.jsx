@@ -38,12 +38,29 @@ export default function SearchPage() {
 
     // ——————————————————————————————
     // 4. 点击 Search 时，将 query 作为唯一结果或清空
-    const handleSearch = () => {
-        const newResults = query ? [query] : [];
-        setSearchResult(newResults);
-        setFilteredResults(newResults); // 重置过滤结果
-        setFilterType('');               // 重置过滤类型
-        setFilterValue('');              // 重置过滤值
+    const handleSearch = async () => {
+        if (!query) {
+            setSearchResult([]);
+            setFilteredResults([]);
+            setFilterType('');
+            setFilterValue('');
+            return;
+        }
+        // 调用 Flask 后端
+        const response = await fetch('http://127.0.0.1:8000/api/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+        });
+        const data = await response.json();
+        // 假设返回格式为 { results: [{title, url, score}, ...] }
+        const results = data.results.map(
+            r => `${r.title} - ${r.url} (Score: ${r.score.toFixed(2)})`
+        );
+        setSearchResult(results);
+        setFilteredResults(results);
+        setFilterType('');
+        setFilterValue('');
     };
 
     // 5. 应用过滤器
