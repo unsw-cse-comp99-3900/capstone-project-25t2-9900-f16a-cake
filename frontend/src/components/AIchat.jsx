@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Button,
@@ -29,6 +29,14 @@ const AIchat = ({ showOnLoggedIn = false, isLoggedIn = false }) => {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+
+  // 自动滚动到底部
+  const messagesEndRef = useRef(null);
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   // 如果设置了showOnLoggedIn且用户未登录，则不显示组件
   if (showOnLoggedIn && !isLoggedIn) {
@@ -181,6 +189,8 @@ const AIchat = ({ showOnLoggedIn = false, isLoggedIn = false }) => {
                   </Paper>
                 </ListItem>
               ))}
+              {/* 滚动锚点 */}
+              <div ref={messagesEndRef} />
             </List>
           </Box>
 
