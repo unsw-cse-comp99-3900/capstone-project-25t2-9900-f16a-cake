@@ -43,7 +43,7 @@ const AIchat = ({ showOnLoggedIn = false, isLoggedIn = false }) => {
     return null;
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputMessage.trim()) {
       const newMessage = {
         id: messages.length + 1,
@@ -54,16 +54,31 @@ const AIchat = ({ showOnLoggedIn = false, isLoggedIn = false }) => {
       setMessages([...messages, newMessage]);
       setInputMessage("");
 
-      // 模拟AI回复
-      setTimeout(() => {
+      // 真实请求后端 AI
+      try {
+        const resp = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: inputMessage })
+        });
+        const data = await resp.json();
+        const aiText = data.answer || (data.error ? `error: ${data.error}` : "AI无回复");
         const aiResponse = {
           id: messages.length + 2,
-          text: "User inputs are：\"" + inputMessage + "\" This is a test response。",
+          text: aiText,
           sender: "ai",
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, aiResponse]);
-      }, 1000);
+      } catch {
+        const aiResponse = {
+          id: messages.length + 2,
+          text: "error: 网络或服务器异常",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, aiResponse]);
+      }
     }
   };
 

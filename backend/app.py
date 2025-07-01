@@ -1,9 +1,16 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
+import requests 
 
 app = Flask(__name__)
 CORS(app)
+
+# ———— AI 聊天配置区域 ————
+API_URL = "https://api.siliconflow.cn/v1/chat/completions"
+MODEL   = "Qwen/QwQ-32B"
+API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
+# ————————————————————
 
 # ---- 测试接口 ----
 @app.route("/api/hello")
@@ -104,6 +111,34 @@ def logout():
 @app.route('/')
 def home():
     return 'Welcome to the demo backend!'
+
+# ---- AI 聊天接口 ----
+@app.route('/api/ask', methods=['POST'])
+def ask():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "question 不能为空"}), 400
+
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "user", "content": question}
+        ]
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    # 调用 SiliconFlow API
+    resp = requests.post(API_URL, json=payload, headers=headers)
+    resp.raise_for_status()
+    result = resp.json()
+
+    # 提取回答
+    answer = result['choices'][0]['message']['content'].strip()
+    return jsonify({"answer": answer})
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
