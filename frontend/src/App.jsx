@@ -12,11 +12,12 @@ import SearchPage from "./pages/SearchPage";
 import RequireNoAuth from "./components/RequireNoAuth";
 import RequireAuth from "./components/RequireAuth";
 import StaffProfile from "./pages/StaffProfile";
+import SuggestButton from "./components/SuggestButton";
 
 function AppContent() {
   const location = useLocation();
   const showTopBar = ["/", "/staff-login", "/admin-login"].includes(location.pathname);
-  const isLoggedInPage = ["/staff-landing"].includes(location.pathname);
+  const isLoggedIn = !!localStorage.getItem("role");
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -59,8 +60,8 @@ function AppContent() {
         </Routes>
       </Box>
       
-      {/* AI聊天组件 - 在登录后的页面显示 */}
-      <AIchat showOnLoggedIn={true} isLoggedIn={isLoggedInPage} />
+      {isLoggedIn && <SuggestButton />}
+      {isLoggedIn && <AIchat />}
     </Box>
   );
 }

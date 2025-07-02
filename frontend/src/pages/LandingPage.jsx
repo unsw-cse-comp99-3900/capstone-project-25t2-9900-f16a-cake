@@ -48,11 +48,6 @@ function LandingPage() {
           <Typography variant="body1">{search_info}</Typography>
         </Paper>
       </Box>
-
-      {/* 左下角 Suggest an Update 按钮 */}
-      <Box sx={{ position: "fixed", left: 16, bottom: 16 }}>
-        <Button variant="contained" color="secondary">Suggest an Update</Button>
-      </Box>
     </Box>
   );
 }

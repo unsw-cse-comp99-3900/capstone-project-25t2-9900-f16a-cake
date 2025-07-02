@@ -18,7 +18,7 @@ import {
   Minimize as MinimizeIcon,
 } from "@mui/icons-material";
 
-const AIchat = ({ showOnLoggedIn = false, isLoggedIn = false }) => {
+const AIchat = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -38,8 +38,8 @@ const AIchat = ({ showOnLoggedIn = false, isLoggedIn = false }) => {
     }
   }, [messages]);
 
-  // 如果设置了showOnLoggedIn且用户未登录，则不显示组件
-  if (showOnLoggedIn && !isLoggedIn) {
+  // 只有已登录用户才显示
+  if (!localStorage.getItem("role")) {
     return null;
   }
 
