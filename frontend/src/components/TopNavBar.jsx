@@ -1,9 +1,28 @@
-import React from "react";
-import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography } from "@mui/material";
+import React, { useState } from "react";
+import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import { useNavigate } from 'react-router-dom';
 
 function TopNavBar() {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  // 点击 Log out 按钮时弹出 Dialog
+  const handleLogoutClick = () => {
+    setOpen(true);
+  };
+
+  // 确认登出
+  const handleConfirmLogout = () => {
+    localStorage.removeItem("role");
+    setOpen(false);
+    navigate("/");
+  };
+
+  // 取消登出
+  const handleCancelLogout = () => {
+    setOpen(false);
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -38,8 +57,25 @@ function TopNavBar() {
         <IconButton>
           <Avatar />
         </IconButton>
-        <Button variant="outlined" sx={{ ml: 1 }}>Log out</Button>
+        <Button variant="outlined" sx={{ ml: 1 }} onClick={handleLogoutClick}>Log out</Button>
       </Toolbar>
+      {/* 登出确认弹窗 */}
+      <Dialog open={open} onClose={handleCancelLogout} PaperProps={{ sx: { borderRadius: 3, minWidth: 340 } }}>
+        <DialogTitle sx={{ fontWeight: 700, textAlign: 'center', pt: 3 }}>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ textAlign: 'center', fontSize: 17, color: '#444', py: 1 }}>
+            Are you sure you want to log out?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+          <Button onClick={handleCancelLogout} variant="outlined" sx={{ color: '#666', borderColor: '#ccc', background: '#f5f5f5', '&:hover': { background: '#eee', borderColor: '#bbb' } }}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmLogout} variant="contained" color="error" sx={{ color: '#fff', fontWeight: 600, boxShadow: 'none' }} autoFocus>
+            Log out
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppBar>
   );
 }

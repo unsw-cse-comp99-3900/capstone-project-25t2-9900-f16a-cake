@@ -9,6 +9,8 @@ import StaffLogin from "./pages/StaffLogin";
 import AdminLogin from "./pages/AdminLogin";
 import LandingPage from "./pages/LandingPage";
 import SearchPage from "./pages/SearchPage";
+import RequireNoAuth from "./components/RequireNoAuth";
+import RequireAuth from "./components/RequireAuth";
 
 function AppContent() {
   const location = useLocation();
@@ -20,11 +22,34 @@ function AppContent() {
       {showTopBar ? <TopBar /> : <TopNavBar />}
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <Routes>
-          <Route path="/" element={<Entry />} />
-          <Route path="/staff-login" element={<StaffLogin />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/staff-landing" element={<LandingPage />} />
-          <Route path="/search" element={<SearchPage />} />
+          {/* 未登录可访问 */}
+          <Route path="/" element={
+            <RequireNoAuth>
+              <Entry />
+            </RequireNoAuth>
+          } />
+          <Route path="/staff-login" element={
+            <RequireNoAuth>
+              <StaffLogin />
+            </RequireNoAuth>
+          } />
+          <Route path="/admin-login" element={
+            <RequireNoAuth>
+              <AdminLogin />
+            </RequireNoAuth>
+          } />
+
+          {/* 需要登录才能访问 */}
+          <Route path="/staff-landing" element={
+            <RequireAuth>
+              <LandingPage />
+            </RequireAuth>
+          } />
+          <Route path="/search" element={
+            <RequireAuth>
+              <SearchPage />
+            </RequireAuth>
+          } />
         </Routes>
       </Box>
       
