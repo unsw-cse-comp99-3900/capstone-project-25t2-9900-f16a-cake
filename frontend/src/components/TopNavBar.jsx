@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function TopNavBar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
 
   // 点击 Log out 按钮时弹出 Dialog
@@ -22,6 +23,9 @@ function TopNavBar() {
   const handleCancelLogout = () => {
     setOpen(false);
   };
+
+  // 判断当前是否在 search 页面
+  const isSearchPage = location.pathname === "/search";
 
   return (
     <AppBar
@@ -48,12 +52,16 @@ function TopNavBar() {
           component="div"
           sx={{ color: "#222", fontWeight: 600, mr: 2 }}
         >
-          Staff Landing
+          {isSearchPage ? "Search" : "Staff Landing"}
         </Typography>
         <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
         <Button variant="outlined" sx={{ mx: 1 }}>scenario</Button>
         {/* 右侧头像和登出 */}
         <Box sx={{ flexGrow: 1 }} />
+        {/* search 页面时显示 Back Home 按钮 */}
+        {isSearchPage && (
+          <Button variant="outlined" sx={{ mr: 1 }} onClick={() => navigate('/staff-landing')}>Back Home</Button>
+        )}
         <IconButton>
           <Avatar />
         </IconButton>
