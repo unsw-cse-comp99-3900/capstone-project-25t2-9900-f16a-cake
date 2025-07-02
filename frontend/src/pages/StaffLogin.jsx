@@ -12,7 +12,7 @@ const handleSubmit = async (e) => {
 
   try {
     // 通过 fetch 向后端 Flask 发送 POST 登录请求
-    const res = await fetch("/api/login", {
+    const res = await fetch("/api/staff-login", {
       method: "POST", // 请求方法
       headers: { "Content-Type": "application/json" }, // 指定请求体为 JSON 格式
       body: JSON.stringify({ username, password }), // 发送用户名和密码
@@ -29,6 +29,8 @@ const handleSubmit = async (e) => {
     const data = await res.json();
     if (data.success) {
       // 登录成功，跳转到主页面
+      console.log(data)
+      localStorage.setItem("role", data.role);
       navigate("/staff-landing");
     } else {
       // 登录失败，提示具体信息
@@ -36,6 +38,7 @@ const handleSubmit = async (e) => {
     }
   } catch (err) {
     // 网络或服务器异常
+    console.error(err);
     alert("网络或服务器异常，请稍后再试！");
   }
 };
@@ -55,6 +58,7 @@ const handleSSOLogin = async () => {
     }
   } catch (err) {
     // 网络或服务器异常
+    console.error(err);
     alert("网络或服务器异常，请稍后再试！");
   }
 };

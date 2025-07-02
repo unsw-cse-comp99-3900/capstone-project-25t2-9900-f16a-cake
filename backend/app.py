@@ -18,14 +18,18 @@ def hello():
     return jsonify(message="Hello from Flask! This is my test message, yeah!")
 
 # ---- 假用户数据 ----
+# 暂定 staff 身份可区分为 phd, tutor, lecturer, none
+# 用布尔 admin 来区分是否为管理员
 fake_users = [
-    {"username": "staff1", "password": "pass123", "email": "staff1@example.com", "role": "staff"},
-    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com","role": "admin"},
+    {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "phd", "admin": False},
+    {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "tutor", "admin": False},
+    {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "lecturer", "admin": False},
+    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com","role": "none", "admin": True},
     # 可以继续添加更多账号
 ]
 
-# ---- 登录接口 ----
-@app.route('/api/login', methods=['POST'])
+# ---- 登录接口, 在 staff login 页面调用 ----
+@app.route('/api/staff-login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get("username")
