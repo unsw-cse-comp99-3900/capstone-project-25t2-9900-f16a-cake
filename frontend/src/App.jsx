@@ -11,6 +11,7 @@ import LandingPage from "./pages/LandingPage";
 import SearchPage from "./pages/SearchPage";
 import RequireNoAuth from "./components/RequireNoAuth";
 import RequireAuth from "./components/RequireAuth";
+import StaffProfile from "./pages/StaffProfile";
 
 function AppContent() {
   const location = useLocation();
@@ -48,6 +49,11 @@ function AppContent() {
           <Route path="/search" element={
             <RequireAuth>
               <SearchPage />
+            </RequireAuth>
+          } />
+          <Route path="/staff-profile" element={
+            <RequireAuth>
+              <StaffProfile />
             </RequireAuth>
           } />
         </Routes>

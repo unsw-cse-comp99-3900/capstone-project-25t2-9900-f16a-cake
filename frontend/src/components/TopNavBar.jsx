@@ -26,6 +26,10 @@ function TopNavBar() {
 
   // 判断当前是否在 search 页面
   const isSearchPage = location.pathname === "/search";
+  // 判断当前是否在 profile 页面
+  const isProfilePage = location.pathname === "/staff-profile";
+  // 判断当前是否在 staff-landing 页面
+  const isLandingPage = location.pathname === "/staff-landing";
 
   return (
     <AppBar
@@ -52,17 +56,17 @@ function TopNavBar() {
           component="div"
           sx={{ color: "#222", fontWeight: 600, mr: 2 }}
         >
-          {isSearchPage ? "Search" : "Staff Landing"}
+          {isProfilePage ? "My Profile" : isSearchPage ? "Search" : "Staff Landing"}
         </Typography>
         <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
         <Button variant="outlined" sx={{ mx: 1 }}>scenario</Button>
         {/* 右侧头像和登出 */}
         <Box sx={{ flexGrow: 1 }} />
-        {/* search 页面时显示 Back Home 按钮 */}
-        {isSearchPage && (
+        {/* 除了 staff-landing 页面外都显示 Back Home 按钮 */}
+        {!isLandingPage && (
           <Button variant="outlined" sx={{ mr: 1 }} onClick={() => navigate('/staff-landing')}>Back Home</Button>
         )}
-        <IconButton>
+        <IconButton onClick={() => navigate('/staff-profile')}>
           <Avatar />
         </IconButton>
         <Button variant="outlined" sx={{ ml: 1 }} onClick={handleLogoutClick}>Log out</Button>
