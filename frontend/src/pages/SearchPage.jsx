@@ -19,18 +19,7 @@ export default function SearchPage() {
     // 1. 搜索框状态
     const [query, setQuery] = useState('');
     // 2. 搜索结果状态（模拟数据，包含年份信息）
-    const [searchResult, setSearchResult] = useState([
-        '示例搜索结果 1 - 2023',
-        '示例搜索结果 2 - 2022',
-        '示例搜索结果 3 - 2023',
-        '示例搜索结果 4 - 2021',
-        '示例搜索结果 5 - 2022',
-        '示例搜索结果 6 - 2023',
-        '示例搜索结果 7 - 2021',
-        '示例搜索结果 8 - 2022',
-        '示例搜索结果 9 - 2023',
-        '示例搜索结果 10 - 2021',
-    ]);
+    const [searchResult, setSearchResult] = useState([]);
     // 3. 过滤器状态
     const [filterType, setFilterType] = useState('');
     const [filterValue, setFilterValue] = useState('');
@@ -55,7 +44,7 @@ export default function SearchPage() {
         const data = await response.json();
         // 假设返回格式为 { results: [{title, url, score}, ...] }
         const results = data.results.map(
-            r => `${r.title} - ${r.url} (Score: ${r.score.toFixed(2)})`
+            r => `${r.title} - ${r.url} (Score: ${r.score.toFixed(2)}) - ${r.year}`
         );
         setSearchResult(results);
         setFilteredResults(results);
@@ -221,7 +210,7 @@ export default function SearchPage() {
                             variant="body1"
                             sx={{ textAlign: 'center', wordBreak: 'break-all' }}
                         >
-                            暂无搜索内容
+                            no search content
                         </Typography>
                     )}
                 </Paper>
