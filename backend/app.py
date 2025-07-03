@@ -66,7 +66,8 @@ def search_api():
         results.append({
             "title": item["title"],
             "url": item["url"],
-            "score": score
+            "score": score,
+            "year": item["year"]
         })
 
     # 按分数排序，只返回相关度>0的前5个
