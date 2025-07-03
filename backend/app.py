@@ -1,21 +1,24 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
-import requests 
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
 # ———— AI 聊天配置区域 ————
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
-MODEL   = "Qwen/QwQ-32B"
+MODEL = "Qwen/QwQ-32B"
 API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
+
+
 # ————————————————————
 
 # ---- 测试接口 ----
 @app.route("/api/hello")
 def hello():
     return jsonify(message="Hello from Flask! This is my test message, yeah!")
+
 
 # ---- 假用户数据 ----
 # 暂定 staff 身份可区分为 phd, tutor, lecturer, none
@@ -24,9 +27,10 @@ fake_users = [
     {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "phd", "admin": False},
     {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "tutor", "admin": False},
     {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "lecturer", "admin": False},
-    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com","role": "none", "admin": True},
+    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com", "role": "none", "admin": True},
     # 可以继续添加更多账号
 ]
+
 
 # ---- 登录接口, 在 staff login 页面调用 ----
 @app.route('/api/staff-login', methods=['POST'])
@@ -42,12 +46,14 @@ def login():
     else:
         return jsonify({"success": False, "message": "Invalid username or password"}), 401
 
+
 # ---- SSO登录模拟 ----
 @app.route('/api/sso-login', methods=['GET'])
 def sso_login():
     # 实际项目会重定向到UNSW SSO登录页，这里仅做演示，直接“登录成功”
     # 可以考虑带一个 ?next= 参数指明回跳页面
     return jsonify({"success": True, "role": "staff", "message": "SSO Login success!"})
+
 
 # ---- search接口 ----
 @app.route('/api/search', methods=['POST'])
@@ -76,6 +82,7 @@ def search_api():
     filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
+
 
 # profile接口暂时不使用，因为前端没有调用
 '''
@@ -114,10 +121,12 @@ def logout():
     return jsonify({"success": True, "message": "Logout success!"})
 '''
 
+
 # ---- 首页（仅演示跳转用）----
 @app.route('/')
 def home():
     return 'Welcome to the demo backend!'
+
 
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
@@ -130,8 +139,19 @@ def ask():
     payload = {
         "model": MODEL,
         "messages": [
+            {"role": "system", "content": "You are AI assistance called ‘HDingo's Al chat bot’, an AI designed to "
+                                          "help new faculty, staff, and students in the School of Computer Science "
+                                          "and Engineering (CSE) complete their onboarding tasks. Your objectives "
+                                          "are:1. 快速、准确地回答关于入职流程、政策、资源、系统使用等方面的问题；2. "
+                                          "在回答中引用最新且经过审核的文档内容，保证信息一致性与权威性；3. 如果遇到不明确或超出权限的问题，引导用户提交 IT 工单或联系相关部门；4. "
+                                          "对话风格：专业、简洁、友好、易理解并且使用英语作为主要用语。你拥有以下能力：- 结合检索到的文档段落进行动态回答（RAG-Sequence / RAG-Token）；- "
+                                          "根据用户不同角色（教职工/学生/管理员）提供差异化视图和链接；- 支持文件上传下载、关键词搜索、反馈收集等功能调用。"
+                                         },
             {"role": "user", "content": question}
-        ]
+
+        ],
+        "temperature": 0.7,
+        "max_tokens": 4096
     }
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -146,6 +166,7 @@ def ask():
     # 提取回答
     answer = result['choices'][0]['message']['content'].strip()
     return jsonify({"answer": answer})
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
