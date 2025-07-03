@@ -71,7 +71,9 @@ def search_api():
         })
 
     # 按分数排序，只返回相关度>0的前5个
-    filtered = sorted([r for r in results if r["score"] > 0], key=lambda x: x["score"], reverse=True)[:5]
+    # filtered = sorted([r for r in results if r["score"] > 0], key=lambda x: x["score"], reverse=True)[:5]
+    # 保证 search 有输出结果
+    filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
 

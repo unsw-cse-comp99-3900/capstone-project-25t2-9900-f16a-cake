@@ -1,15 +1,15 @@
 import React from "react";
-import { useEffect, useState } from 'react';
+// import { useEffect, useState } from 'react';
 import { AppBar, Toolbar, Typography, Box } from "@mui/material";
 
 function TopBar() {
-  const [message, setMessage] = useState('');
-  // api call 的例子, 和后端交换信息
-  useEffect(() => {
-    fetch('/api/hello')
-      .then(res => res.json())
-      .then(data => setMessage(data.message));
-  }, []);
+  // const [message, setMessage] = useState('');
+  // // api call 的例子, 和后端交换信息
+  // useEffect(() => {
+  //   fetch('/api/hello')
+  //     .then(res => res.json())
+  //     .then(data => setMessage(data.message));
+  // }, []);
   
   return (
     <AppBar
@@ -36,7 +36,8 @@ function TopBar() {
           component="div"
           sx={{ flexGrow: 1, color: "#222", fontWeight: 600 }}
         >
-          CSE New Joiners Onboarding Hub - {message}
+          {/* CSE New Joiners Onboarding Hub - {message} */}
+          CSE New Joiners Onboarding Hub
         </Typography>
       </Toolbar>
     </AppBar>
