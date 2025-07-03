@@ -3,77 +3,38 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 ALL_KEYWORDS = [
-    "machine learning", "image recognition", "deep learning", "computer vision", "neural network",
-    "natural language processing", "NLP", "text analysis", "language model", "BERT",
-    "big data", "data analysis", "business intelligence", "decision support", "data mining"
+    "home", "directory", "homedir", "files", "fileserver", "sftp", "upload", "download", 
+    "account", "group", "class", "expiring", "expiry", "disabled", "permitted"
 ]
 
 DATABASE = [
     {
         "id": 1,
-        "title": "Applications of Machine Learning in Image Recognition",
-        "keywords": ["machine learning", "image recognition", "deep learning", "computer vision", "neural network"],
-        "keywords_encoded": [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "url": "https://example.com/ml-image-recognition",
+        "title": "Accessing Your Files",
+        "keywords": ["home", "directory", "homedir", "files", "fileserver", "sftp", "upload", "download"],
+        "keywords_encoded": [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+        "pdf_path": "Accessing Your Files - CSE taggi.pdf",
         "year": "2023"
     },
     {
         "id": 2,
-        "title": "Current Developments in Natural Language Processing",
-        "keywords": ["natural language processing", "NLP", "text analysis", "language model", "BERT"],
-        "keywords_encoded": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-        "url": "https://example.com/nlp-development",
+        "title": "Account Classes and Groups",
+        "keywords": ["account", "group", "class", "expiring", "expiry"],
+        "keywords_encoded": [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
+        "pdf_path": "Account Classes and Groups - CSE taggi.pdf",
         "year": "2022"
     },
     {
         "id": 3,
-        "title": "Applications of Big Data Analysis in Business Decision Making",
-        "keywords": ["big data", "data analysis", "business intelligence", "decision support", "data mining"],
-        "keywords_encoded": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-        "url": "https://example.com/big-data-business",
+        "title": "Account Disabled",
+        "keywords": ["account", "disabled", "permitted"],
+        "keywords_encoded": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1],
+        "pdf_path": "Account Disabled - CSE taggi.pdf",
         "year": "2023"
-    },
-    {
-        "id": 4,
-        "title": "Advancements in Deep Learning for Image Recognition and Computer Vision",
-        "keywords": ["deep learning", "image recognition", "computer vision"],
-        "keywords_encoded": [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "url": "https://example.com/deep-learning-vision",
-        "year": "2021"
-    },
-    {
-        "id": 5,
-        "title": "The Role of Big Data and Data Analysis in Business Intelligence",
-        "keywords": ["big data", "data analysis", "business intelligence"],
-        "keywords_encoded": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0],
-        "url": "https://example.com/big-data-bi",
-        "year": "2024"
-    },
-    {
-        "id": 6,
-        "title": "Integration of Machine Learning and Neural Networks in Computer Vision",
-        "keywords": ["machine learning", "neural network", "computer vision"],
-        "keywords_encoded": [1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "url": "https://example.com/ml-nn-vision",
-        "year": "2025"
-    },
-    {
-        "id": 7,
-        "title": "Applications of NLP and Language Models in Text Analysis",
-        "keywords": ["natural language processing", "language model", "text analysis"],
-        "keywords_encoded": [0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-        "url": "https://example.com/nlp-text-analysis",
-        "year": "2025"
-    },
-    {
-        "id": 8,
-        "title": "Practical Deep Learning and Neural Network Methods for Image Recognition",
-        "keywords": ["deep learning", "neural network", "image recognition"],
-        "keywords_encoded": [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "url": "https://example.com/dl-nn-image",
-        "year": "2025"
     }
 ]
+
+
 
 def extract_keywords(text):
     keywords = []

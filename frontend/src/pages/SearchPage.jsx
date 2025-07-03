@@ -42,12 +42,9 @@ export default function SearchPage() {
             body: JSON.stringify({ query }),
         });
         const data = await response.json();
-        // 假设返回格式为 { results: [{title, url, score}, ...] }
-        const results = data.results.map(
-            r => `${r.title} - ${r.url} (Score: ${r.score.toFixed(2)}) - ${r.year}`
-        );
-        setSearchResult(results);
-        setFilteredResults(results);
+        // 直接保存对象数组
+        setSearchResult(data.results);
+        setFilteredResults(data.results);
         setFilterType('');
         setFilterValue('');
     };
@@ -58,17 +55,14 @@ export default function SearchPage() {
             setFilteredResults(searchResult);
             return;
         }
-
         const filtered = searchResult.filter(item => {
             switch (filterType) {
                 case 'year':
-                    // 检查搜索结果是否以指定年份结尾
-                    return item.endsWith(` - ${filterValue}`);
+                    return String(item.year) === String(filterValue);
                 default:
                     return true;
             }
         });
-
         setFilteredResults(filtered);
     };
 
@@ -201,7 +195,19 @@ export default function SearchPage() {
                         <List>
                             {(filteredResults.length > 0 ? filteredResults : searchResult).map((item, idx) => (
                                 <ListItem key={idx}>
-                                    <ListItemText primary={item} />
+                                    <ListItemText
+                                        primary={
+                                            <a
+                                                href={`http://127.0.0.1:8000/pdfs/${item.pdf_path}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ textDecoration: 'underline', color: '#1976d2' }}
+                                            >
+                                                {item.title}
+                                            </a>
+                                        }
+                                        secondary={`Year: ${item.year}`}
+                                    />
                                 </ListItem>
                             ))}
                         </List>

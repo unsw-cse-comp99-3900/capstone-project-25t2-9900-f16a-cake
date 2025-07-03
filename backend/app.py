@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests 
@@ -45,7 +45,7 @@ def login():
 # ---- SSO登录模拟 ----
 @app.route('/api/sso-login', methods=['GET'])
 def sso_login():
-    # 实际项目会重定向到UNSW SSO登录页，这里仅做演示，直接“登录成功”
+    # 实际项目会重定向到UNSW SSO登录页，这里仅做演示，直接"登录成功"
     # 可以考虑带一个 ?next= 参数指明回跳页面
     return jsonify({"success": True, "role": "staff", "message": "SSO Login success!"})
 
@@ -65,14 +65,12 @@ def search_api():
         score = calculate_similarity(query_encoded, item["keywords_encoded"], query, item["title"])
         results.append({
             "title": item["title"],
-            "url": item["url"],
+            "pdf_path": item.get("pdf_path", ""),
             "score": score,
-            "year": item["year"]
+            "year": item.get("year", "")
         })
 
     # 按分数排序，只返回相关度>0的前5个
-    # filtered = sorted([r for r in results if r["score"] > 0], key=lambda x: x["score"], reverse=True)[:5]
-    # 保证 search 有输出结果
     filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
@@ -146,6 +144,10 @@ def ask():
     # 提取回答
     answer = result['choices'][0]['message']['content'].strip()
     return jsonify({"answer": answer})
+
+@app.route('/pdfs/<path:filename>')
+def serve_pdf(filename):
+    return send_from_directory('pdfs', filename)
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
