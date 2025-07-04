@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     TextField,
@@ -72,6 +72,10 @@ export default function SearchPage() {
         setFilterValue('');
         setFilteredResults(searchResult);
     };
+
+    useEffect(() => {
+        document.title = "Search";
+    }, []);
 
     return (
         <>

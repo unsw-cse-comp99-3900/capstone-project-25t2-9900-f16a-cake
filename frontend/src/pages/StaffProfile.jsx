@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Paper, Typography, Button, List, ListItem, ListItemText, Divider } from "@mui/material";
 
 const mockProfile = {
@@ -11,6 +11,10 @@ const mockProfile = {
 };
 
 function StaffProfile() {
+  useEffect(() => {
+    document.title = "My Profile";
+  }, []);
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', background: '#f7f7fa' }}>
       {/* 左侧边栏 */}

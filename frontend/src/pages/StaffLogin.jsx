@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, TextField, Button, Paper, Divider } from "@mui/material";
 
@@ -6,6 +6,10 @@ function StaffLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Staff Login";
+  }, []);
 
 const handleSubmit = async (e) => {
   e.preventDefault(); // 阻止表单默认提交行为（页面刷新）

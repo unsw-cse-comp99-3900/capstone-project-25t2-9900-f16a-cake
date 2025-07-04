@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Button, Box, Typography, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
@@ -6,6 +6,10 @@ const NAVBAR_HEIGHT = 64; // TopBar高度
 
 function Entry() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "CSE new joiner onboarding hub";
+  }, []);
 
   return (
     <Box

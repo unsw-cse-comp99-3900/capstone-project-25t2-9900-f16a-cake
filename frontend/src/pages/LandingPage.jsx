@@ -7,6 +7,7 @@ function LandingPage() {
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     setRole(storedRole || "");
+    document.title = "Homepage";
   }, []);
 
   // 根据不同角色显示不同内容

@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography, TextField, Button, Paper, Divider } from "@mui/material";
 
 function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    document.title = "Admin Login";
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();

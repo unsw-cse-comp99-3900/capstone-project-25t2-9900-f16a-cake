@@ -56,7 +56,7 @@ function TopNavBar() {
           component="div"
           sx={{ color: "#222", fontWeight: 600, mr: 2 }}
         >
-          {isProfilePage ? "My Profile" : isSearchPage ? "Search" : "Staff Landing"}
+          {isProfilePage ? "My Profile" : isSearchPage ? "Search" : "Homepage"}
         </Typography>
         <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
         <Button variant="outlined" sx={{ mx: 1 }}>scenario</Button>
