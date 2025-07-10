@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
+# v 生成 token 的库 v
+import jwt
+import datetime
+# ^ 生成 token 的库 ^
 
 app = Flask(__name__)
 CORS(app)
@@ -11,6 +15,8 @@ API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL = "Qwen/QwQ-32B"
 API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 
+# 生成 token 的密钥
+SECRET_KEY = "your_secret_key"  # 请替换为安全的密钥
 
 # ————————————————————
 
@@ -21,28 +27,52 @@ def hello():
 
 
 # ---- 假用户数据 ----
-# 暂定 staff 身份可区分为 phd, tutor, lecturer, none
-# 用布尔 admin 来区分是否为管理员
 fake_users = [
-    {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "phd", "admin": False},
-    {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "tutor", "admin": False},
-    {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "lecturer", "admin": False},
-    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com", "role": "none", "admin": True},
+    {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "phd"},
+    {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "tutor"},
+    {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "lecturer"},
+    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com", "role": "admin", "subrole": None},
     # 可以继续添加更多账号
 ]
 
 
-# ---- 登录接口, 在 staff login 页面调用 ----
-@app.route('/api/staff-login', methods=['POST'])
+# ---- 登录接口, 现在使用 JWT 登录, 用于后期鉴权 ----
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    username = data.get("username") # 前端给的 username
+    password = data.get("password") # 前端给的 password
+    role = data.get("role") # 前端想要以 staff 或 admin 登录
 
-    # 模拟查找用户
+    # 检查 role 是否为 staff 或 admin，否则返回 400
+    if role not in ["staff", "admin"]:
+        return jsonify({"success": False, "message": "Invalid role"}), 400
+    
+    # 模拟查找用户，如果用户存在且密码正确，则返回成功
     user = next((u for u in fake_users if u["username"] == username), None)
     if user and user["password"] == password:
-        return jsonify({"success": True, "role": user["role"], "message": "Login success!"})
+        if (role == "staff" and user["role"] == "staff") or (role == "admin" and user["role"] == "admin"):
+            user_obj = {
+                "id": 1,  # 可根据实际情况生成或查表, 可存可不存, 看后期需要
+                "username": user["username"],
+                "role": user["role"],
+                "subrole": user["subrole"]
+            }
+            payload = {
+                "id": user_obj["id"],
+                "username": user_obj["username"],
+                "role": user_obj["role"],
+                "subrole": user_obj["subrole"],
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+            }
+            token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+            return jsonify({
+                "success": True,
+                "token": token,
+                "user": user_obj
+            })
+        else:
+            return jsonify({"success": False, "message": "Invalid role"}), 400
     else:
         return jsonify({"success": False, "message": "Invalid username or password"}), 401
 

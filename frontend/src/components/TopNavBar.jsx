@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Auth } from "../utils/Auth";
 
 function TopNavBar() {
   const navigate = useNavigate();
@@ -12,9 +13,9 @@ function TopNavBar() {
     setOpen(true);
   };
 
-  // 确认登出
+  // 确认登出, 因为用的 JWT 登录, 所以不需要后端登出接口, 直接清除 localStorage 即可
   const handleConfirmLogout = () => {
-    localStorage.removeItem("role");
+    Auth.clear();
     setOpen(false);
     navigate("/");
   };

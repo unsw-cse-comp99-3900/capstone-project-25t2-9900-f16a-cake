@@ -13,6 +13,7 @@ import RequireNoAuth from "./components/RequireNoAuth";
 import RequireAuth from "./components/RequireAuth";
 import StaffProfile from "./pages/StaffProfile";
 import SuggestButton from "./components/SuggestButton";
+import AdminLanding from "./pages/AdminLanding";
 
 function AppContent() {
   const location = useLocation();
@@ -55,6 +56,11 @@ function AppContent() {
           <Route path="/staff-profile" element={
             <RequireAuth>
               <StaffProfile />
+            </RequireAuth>
+          } />
+          <Route path="/admin-landing" element={
+            <RequireAuth>
+              <AdminLanding />
             </RequireAuth>
           } />
         </Routes>
