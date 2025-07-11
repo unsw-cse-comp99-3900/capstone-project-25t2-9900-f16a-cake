@@ -1,0 +1,112 @@
+[
+  {
+    "id": "zid_001",
+    "question": "What is a zID?",
+    "answer": "Your zID is your username for virtually all systems run by UNSW and CSE. It consists of a 'z', followed by your student or staff number (e.g. z1234567).",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_002",
+    "question": "What does a zID do?",
+    "answer": "A zID + zPass password grants you access to almost all UNSW computing services:\n- Your UNSW Email account\n- UNSW-managed computers (e.g. in the library)\n- Uniwide WiFi\n- Student printing (requires zPass + security ID card)\n- Building/room access (via linked security card)\n\nIt also enables almost all CSE services:\n- Login credentials for lab computers & SSH\n- Network file access (SMB)\n- WebCMS3\n- CSE staff printing",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_003",
+    "question": "What happens when my zID is deactivated?",
+    "answer": "All zID-protected services stop working. 24 hours after expiry, your UNSW email account and its contents are permanently deleted and unrecoverable.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_004",
+    "question": "Who needs a zID? (Short-term visitors)",
+    "answer": "People visiting CSE for only a few days generally do not need a zID. They can use EduRoam for wireless networking and temporary visitor cards for building access.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_005",
+    "question": "Who needs a zID? (Formal appointments)",
+    "answer": "Employees and formal visitors with a UNSW contract are issued a zID by UNSW HR once the contract is finalised. Unpaid CSE academic workers should be given a formal visitor appointment by their CSE academic sponsor.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_006",
+    "question": "Who needs a zID? (Other CSE Affiliates)",
+    "answer": "Guests (unofficial) researchers visiting for weeks, non-UNSW thesis supervisors, tutors awaiting formal allocation, and others not yet assigned a zID must formally apply for one.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_007",
+    "question": "How to get a zID?",
+    "answer": "1. Your supervisor downloads the OSA-02 form.  \n2. They complete it electronically and email it.  \n3. UNSW IT contacts you with your zID and password.  \n4. You or your supervisor informs the CSE Computing Support Group of your new zID so a CSE account can be created.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_008",
+    "question": "How to get a Security ID card?",
+    "answer": "1. Supervisor submits the Staff ID Application Form.  \n2. Visit FM Assist for photo ID (bring another ID document).  \n3. The card takes ~24 hours to activate.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_009",
+    "question": "Can CSE Computing Support give my guest a zID?",
+    "answer": "No. Guests must be assigned a formal UNSW role (formal visitor or contractor) via UNSW HR. Consult your School Manager if in doubt.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_010",
+    "question": "My zID will be deactivated. Can CSE Computing Support renew it?",
+    "answer": "No. CSE Support can only manage local accounts; zID activation is controlled by UNSW HR. Speak to your supervisor or HR to renew; the process may take several weeks.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "zid_011",
+    "question": "Can a guest use a CSE account without an active UNSW zID?",
+    "answer": "Technically yes, but without zID-enabled services (WiFi, printing, email, building access), the account is of limited use. Best practice is to provide a guest with an active zID and formal role.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  }
+]
