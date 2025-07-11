@@ -21,6 +21,7 @@ function AppContent() {
   const location = useLocation();
   const showTopBar = ["/", "/staff-login", "/admin-login"].includes(location.pathname);
   const isLoggedIn = !!localStorage.getItem("role");
+  const isStaff = localStorage.getItem("role") === "staff";
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -76,7 +77,11 @@ function AppContent() {
         </Routes>
       </Box>
       
-      {isLoggedIn && <SuggestButton />}
+      {/* // 只在 staff 端显示 feedback */}
+      {isStaff && <SuggestButton />}
+      {/* // ai chat 是否只在 staff 端显示? 还是所有端都显示? */}
+      {/* // 为了测试方便, 目前在所有端都显示 */}
+      {/* {isStaff && <AIchat />} */}
       {isLoggedIn && <AIchat />}
     </Box>
   );

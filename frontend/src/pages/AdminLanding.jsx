@@ -1,25 +1,12 @@
 import React from "react";
 import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormControlLabel } from "@mui/material";
 import { Auth } from "../utils/Auth";
-import { useNavigate } from "react-router-dom";
 
 function AdminLanding() {
-  const navigate = useNavigate();
-  const handleLogout = () => {
-    Auth.clear();
-    navigate("/");
-  };
   return (
-    <Box sx={{ minHeight: "100vh", background: "#f7f7fa", p: 3 }}>
+    <Box sx={{ minHeight: "100vh", background: "#f7f7fa", p: 3, pt: 10 }}>
       {/* 顶部导航栏 */}
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <img src="/unswlogo.png" alt="unsw logo" style={{ height: 40, marginRight: 16 }} />
-        <Button variant="outlined" sx={{ mr: 2 }}>Onboarding Hub Dashboard</Button>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button variant="outlined" sx={{ mr: 2 }}><span role="img" aria-label="user">👤</span></Button>
-        <Button variant="contained" color="secondary" onClick={handleLogout}>Log out</Button>
-      </Box>
-      <Divider sx={{ mb: 2 }} />
+      {/* <Divider sx={{ mb: 2 }} /> */}
       {/* 主体内容区域 */}
       <Box sx={{ display: "flex", gap: 2 }}>
         {/* 左侧区域 */}
