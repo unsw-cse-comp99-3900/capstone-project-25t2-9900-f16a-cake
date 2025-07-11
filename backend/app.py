@@ -63,7 +63,8 @@ def login():
                 "username": user_obj["username"],
                 "role": user_obj["role"],
                 "subrole": user_obj["subrole"],
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+                # 暂时不设置过期时间, 后期需要再设置
+                # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
             return jsonify({

@@ -14,6 +14,8 @@ import RequireAuth from "./components/RequireAuth";
 import StaffProfile from "./pages/StaffProfile";
 import SuggestButton from "./components/SuggestButton";
 import AdminLanding from "./pages/AdminLanding";
+import RequireAdmin from "./components/RequireAdmin";
+import RequireStaff from "./components/RequireStaff";
 
 function AppContent() {
   const location = useLocation();
@@ -45,22 +47,30 @@ function AppContent() {
           {/* 需要登录才能访问 */}
           <Route path="/staff-landing" element={
             <RequireAuth>
-              <LandingPage />
+              <RequireStaff>
+                <LandingPage />
+              </RequireStaff>
             </RequireAuth>
           } />
           <Route path="/search" element={
             <RequireAuth>
-              <SearchPage />
+              <RequireStaff>
+                <SearchPage />
+              </RequireStaff>
             </RequireAuth>
           } />
           <Route path="/staff-profile" element={
             <RequireAuth>
-              <StaffProfile />
+              <RequireStaff>
+                <StaffProfile />
+              </RequireStaff>
             </RequireAuth>
           } />
           <Route path="/admin-landing" element={
             <RequireAuth>
-              <AdminLanding />
+              <RequireAdmin>
+                <AdminLanding />
+              </RequireAdmin>
             </RequireAuth>
           } />
         </Routes>
