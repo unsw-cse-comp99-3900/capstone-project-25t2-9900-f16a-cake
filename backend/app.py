@@ -3,9 +3,14 @@ from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
 
+# —————————rag———————————
+import faiss
+import pickle
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
 app = Flask(__name__)
 CORS(app)
-
 # ———— AI 聊天配置区域 ————
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL = "Qwen/QwQ-32B"
@@ -13,6 +18,7 @@ API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 
 
 # ————————————————————
+
 
 # ---- 测试接口 ----
 @app.route("/api/hello")
@@ -126,6 +132,56 @@ def home():
     return 'Welcome to the demo backend!'
 
 
+
+def rag_search(question):
+    # 1. 加载模型
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    # 2. 加载 Faiss 索引
+    index = faiss.read_index("rag/zid_faq.index")
+
+    # 3. 加载 ID 映射
+    with open("rag/zid_faq_ids.pkl", "rb") as f:
+        ids = pickle.load(f)
+
+    import json
+
+    with open("rag/zid_faq_docs.json", "r", encoding="utf-8") as f:
+        docs = json.load(f)
+
+    def retrieve(query, top_k=5, score_threshold=0.8):
+        q_emb = model.encode([query])
+        D, I = index.search(np.array(q_emb, dtype="float32"), top_k)
+
+        results = []
+        for dist, idx in zip(D[0], I[0]):
+            score = float(dist)
+            if score > score_threshold:
+                continue
+            doc_id = ids[idx]
+            entry = next(d for d in docs if d["id"] == doc_id)
+            results.append({
+                "score": score,
+                "question": entry["question"],
+                "answer": entry["answer"]
+            })
+        return results
+
+    hits = retrieve(question, top_k=10, score_threshold=0.75)
+    threshold = 0.8
+    filtered = [h for h in hits if h["score"] >= threshold]
+    if not filtered:
+        result_str = "No results above score 0.8."
+    else:
+        parts = []
+        for i, hit in enumerate(filtered, 1):
+            parts.append(
+                f"{i}. Question: {hit['question']}\n"
+                f"   Answer:   {hit['answer']}"
+            )
+        # 每条之间用两个换行分隔
+        result_str = "\n\n".join(parts)
+    return result_str
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
@@ -133,6 +189,7 @@ def ask():
     question = data.get('question', '').strip()
     if not question:
         return jsonify({"error": "question 不能为空"}), 400
+    knowlegde=rag_search(question)
 
     payload = {
         "model": MODEL,
@@ -145,7 +202,7 @@ def ask():
                                           "对话风格：专业、简洁、友好、易理解并且使用英语作为主要用语。你拥有以下能力：- 结合检索到的文档段落进行动态回答（RAG-Sequence / RAG-Token）；- "
                                           "根据用户不同角色（教职工/学生/管理员）提供差异化视图和链接；- 支持文件上传下载、关键词搜索、反馈收集等功能调用。"
                                          },
-            {"role": "user", "content": question}
+            {"role": "user", "content": "please answer the question:"+question+"based on the:"+knowlegde}
 
         ],
         "temperature": 0.7,
