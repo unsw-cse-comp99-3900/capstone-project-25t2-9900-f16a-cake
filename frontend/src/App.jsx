@@ -13,11 +13,15 @@ import RequireNoAuth from "./components/RequireNoAuth";
 import RequireAuth from "./components/RequireAuth";
 import StaffProfile from "./pages/StaffProfile";
 import SuggestButton from "./components/SuggestButton";
+import AdminLanding from "./pages/AdminLanding";
+import RequireAdmin from "./components/RequireAdmin";
+import RequireStaff from "./components/RequireStaff";
 
 function AppContent() {
   const location = useLocation();
   const showTopBar = ["/", "/staff-login", "/admin-login"].includes(location.pathname);
   const isLoggedIn = !!localStorage.getItem("role");
+  const isStaff = localStorage.getItem("role") === "staff";
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -44,23 +48,40 @@ function AppContent() {
           {/* 需要登录才能访问 */}
           <Route path="/staff-landing" element={
             <RequireAuth>
-              <LandingPage />
+              <RequireStaff>
+                <LandingPage />
+              </RequireStaff>
             </RequireAuth>
           } />
           <Route path="/search" element={
             <RequireAuth>
-              <SearchPage />
+              <RequireStaff>
+                <SearchPage />
+              </RequireStaff>
             </RequireAuth>
           } />
           <Route path="/staff-profile" element={
             <RequireAuth>
-              <StaffProfile />
+              <RequireStaff>
+                <StaffProfile />
+              </RequireStaff>
+            </RequireAuth>
+          } />
+          <Route path="/admin-landing" element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminLanding />
+              </RequireAdmin>
             </RequireAuth>
           } />
         </Routes>
       </Box>
       
-      {isLoggedIn && <SuggestButton />}
+      {/* // 只在 staff 端显示 feedback */}
+      {isStaff && <SuggestButton />}
+      {/* // ai chat 是否只在 staff 端显示? 还是所有端都显示? */}
+      {/* // 为了测试方便, 目前在所有端都显示 */}
+      {/* {isStaff && <AIchat />} */}
       {isLoggedIn && <AIchat />}
     </Box>
   );
