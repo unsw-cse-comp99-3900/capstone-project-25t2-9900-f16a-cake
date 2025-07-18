@@ -12,6 +12,7 @@ import faiss
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -24,6 +25,11 @@ API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 SECRET_KEY = "your_secret_key"  # 请替换为安全的密钥
 
 # ————————————————————
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pdfs')
+ALLOWED_EXTENSIONS = {'pdf'}
+# flask 全局参数, 用来保存上传的文件的位置
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 # ---- 测试接口 ----
@@ -256,6 +262,24 @@ def ask():
 @app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
     return send_from_directory('pdfs', filename)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/api/upload', methods=['POST'])
+def upload_pdf():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '没有文件部分'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '未选择文件'}), 400
+    if file and allowed_file(file.filename):
+        filename = file.filename
+        save_path = os.path.join(str(app.config['UPLOAD_FOLDER']), str(filename))
+        file.save(save_path)
+        return jsonify({'success': True, 'message': '上传成功', 'filename': filename})
+    else:
+        return jsonify({'success': False, 'message': '只允许上传 PDF 文件'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
