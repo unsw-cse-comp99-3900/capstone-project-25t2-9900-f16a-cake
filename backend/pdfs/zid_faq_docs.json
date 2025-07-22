@@ -1,0 +1,182 @@
+[
+  {
+    "id": "zid_001",
+    "question": "What is a zID?",
+    "answer": "Your zID is your username for virtually all systems run by UNSW and CSE. It consists of a 'z', followed by your student or staff number (e.g. z1234567).",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_82016a28",
+    "question": "From a CSE lab machine, VLAB or CSE login server",
+    "answer": "Your home directory is available automatically, under /home/CSE_account (eg. /home/z1234567) New terminals and file browsers start in this directory.",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_fe590398",
+    "question": "From your own computer",
+    "answer": "If you are connecting from any other network (uniwide, external internet, etc), you will need an SSH/SCP/SFTP client to access your files. Clients using CIFS/SMB will not work unless you use a VPN so it will be simpler to use SSH/SCP/SFTP.",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_1553591a",
+    "question": "Using Windows",
+    "answer": "We recommend WinSCP, as it is popular, well-supported and free. To connect: Select SFTP as the protocol Enter the host login.cse.unsw.edu.au Enter your zID and zPass as the username and password Click 'Connect' (you may wish to click 'Save' first, to save these details for next time) Or, recently Window added support for OpenSSL (Guide). You can use that much as you would use scp on a Linux computer. https://taggi.cse.unsw.edu.au/FAQ/Accessing_Your_Files/ 1/3 2025/7/3 16:01 Accessing Your Files - CSE taggi",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_0694530a",
+    "question": "Using a SSH-key",
+    "answer": "You need have WinSCP offer your current SSH key as a credential. 1. Convert your existing SSH private key to a format that WinSCP reads. 2. Use the converted private key in WinSCP.",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_f14d84e6",
+    "question": "Using Mac",
+    "answer": "The preferred SFTP client for Mac is Cyberduck. To connect: Click 'Open Connection' Select SFTP as the protocol Enter the server login.cse.unsw.edu.au Enter <your zID> and <your zPass> as the username and password Click 'Connect' (you may wish to click 'Add to keychain' first, to save your credentials for next time) (Or on the commandline use scp)",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_3815fec4",
+    "question": "Using Linux (ubuntu)",
+    "answer": "Open the file browser Click on the File menu Click 'Connect to server' Enter the path ssh://login.cse.unsw.edu.au Click 'Connect' Use your zID and zPass as the username and password when prompted. (Or on the commandline use scp)",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_cc2f844b",
+    "question": "Using a SSH client",
+    "answer": "If the computer you are using has a command-line SSH client, then you can use that to access files at CSE.",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_327593ae",
+    "question": "Make an archive",
+    "answer": "If you can connect to CSE using SSH then you can save an archive of CSE files and stream it to your computer. For instance, to make an archive of your CSE home directory: ssh username@login.cse.unsw.edu.au \"tar -czf - ~\" > cse_homedir.tar.gz Running that command does not change your CSE account and does not use up CSE account quota.",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_03f1c29d",
+    "question": "Rsync",
+    "answer": "https://taggi.cse.unsw.edu.au/FAQ/Accessing_Your_Files/ 2/3 2025/7/3 16:01 Accessing Your Files - CSE taggi You can use Rsync to keep a local copy of some files at CSE (or the reverse). To update a local copy of your remote CSE account: rsync -az \"username@login.cse.unsw.edu.au:\" cse_home/",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_f5438d90",
+    "question": "Other pages like this",
+    "answer": "Uploading and Downloading Files from CSE Using SSHFS Last edited by robertd 19/12/2023 https://taggi.cse.unsw.edu.au/FAQ/Accessing_Your_Files/ 3/3",
+    "source": {
+      "title": "Sample PDF",
+      "url": "Accessing Your Files - CSE taggi.pdf",
+      "last_edited": "2025-07-15"
+    }
+  },
+  {
+    "id": "qa_dec1d95d",
+    "question": "What is a zID?",
+    "answer": "Your zID is your username for virtually all systems run by UNSW and CSE. It consists of a 'z', followed by your student or staff number, eg.z1234567. Learn more atUNSW IT.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_3808da8e",
+    "question": "What does a zID do?",
+    "answer": "YourzIDusername is used along with yourzPasspassword to access almost all UNSW computing services, such as: Your UNSW Email accountAccess to UNSW-maintained computers, such as the ones in the library.Uniwide wifiStudent printing, which requires zPass and a security ID card.Building and room access which requires a security ID card linked to your UNSW zIDTemporary visitor cards that don't need a zID are available for very short-term visitors And almost all CSE computing services, such as: Account login credentials to CSE lab computers and SSH serversNetwork file access (SMB)WebCMS3CSE staff printing(requires zID and security card) It is possible to have a working account on CSE systems even when you do not have an active zID.However, you will probably still need access to various services thatdorequire an active zID.You should arrange to get a zID if you have an ongoing relationship with the school.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_8e6d0a99",
+    "question": "What happens when my zID is deactivated?",
+    "answer": "All the services described above will stop working for you.24 hours after your zID expires, your UNSW email account will removed and all email inside will be deleted and unrecoverable.Who needs a zID?Short-term visitorsPeople who visit CSE for only a few days will generally not need a zID.Academics visiting for a few days from other universities can useEduRoamif they need wireless networking.Temporary visitor cards are also available for access to the building.Formal appointmentsIn most cases, people who have a formal contract with UNSW (employees andformal visitors) will be given a zID by UNSW HRs once their contract is finalised.People involved in (unpaid) CSE academic work should be given a formal Visitor appointment.CSE Academic who has engaged them should organise that with the CSE Head-of-School.Other CSE AffiliatesSome people will need to formally apply for a zID.These include:Guest (unofficial) researchers who visit here for a few weeksNon-UNSW thesis supervisorsPeople (e.g.tutors) not yet allocated a zID due to administrative reasonsHow to get a zIDYour supervisor (or the person who invited you) will need to download anOSA-02Form.They complete the form electronically and email it to the address provided.UNSW IT will then contact you directly and tell you your zID and password.Important:You or your supervisor will need to tell theComputing Support Groupwhat the new zID is, so we can create your CSE account.How to get a Security ID cardOnce you have a zID you can get a security ID card:Your supervisor needs to submit aStaff ID Application Formon your behalf.Go toFM Assistto get your photo ID - you will need to take some other form of ID with you.The card can take about 24 hours to become active.For more information, seeEstate Management.QuestionsCan CSE Computing Support give my guest a zID?No  - you will need to request a formal UNSW role for a guest, either as aformal visitoror as a contractor.If in doubt, ask the School Manager.My zID will be deactivated. Can CSE Computing Support renew it?No - CSE Computing Support has no control over what zID accounts are active - we only control the local computing account tied to your zID.You need to speak to your supervisor, the Head-of-School or UNSW HR if you want your zID account to stay active.The process of renewing an appointment can take several weeks, so don't leave it until the last minute.Can a guest use a CSE account without an active UNSW zID?Technically yes, but it won't be very useful without access to the shared services (wifi, printing, email, etc.) that a zID provides.Please give your guest a formal role here and an active zID so they will have access to all available computing services and access to the building.Last edited by jbc 09/11/2020",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_e620168f",
+    "question": "Who needs a zID?",
+    "answer": "",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_0f956acb",
+    "question": "Can CSE Computing Support give my guest a zID?",
+    "answer": "No  - you will need to request a formal UNSW role for a guest, either as aformal visitoror as a contractor. If in doubt, ask the School Manager.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_38b8b7aa",
+    "question": "My zID will be deactivated. Can CSE Computing Support renew it?",
+    "answer": "No - CSE Computing Support has no control over what zID accounts are active - we only control the local computing account tied to your zID. You need to speak to your supervisor, the Head-of-School or UNSW HR if you want your zID account to stay active. The process of renewing an appointment can take several weeks, so don't leave it until the last minute.",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  },
+  {
+    "id": "qa_a7704bfb",
+    "question": "Can a guest use a CSE account without an active UNSW zID?",
+    "answer": "Technically yes, but it won't be very useful without access to the shared services (wifi, printing, email, etc.) that a zID provides. Please give your guest a formal role here and an active zID so they will have access to all available computing services and access to the building. Last edited by jbc 09/11/2020",
+    "source": {
+      "title": "Getting a zID",
+      "url": "https://taggi.cse.unsw.edu.au/FAQ/Getting_a_zID/",
+      "last_edited": "09/11/2020"
+    }
+  }
+]
