@@ -16,6 +16,8 @@ from sentence_transformers import SentenceTransformer
 import os
 import json
 from datetime import datetime  # 用于文件时间展示
+import time
+import random
 
 app = Flask(__name__)
 CORS(app)
@@ -380,6 +382,48 @@ def delete_pdf(filename):
         return jsonify({'success': True, 'message': 'PDF deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# AI chat 的 general 模式
+@app.route('/api/aichat/general', methods=['POST'])
+def aichat_general():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "question cannot be empty"}), 400
+    time.sleep(random.uniform(0.5, 1.5))  # 模拟AI延迟
+    return jsonify({"answer": f"This is a mock AI reply: {question}"})
+
+# AI chat 的 rag 模式
+@app.route('/api/aichat/rag', methods=['POST'])
+def aichat_rag():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "question cannot be empty"}), 400
+    time.sleep(random.uniform(0.5, 1.5))
+    # 用 pdfs 下的 PDF 作为 source，返回完整 URL
+    pdf_title = "Account Disabled - CSE taggi.pdf"
+    pdf_url = f"http://localhost:8000/pdfs/{pdf_title.replace(' ', '%20')}"
+    return jsonify({
+        "answer": f"[RAG] This is a mock RAG reply: {question}",
+        "reference": {pdf_title: pdf_url}
+    })
+
+# AI chat 的 checklist 模式
+@app.route('/api/aichat/checklist', methods=['POST'])
+def aichat_checklist():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "question cannot be empty"}), 400
+    time.sleep(random.uniform(0.5, 1.5))
+    # checklist 模式返回 checklist 风格内容
+    checklist = [
+        {"item": "Step 1: Do something", "done": False},
+        {"item": "Step 2: Do something else", "done": False},
+        {"item": "Step 3: Finish up", "done": False}
+    ]
+    return jsonify({"answer": f"[Checklist] Here is your checklist for: {question}", "checklist": checklist})
 
 
 if __name__ == '__main__':

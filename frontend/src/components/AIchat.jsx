@@ -33,6 +33,7 @@ const AIchat = () => {
   });
 
   const [isOpen, setIsOpen] = useState(false);
+  // 用于保存所有历史消息
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -42,6 +43,14 @@ const AIchat = () => {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+  const MODES = [
+    { value: "general", label: "General" },
+    { value: "rag", label: "RAG" },
+    { value: "checklist", label: "Checklist" }
+  ];
+  const [mode, setMode] = useState("general");
+  const currentMode = MODES.find(m => m.value === mode); // 当前模式, 有上面一行决定, 现在是 general
+  const otherModes = MODES.filter(m => m.value !== mode); // 其他模式, 现在是 rag 和 general
 
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
@@ -57,16 +66,24 @@ const AIchat = () => {
   }
 
   const handleSendMessage = async () => {
-    if (inputMessage.trim()) {
+    if (inputMessage.trim()) {  // 如果输入消息不为空
+      // 构建新消息, 这里是 user 发送的消息
       const newMessage = {
         id: messages.length + 1,
         text: inputMessage,
         sender: "user",
         timestamp: new Date(),
       };
+      // 保存到历史信息 messages 中
       setMessages([...messages, newMessage]);
-      setInputMessage("");
+      setInputMessage("");  // 清空输入框
 
+      // 根据模式选择不同的后端 API
+      let apiUrl = "/api/aichat/general";
+      if (mode === "rag") apiUrl = "/api/aichat/rag";
+      else if (mode === "checklist") apiUrl = "/api/aichat/checklist";
+
+      // ==========vvvv 这一部分感觉没必要, 因为没有登录的用户在前端无法访问到 vvvv==========
       // <<-- 步骤 2: 从 Auth 模块获取 user_id -->>
       const userId = Auth.getUserId();
 
@@ -81,11 +98,13 @@ const AIchat = () => {
         setMessages(prev => [...prev, errorResponse]);
         return;
       }
+      // ==========^^^^ 这一部分感觉没必要, 因为没有登录的用户在前端无法访问到 ^^^^==========
 
       // 真实请求后端 AI
       try {
-        const resp = await fetch("/api/ask", {
+        const resp = await fetch(apiUrl, {
           method: "POST",
+          // 这一部分应该只需要给后端发 token 和 question 就可以了
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             question: inputMessage,
@@ -96,22 +115,32 @@ const AIchat = () => {
           })
         });
         const data = await resp.json();
-        const aiText = data.answer || (data.error ? `error: ${data.error}` : "AI无回复");
+        let aiText = data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
+        let aiReference = undefined;
+        // checklist 模式特殊处理
+        if (mode === "checklist" && data.checklist) {
+          aiText += "\n " + data.checklist.map((item, idx) => `${idx + 1}. ${item.item}`).join("\n");
+        }
+        // rag 模式特殊处理，保存 reference 字段
+        if (mode === "rag" && data.reference && Object.keys(data.reference).length > 0) {
+          aiReference = data.reference;
+        }
         const aiResponse = {
           id: messages.length + 2,
           text: aiText,
           sender: "ai",
           timestamp: new Date(),
+          reference: aiReference
         };
-        setMessages(prev => [...prev, aiResponse]);
+        setMessages((prev) => [...prev, aiResponse]);
       } catch {
         const aiResponse = {
           id: messages.length + 2,
-          text: "error: 网络或服务器异常",
+          text: "error: network or server error",
           sender: "ai",
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, aiResponse]);
+        setMessages((prev) => [...prev, aiResponse]);
       }
     }
   };
@@ -188,10 +217,26 @@ const AIchat = () => {
               borderTopRightRadius: 8,
             }}
           >
-            <Typography variant="h6">AI Chat</Typography>
+            <Typography variant="h6">
+              AI Chat - {currentMode.label} {/* 用来展示当前 ai 对话模式 */}
+            </Typography>
             <IconButton onClick={toggleChat} size="small">
               <MinimizeIcon />
             </IconButton>
+          </Box>
+          {/* 模式切换按钮组 */}
+          <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', gap: 2 }}>
+            {otherModes.map(m => (
+              <Button
+                key={m.value}
+                variant="outlined"
+                size="small"
+                onClick={() => setMode(m.value)}
+                sx={{ minWidth: 100 }}
+              >
+                {m.label}
+              </Button>
+            ))}
           </Box>
 
           {/* 消息列表 */}
@@ -209,7 +254,8 @@ const AIchat = () => {
                   key={message.id}
                   sx={{
                     display: "flex",
-                    justifyContent: message.sender === "user" ? "flex-end" : "flex-start",
+                    justifyContent:
+                      message.sender === "user" ? "flex-end" : "flex-start",
                     px: 0,
                   }}
                 >
@@ -217,13 +263,25 @@ const AIchat = () => {
                     sx={{
                       p: 1.5,
                       maxWidth: "70%",
-                      backgroundColor: message.sender === "user" ? "#1976d2" : "white",
+                      backgroundColor:
+                        message.sender === "user" ? "#1976d2" : "white",
                       color: message.sender === "user" ? "white" : "black",
                       borderRadius: 2,
                       boxShadow: 1,
                     }}
                   >
                     <Typography variant="body2">{message.text}</Typography>
+                    {/* rag 模式下显示 reference, 如果是 AI 发的, 并且有 reference 字段, 显示 reference */}
+                    {message.sender === "ai" && message.reference && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" sx={{ color: 'grey.700', fontWeight: 500 }}>Sources:</Typography>
+                        {Object.entries(message.reference).map(([title, url]) => (
+                          <Box key={title} sx={{ fontSize: 12, color: 'grey.700', wordBreak: 'break-all' }}>
+                            <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
                     <Typography
                       variant="caption"
                       sx={{
@@ -246,7 +304,14 @@ const AIchat = () => {
           <Divider />
 
           {/* 输入区域 */}
-          <Box sx={{ p: 2, backgroundColor: "white", borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
+          <Box
+            sx={{
+              p: 2,
+              backgroundColor: "white",
+              borderBottomLeftRadius: 8,
+              borderBottomRightRadius: 8,
+            }}
+          >
             <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
                 fullWidth
@@ -287,4 +352,4 @@ const AIchat = () => {
   );
 };
 
-export default AIchat; 
+export default AIchat;
