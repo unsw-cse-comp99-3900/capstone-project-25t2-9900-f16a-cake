@@ -23,7 +23,7 @@ MODEL = "Qwen/QwQ-32B"
 API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 
 # 生成 token 的密钥
-SECRET_KEY = "your_secret_key"  # 请替换为安全的密钥
+SECRET_KEY = "hdingo_secret_key"  
 
 # ————————————————————
 
@@ -41,10 +41,54 @@ def hello():
 
 # ---- 假用户数据 ----
 fake_users = [
-    {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "phd"},
-    {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "tutor"},
-    {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "lecturer"},
-    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com", "role": "admin", "subrole": None},
+    {
+        "id": 1,
+        "username": "phd1",
+        "password": "pass123",
+        "email": "staff1@example.com",
+        "role": "staff",
+        "subrole": "phd", 
+        "firstName": "Jiaxin", 
+        "lastName": "Weng", 
+        "phone": "0413962xxx", 
+        "department": "CSE"
+    },
+    {
+        "id": 2, 
+        "username": "tutor1", 
+        "password": "pass123", 
+        "email": "staff2@example.com", 
+        "role": "staff", 
+        "subrole": "tutor", 
+        "firstName": "Vincent", 
+        "lastName": "Nono", 
+        "phone": "0413123xxx", 
+        "department": "CSE"
+    },
+    {   
+        "id": 3, 
+        "username": "lecturer1", 
+        "password": "pass123", 
+        "email": "staff3@example.com", 
+        "role": "staff", 
+        "subrole": "lecturer", 
+        "firstName": "Alice", 
+        "lastName": "Smith", 
+        "phone": "0413999xxx", 
+        "department": "CSE"
+    },
+    {
+        "id": 4,
+        "username": "admin1", 
+        "password": "adminpass", 
+        "email": "admin1@example.com", 
+        "role": "admin", 
+        "subrole": None, 
+        "firstName": "Admin", 
+        "lastName": "User", 
+        "phone": "0413888xxx", 
+        "department": "CSE"
+    },
     # 可以继续添加更多账号
 ]
 
@@ -263,20 +307,27 @@ def ask():
 # 获取 staff profile, (现在是模拟数据), 需要后端做鉴权, 从数据库中获取
 @app.route('/api/profile', methods=['GET'])
 def get_profile():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except Exception:
+        return jsonify({"error": "Invalid token"}), 401
+
+    user_id = payload.get("id")
+    user = next((u for u in fake_users if u.get("id") == user_id), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     return jsonify({
-        "firstName": "Jiaxin",
-        "lastName": "Weng",
-        "email": "z5570225@ad.unsw.edu.au",
-        "phone": "0413962xxx",
-        "department": "CSE",
-        "role": "PhD"
-        # ----------------------------
-        # "firstName": "nono",
-        # "lastName": "vincent",
-        # "email": "z5570225@ad.unsw.edu.au",
-        # "phone": "0413962xxx",
-        # "department": "CSE",
-        # "role": "tutor"
+        "firstName": user.get("firstName"),
+        "lastName": user.get("lastName"),
+        "email": user.get("email"),
+        "phone": user.get("phone"),
+        "department": user.get("department"),
+        "role": user.get("subrole")
     })
 
 @app.route('/pdfs/<path:filename>')

@@ -13,13 +13,19 @@ function StaffProfile() {
 
   useEffect(() => {
     document.title = "My Profile";
-    fetch("/api/profile")
+    const token = localStorage.getItem("token");
+    fetch("/api/profile", {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined
+      }
+    })
       .then(res => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
       })
       .then(data => {
         setProfile(data);
+        console.log(data);
         setLoading(false);
       })
       .catch(() => {
