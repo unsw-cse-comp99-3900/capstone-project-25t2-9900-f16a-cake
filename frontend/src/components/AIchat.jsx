@@ -30,6 +30,14 @@ const AIchat = () => {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+  const MODES = [
+    { value: "general", label: "General" },
+    { value: "rag", label: "RAG" },
+    { value: "checklist", label: "Checklist" }
+  ];
+  const [mode, setMode] = useState("general");
+  const currentMode = MODES.find(m => m.value === mode); // 当前模式, 有上面一行决定, 现在是 general
+  const otherModes = MODES.filter(m => m.value !== mode); // 其他模式, 现在是 rag 和 general
 
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
@@ -160,10 +168,26 @@ const AIchat = () => {
               borderTopRightRadius: 8,
             }}
           >
-            <Typography variant="h6">AI Chat</Typography>
+            <Typography variant="h6">
+              AI Chat - {currentMode.label} {/* 用来展示当前 ai 对话模式 */}
+            </Typography>
             <IconButton onClick={toggleChat} size="small">
               <MinimizeIcon />
             </IconButton>
+          </Box>
+          {/* 模式切换按钮组 */}
+          <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', gap: 2 }}>
+            {otherModes.map(m => (
+              <Button
+                key={m.value}
+                variant="outlined"
+                size="small"
+                onClick={() => setMode(m.value)}
+                sx={{ minWidth: 100 }}
+              >
+                {m.label}
+              </Button>
+            ))}
           </Box>
 
           {/* 消息列表 */}
