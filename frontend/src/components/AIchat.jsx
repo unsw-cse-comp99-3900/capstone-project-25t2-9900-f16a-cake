@@ -65,23 +65,35 @@ const AIchat = () => {
       setMessages([...messages, newMessage]);
       setInputMessage("");  // 清空输入框
 
-      // 真实请求后端 AI
+      // 根据模式选择不同的后端 API
+      let apiUrl = "/api/aichat/general";
+      if (mode === "rag") apiUrl = "/api/aichat/rag";
+      else if (mode === "checklist") apiUrl = "/api/aichat/checklist";
+
       try {
-        const resp = await fetch("/api/aichat/general", {
+        const resp = await fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          // 目前发送给后端的只有 user 的输入, 没有历史信息, 也没有chat mode 的区分
+          // 目前发送给后端的还是只有 user 的输入, 没有历史信息
           body: JSON.stringify({ question: inputMessage }),
         });
         const data = await resp.json();
-        const aiText =
-          data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
+        let aiText = data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
+        let aiReference = undefined;
+        // checklist 模式特殊处理
+        if (mode === "checklist" && data.checklist) {
+          aiText += "\n " + data.checklist.map((item, idx) => `${idx + 1}. ${item.item}`).join("\n");
+        }
+        // rag 模式特殊处理，保存 reference 字段
+        if (mode === "rag" && data.reference && Object.keys(data.reference).length > 0) {
+          aiReference = data.reference;
+        }
         const aiResponse = {
-          // 构建存在历史信息中的 AI 消息
           id: messages.length + 2,
           text: aiText,
           sender: "ai",
           timestamp: new Date(),
+          reference: aiReference
         };
         setMessages((prev) => [...prev, aiResponse]);
       } catch {
@@ -222,6 +234,17 @@ const AIchat = () => {
                     }}
                   >
                     <Typography variant="body2">{message.text}</Typography>
+                    {/* rag 模式下显示 reference, 如果是 AI 发的, 并且有 reference 字段, 显示 reference */}
+                    {message.sender === "ai" && message.reference && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" sx={{ color: 'grey.700', fontWeight: 500 }}>Sources:</Typography>
+                        {Object.entries(message.reference).map(([title, url]) => (
+                          <Box key={title} sx={{ fontSize: 12, color: 'grey.700', wordBreak: 'break-all' }}>
+                            <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
                     <Typography
                       variant="caption"
                       sx={{
