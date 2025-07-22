@@ -260,6 +260,25 @@ def ask():
     answer = result['choices'][0]['message']['content'].strip()
     return jsonify({"answer": answer})
 
+# 获取 staff profile, (现在是模拟数据), 需要后端做鉴权, 从数据库中获取
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    return jsonify({
+        "firstName": "Jiaxin",
+        "lastName": "Weng",
+        "email": "z5570225@ad.unsw.edu.au",
+        "phone": "0413962xxx",
+        "department": "CSE",
+        "role": "PhD"
+        # ----------------------------
+        # "firstName": "nono",
+        # "lastName": "vincent",
+        # "email": "z5570225@ad.unsw.edu.au",
+        # "phone": "0413962xxx",
+        # "department": "CSE",
+        # "role": "tutor"
+    })
+
 @app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
     return send_from_directory('pdfs', filename)
