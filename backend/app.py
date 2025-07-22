@@ -192,41 +192,66 @@ def rag_search(question):
 
         results = []
         for dist, idx in zip(D[0], I[0]):
-            score = float(dist)
+            score = float(dist)  # 距离，越小越好
             if score > score_threshold:
                 continue
             doc_id = ids[idx]
-            entry = next(d for d in docs if d["id"] == doc_id)
+            entry = doc_map[doc_id]
+
+            src = entry.get("source", {}) or {}
             results.append({
                 "score": score,
-                "question": entry["question"],
-                "answer": entry["answer"]
+                "question": entry.get("question", ""),
+                "answer": entry.get("answer", ""),
+                "title": src.get("title", ""),
+                "url": src.get("url", "")
             })
         return results
 
     hits = retrieve(question, top_k=10, score_threshold=0.75)
-    threshold = 0.8
-    filtered = [h for h in hits if h["score"] >= threshold]
-    if not filtered:
-        result_str = "No results above score 0.8."
+
+    if not hits:
+        result_str = "No results above score 0.75."
     else:
         parts = []
-        for i, hit in enumerate(filtered, 1):
+        for i, h in enumerate(hits, 1):
+            ref_line = f"   Reference: {h['title']} - {h['url']}" if h["url"] else ""
             parts.append(
-                f"{i}. Question: {hit['question']}\n"
-                f"   Answer:   {hit['answer']}"
+                f"{i}. Question: {h['question']}\n"
+                f"   Answer:   {h['answer']}\n"
+                f"{ref_line}"
             )
-        # 每条之间用两个换行分隔
         result_str = "\n\n".join(parts)
+
     return result_str
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
-    data = request.get_json() or {}
-    question = data.get('question', '').strip()
-    if not question:
-        return jsonify({"error": "question 不能为空"}), 400
-    knowlegde=rag_search(question)
+    hits = retrieve(question, top_k=10, score_threshold=0.75)
+
+
+    # 这部分是无法查询到结果的情况
+    if not hits:
+        result_str = "No results"
+        reference = ""
+
+    # ————————TODU：可以转移到人工接口的网页——————————————
+
+    else:
+        qa_parts = []
+        ref_parts = []
+        for i, h in enumerate(hits, 1):
+            qa_parts.append(
+                f"{i}. Question: {h['question']}\n"
+                f"   Answer:   {h['answer']}\n"
+                f"   Reference: {h['title']} - {h['url']}"
+            )
+            if h["url"]:
+                ref_parts.append(f'"{h["title"]}": "{h["url"]}"')
+        result_str = "\n\n".join(qa_parts)
+
+        # 这个输出的结果是标题和URL，可以根据链接进行跳转
+        reference = "\n".join(ref_parts)
 
     payload = {
         "model": MODEL,
@@ -239,7 +264,7 @@ def ask():
                                           "对话风格：专业、简洁、友好、易理解并且使用英语作为主要用语。你拥有以下能力：- 结合检索到的文档段落进行动态回答（RAG-Sequence / RAG-Token）；- "
                                           "根据用户不同角色（教职工/学生/管理员）提供差异化视图和链接；- 支持文件上传下载、关键词搜索、反馈收集等功能调用。"
                                          },
-            {"role": "user", "content": "please answer the question:"+question+"based on the:"+knowlegde}
+            {"role": "user", "content": "please answer the question:"+question+"based on the:"+result_str}
 
         ],
         "temperature": 0.7,
