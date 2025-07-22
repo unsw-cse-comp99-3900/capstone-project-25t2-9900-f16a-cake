@@ -1,99 +1,97 @@
 import React, { useEffect, useState } from "react";
-import { Box, Paper, Typography, List, ListItem, ListItemText, Divider, Avatar, Stack, ListItemIcon, CircularProgress, Alert } from "@mui/material";
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
-import BusinessIcon from '@mui/icons-material/Business';
-import PersonIcon from '@mui/icons-material/Person';
-import BadgeIcon from '@mui/icons-material/Badge';
+import { useNavigate } from "react-router-dom";
+// 1. 导入您的 Auth 工具
+import { Auth } from "../utils/Auth";
+import { Box, Paper, Typography, List, ListItem, ListItemText, Divider, CircularProgress } from "@mui/material";
 
 function StaffProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "My Profile";
-    const token = localStorage.getItem("token");
-    fetch("/api/profile", {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined
-      }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      })
-      .then(data => {
-        setProfile(data);
-        console.log(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load profile data");
-        setLoading(false);
-      });
-  }, []);
 
+    const fetchProfile = async () => {
+      // 2. 使用 Auth.getToken() 来获取 token，确保键名一致
+      const token = Auth.getToken();
+
+      if (!token) {
+        setError("您尚未登录，将跳转到登录页面...");
+        setTimeout(() => navigate('/staff-login'), 2000); 
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:8000/api/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || '获取个人资料失败。');
+        }
+        setProfile(data.profile); 
+      } catch (err) {
+        setError(err.message);
+        // 如果 token 失效，使用 Auth.clear() 清理所有相关信息
+        Auth.clear();
+        setTimeout(() => navigate('/staff-login'), 2000);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
+
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
+  }
+  if (error) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Typography color="error">{error}</Typography></Box>;
+  }
+  if (!profile) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Typography>未能加载个人资料。</Typography></Box>;
+  }
+
+  // 渲染逻辑保持不变
   return (
-    <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 64px)', background: '#f7f7fa', pt: 8 }}>
-      {/* 左侧边栏 */}
-      <Box sx={{ width: 280, background: '#f9fafb', borderRight: '1px solid #eee', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', pt: 0, pb: 4 }}>
-        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, borderBottom: '1px solid #eee', mb: 2 }}>
-          <Avatar sx={{ width: 56, height: 56, bgcolor: '#FFD600', color: '#222', fontSize: 24, mb: 1 }}>{profile ? profile.firstName[0] : "?"}</Avatar>
-          <Typography sx={{ fontWeight: 700, fontSize: 18 }}>{profile ? `${profile.firstName} ${profile.lastName}` : "User"}</Typography>
-        </Box>
-        <List sx={{ width: '100%', mt: 1 }}>
-          <ListItem selected sx={{ pl: 4 }}>
-            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: 18, color: '#222' }}>User profile</Typography>} />
+    <Box sx={{ display: 'flex', height: '100vh', background: '#f7f7fa' }}>
+      <Box sx={{ width: 220, background: '#fff', borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'stretch', pt: 10 }}>
+        <List>
+          <ListItem selected>
+            <ListItemText primary={<Typography sx={{ fontWeight: 600 }}>User profile</Typography>} />
           </ListItem>
         </List>
         <Box sx={{ flexGrow: 1 }} />
       </Box>
-
-      {/* 右侧主体内容 */}
-      <Box sx={{ flex: 1, minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 0, pl: { xs: 0, md: 8 }, pr: { xs: 0, md: 4 }, pt: 0 }}>
-        {loading ? (
-          <CircularProgress />
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
-        ) : (
-          <Paper sx={{ width: { xs: '100%', sm: '90vw', md: 500 }, maxWidth: 500, p: { xs: 1, sm: 2 }, borderRadius: 4, boxShadow: 6, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 320 }}>
-            <Stack spacing={1.2} alignItems="center" sx={{ width: '100%' }}>
-              <Avatar sx={{ width: 64, height: 64, bgcolor: '#FFD600', color: '#222', fontSize: 28 }}>
-                {profile.firstName[0]}
-              </Avatar>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 20 }}>{profile.firstName} {profile.lastName}</Typography>
-              <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 0.5, fontSize: 14 }}><BadgeIcon sx={{ mr: 0.5, fontSize: 16, verticalAlign: 'middle' }} />{profile.role}</Typography>
-            </Stack>
-            <Divider sx={{ my: 1.5, width: '100%' }} />
-            <List sx={{ width: '100%' }}>
-              <ListItem sx={{ py: 0.5 }}>
-                <ListItemIcon><PersonIcon color="primary" fontSize="small" /></ListItemIcon>
-                <ListItemText primary={<b style={{ fontSize: 14 }}>First name</b>} secondary={<span style={{ fontSize: 14 }}>{profile.firstName}</span>} />
-              </ListItem>
-              <ListItem sx={{ py: 0.5 }}>
-                <ListItemIcon><PersonIcon color="primary" fontSize="small" /></ListItemIcon>
-                <ListItemText primary={<b style={{ fontSize: 14 }}>Last name</b>} secondary={<span style={{ fontSize: 14 }}>{profile.lastName}</span>} />
-              </ListItem>
-              <ListItem sx={{ py: 0.5 }}>
-                <ListItemIcon><EmailIcon color="action" fontSize="small" /></ListItemIcon>
-                <ListItemText primary={<b style={{ fontSize: 14 }}>Email</b>} secondary={<span style={{ fontSize: 14 }}>{profile.email}</span>} />
-              </ListItem>
-              <ListItem sx={{ py: 0.5 }}>
-                <ListItemIcon><PhoneIcon color="action" fontSize="small" /></ListItemIcon>
-                <ListItemText primary={<b style={{ fontSize: 14 }}>Phone</b>} secondary={<span style={{ fontSize: 14 }}>{profile.phone}</span>} />
-              </ListItem>
-              <ListItem sx={{ py: 0.5 }}>
-                <ListItemIcon><BusinessIcon color="action" fontSize="small" /></ListItemIcon>
-                <ListItemText primary={<b style={{ fontSize: 14 }}>Department</b>} secondary={<span style={{ fontSize: 14 }}>{profile.department}</span>} />
-              </ListItem>
-            </List>
-            <Divider sx={{ my: 1, width: '100%' }} />
-          </Paper>
-        )}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 10 }}>
+        <Paper sx={{ width: 500, p: 3, borderRadius: 2, boxShadow: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, background: '#FFD600', p: 1, borderRadius: 1 }}>HI, {profile.firstName} {profile.lastName}</Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>User profile</Typography>
+          <Box component="table" sx={{ width: '100%' }}>
+            <tbody>
+              <tr><td><b>first name:</b></td><td>{profile.firstName}</td></tr>
+              <tr><td><b>last name:</b></td><td>{profile.lastName}</td></tr>
+              <tr><td><b>email address:</b></td><td>{profile.email}</td></tr>
+              <tr><td><b>phone:</b></td><td>{profile.phone}</td></tr>
+              <tr><td><b>department:</b></td><td>{profile.department}</td></tr>
+              <tr><td><b>role:</b></td><td>{profile.role}</td></tr>
+            </tbody>
+          </Box>
+        </Paper>
       </Box>
     </Box>
   );
 }
 
-export default StaffProfile; 
+export default StaffProfile;

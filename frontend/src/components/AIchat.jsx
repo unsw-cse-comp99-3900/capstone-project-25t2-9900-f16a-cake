@@ -17,8 +17,21 @@ import {
   Send as SendIcon,
   Minimize as MinimizeIcon,
 } from "@mui/icons-material";
+// <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
+import { Auth } from "../utils/Auth"; 
 
 const AIchat = () => {
+  // 放在组件顶部，数据库sessionID
+  const [sessionId, setSessionId] = useState(() => {
+    // 如果localStorage已有，则复用；否则新生成
+    let sid = localStorage.getItem("ai_session_id");
+    if (!sid) {
+      sid = crypto.randomUUID();
+      localStorage.setItem("ai_session_id", sid);
+    }
+    return sid;
+  });
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -54,12 +67,33 @@ const AIchat = () => {
       setMessages([...messages, newMessage]);
       setInputMessage("");
 
+      // <<-- 步骤 2: 从 Auth 模块获取 user_id -->>
+      const userId = Auth.getUserId();
+
+      // 如果获取不到 userId，说明用户未正确登录，中断操作
+      if (!userId) {
+        const errorResponse = {
+          id: messages.length + 2,
+          text: "Error: User not found. Please log in again.",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorResponse]);
+        return;
+      }
+
       // 真实请求后端 AI
       try {
         const resp = await fetch("/api/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: inputMessage })
+          body: JSON.stringify({
+            question: inputMessage,
+            session_id: sessionId, // 数据库内容
+            // <<-- 步骤 3: 在请求体中加入 user_id -->>
+            user_id: userId,
+            role: "user"
+          })
         });
         const data = await resp.json();
         const aiText = data.answer || (data.error ? `error: ${data.error}` : "AI无回复");

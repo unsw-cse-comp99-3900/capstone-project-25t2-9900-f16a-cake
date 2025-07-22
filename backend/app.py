@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
+import database  # database.py
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
 # v 生成 token 的库 v
@@ -40,61 +41,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def hello():
     return jsonify(message="Hello from Flask! This is my test message, yeah!")
 
-
-# ---- 假用户数据 ----
-fake_users = [
-    {
-        "id": 1,
-        "username": "phd1",
-        "password": "pass123",
-        "email": "staff1@example.com",
-        "role": "staff",
-        "subrole": "phd",
-        "firstName": "Jiaxin",
-        "lastName": "Weng",
-        "phone": "0413962xxx",
-        "department": "CSE"
-    },
-    {
-        "id": 2,
-        "username": "tutor1",
-        "password": "pass123",
-        "email": "staff2@example.com",
-        "role": "staff",
-        "subrole": "tutor",
-        "firstName": "Vincent",
-        "lastName": "Nono",
-        "phone": "0413123xxx",
-        "department": "CSE"
-    },
-    {
-        "id": 3,
-        "username": "lecturer1",
-        "password": "pass123",
-        "email": "staff3@example.com",
-        "role": "staff",
-        "subrole": "lecturer",
-        "firstName": "Alice",
-        "lastName": "Smith",
-        "phone": "0413999xxx",
-        "department": "CSE"
-    },
-    {
-        "id": 4,
-        "username": "admin1",
-        "password": "adminpass",
-        "email": "admin1@example.com",
-        "role": "admin",
-        "subrole": None,
-        "firstName": "Admin",
-        "lastName": "User",
-        "phone": "0413888xxx",
-        "department": "CSE"
-    },
-]
-
-
-# ---- 登录接口 (JWT) ----
+# ---- 登录接口（查数据库 user_info）----
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -105,32 +52,55 @@ def login():
     if role not in ["staff", "admin"]:
         return jsonify({"success": False, "message": "Invalid role"}), 400
 
-    user = next((u for u in fake_users if u["username"] == username), None)
+    user = database.get_user(username)
     if user and user["password"] == password:
-        if (role == "staff" and user["role"] == "staff") or (role == "admin" and user["role"] == "admin"):
-            user_obj = {
-                "id": user["id"],
-                "username": user["username"],
-                "role": user["role"],
-                "subrole": user["subrole"]
-            }
-            payload = {
-                "id": user_obj["id"],
-                "username": user_obj["username"],
-                "role": user_obj["role"],
-                "subrole": user_obj["subrole"],
-                # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-            return jsonify({
-                "success": True,
-                "token": token,
-                "user": user_obj
-            })
-        else:
+        # 注意：user_info 表应有 role 字段！否则可用 identity/is_admin 判断
+        db_role = "admin" if user.get("is_admin") == 1 else "staff"
+        if db_role != role:
             return jsonify({"success": False, "message": "Invalid role"}), 400
+        user_obj = {
+            "id": user["user_id"],
+            "username": user["user_id"],
+            "role": db_role,
+            "subrole": user.get("role")
+        }
+        payload = {
+            **user_obj,
+            # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # 可选
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+        return jsonify({
+            "success": True,
+            "token": token,
+            "user": user_obj
+        })
     else:
         return jsonify({"success": False, "message": "Invalid username or password"}), 401
+    
+@app.route('/api/start_session', methods=['POST'])
+def api_start_session():
+    data = request.json
+    user_id = data['user_id']
+    title = data.get('title', 'Untitled Session')
+    session_id, error = database.start_session_db(user_id, title)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify({"session_id": session_id})
+
+@app.route('/api/add_message', methods=['POST'])
+def api_add_message():
+    data = request.json
+    ok, error = database.add_message_db(data['session_id'], data['role'], data['content'])
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify({"message": "Message added successfully"})
+
+@app.route('/api/get_messages/<session_id>', methods=['GET'])
+def api_get_messages(session_id):
+    messages, error = database.get_messages_db(session_id)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify(messages)
 
 
 # ---- SSO登录模拟 ----
@@ -162,6 +132,46 @@ def search_api():
 
     return jsonify({"results": filtered})
 
+# ---- 获取用户个人资料接口 ----
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    # 1. 从请求头中获取 Authorization
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Authorization header is missing or invalid"}), 401
+
+    # 2. 提取并解码 JWT token
+    token = auth_header.split(" ")[1]
+    try:
+        # 使用在文件顶部定义的 SECRET_KEY 解码
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        # 从 token 的载荷中获取 user_id（在登录时我们存的是'id'）
+        user_id = payload.get('id')
+        if not user_id:
+            raise jwt.InvalidTokenError("Token payload is missing user ID")
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"success": False, "message": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+
+    # 3. 使用 user_id 从数据库中查询用户信息
+    user_data = database.get_user(user_id)
+    if not user_data:
+        return jsonify({"success": False, "message": "User not found"}), 404
+
+    # 4. 整理并返回个人资料信息（不包含密码等敏感信息）
+    profile_info = {
+        "userId": user_data.get("user_id"),
+        "firstName": user_data.get("first_name"),
+        "lastName": user_data.get("last_name"),
+        "email": user_data.get("email"),
+        "phone": user_data.get("phone"),
+        "department": user_data.get("department"),
+        "role": user_data.get("role")  # 这是详细的角色，如 'PhD Student', 'Tutor'
+    }
+
+    return jsonify({"success": True, "profile": profile_info})
 
 # ---- 首页（仅演示跳转用）----
 @app.route('/')
@@ -227,17 +237,34 @@ def try_load_json(text: str):
     except json.JSONDecodeError as e:
         return None, e
 
-
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
     data = request.get_json() or {}
     question = data.get('question', '').strip()
-    if not question:
-        return jsonify({"error": "question 不能为空"}), 400
+    session_id = data.get('session_id', None)
+    user_id = data.get('user_id', None)
+    user_role = data.get('role', 'user')
 
+    if not all([question, session_id, user_id]):
+        return jsonify({"error": "question, session_id, and user_id are required"}), 400
+
+    # 在写入消息前，检查并创建会话历史
+    ok, err = database.check_or_create_session(session_id, user_id, title=f"Chat on {datetime.now().strftime('%Y-%m-%d')}")
+    if not ok:
+        return jsonify({"error": f"Failed to ensure session exists: {err}"}), 500
+
+    # 1. 写入用户提问到数据库
+    _, user_err = database.add_message_db(session_id, user_role, question)
+    if user_err:
+        # 即使写入失败，也可以选择继续，但最好记录日志
+        print(f"Error writing user message to DB: {user_err}")
+
+
+    # 2. RAG 检索
     knowledge, reference = rag_search(question)
-
+    
+    # 3. 构造并请求 LLM
     payload = {
         "model": MODEL,
         "messages": [
@@ -264,10 +291,7 @@ def ask():
         ],
         "temperature": 0.7,
         "max_tokens": 4096,
-        # 若 API 支持，建议打开：
-        # "response_format": {"type": "json_object"}
     }
-
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
@@ -277,46 +301,28 @@ def ask():
     resp.raise_for_status()
     result = resp.json()
 
+    # 4. 解析 LLM 回复
     content = result['choices'][0]['message']['content'].strip()
-
     data_json, err = try_load_json(content)
+
+    final_answer = ""
+    final_reference = reference # 默认使用RAG的引用
+
     if data_json is not None:
-        answer = data_json.get("answer", "")
+        final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if not model_ref:
-            model_ref = reference
-        return jsonify({"answer": answer, "reference": model_ref})
+        if model_ref: # 如果模型返回了引用，就用模型的
+            final_reference = model_ref
+    else:
+        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        final_answer = content
 
-    # Fallback：模型没按 JSON 格式返回
-    return jsonify({"answer": content, "reference": reference})
-
-
-# 获取 staff profile, (现在是模拟数据), 需要后端做鉴权, 从数据库中获取
-@app.route('/api/profile', methods=['GET'])
-def get_profile():
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Missing or invalid token"}), 401
-    token = auth_header.split(" ")[1]
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    except Exception:
-        return jsonify({"error": "Invalid token"}), 401
-
-    user_id = payload.get("id")
-    user = next((u for u in fake_users if u.get("id") == user_id), None)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    return jsonify({
-        "firstName": user.get("firstName"),
-        "lastName": user.get("lastName"),
-        "email": user.get("email"),
-        "phone": user.get("phone"),
-        "department": user.get("department"),
-        "role": user.get("subrole")
-    })
-
+    # 5. 写入 AI 回复到数据库
+    _, ai_err = database.add_message_db(session_id, "ai", final_answer)
+    if ai_err:
+        print(f"Error writing AI message to DB: {ai_err}")
+    
+    return jsonify({"answer": final_answer, "reference": final_reference})
 
 @app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
