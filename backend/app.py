@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
@@ -13,6 +13,7 @@ import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -268,11 +269,15 @@ def allowed_file(filename):
 
 @app.route('/api/upload', methods=['POST'])
 def upload_pdf():
+    # 前端没有发文件部分给后端
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': '没有文件部分'}), 400
+    # 后端拿到文件
     file = request.files['file']
+    # 前端发过来的文件部分不包含文件
     if file.filename == '':
         return jsonify({'success': False, 'message': '未选择文件'}), 400
+    # 如果有文件并且是 pdf 文件
     if file and allowed_file(file.filename):
         filename = file.filename
         save_path = os.path.join(str(app.config['UPLOAD_FOLDER']), str(filename))
@@ -280,6 +285,38 @@ def upload_pdf():
         return jsonify({'success': True, 'message': '上传成功', 'filename': filename})
     else:
         return jsonify({'success': False, 'message': '只允许上传 PDF 文件'}), 400
+
+# 获取所有pdf文件
+@app.route('/api/admin/getpdfs', methods=['GET'])
+def list_pdfs():
+    pdf_dir = app.config['UPLOAD_FOLDER']
+    pdfs = []
+    for fname in os.listdir(pdf_dir):
+        if fname.lower().endswith('.pdf'):
+            fpath = os.path.join(pdf_dir, fname)
+            stat = os.stat(fpath)
+            pdfs.append({
+                'filename': fname,
+                'size': stat.st_size,
+                # 文件的上传时间
+                'upload_time': datetime.fromtimestamp(stat.st_ctime).isoformat()
+            })
+    return jsonify({'success': True, 'pdfs': pdfs})
+
+# 删除指定pdf文件
+@app.route('/api/admin/deletepdf/<filename>', methods=['DELETE'])
+def delete_pdf(filename):
+    if not filename or not filename.lower().endswith('.pdf'):
+        return jsonify({'success': False, 'error': 'Invalid filename'}), 400
+    pdf_dir = app.config['UPLOAD_FOLDER']
+    file_path = os.path.join(pdf_dir, filename)
+    if not os.path.isfile(file_path):
+        return jsonify({'success': False, 'error': 'File not found'}), 404
+    try:
+        os.remove(file_path)
+        return jsonify({'success': True, 'message': 'PDF deleted successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
