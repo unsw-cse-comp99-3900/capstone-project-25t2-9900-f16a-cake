@@ -61,7 +61,7 @@ def login():
             "id": user["user_id"],
             "username": user["user_id"],
             "role": db_role,
-            "subrole": user.get("identity")
+            "subrole": user.get("role")
         }
         payload = {
             **user_obj,
@@ -136,6 +136,46 @@ def search_api():
 
     return jsonify({"results": filtered})
 
+# ---- 获取用户个人资料接口 ----
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    # 1. 从请求头中获取 Authorization
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Authorization header is missing or invalid"}), 401
+
+    # 2. 提取并解码 JWT token
+    token = auth_header.split(" ")[1]
+    try:
+        # 使用在文件顶部定义的 SECRET_KEY 解码
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        # 从 token 的载荷中获取 user_id（在登录时我们存的是'id'）
+        user_id = payload.get('id')
+        if not user_id:
+            raise jwt.InvalidTokenError("Token payload is missing user ID")
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"success": False, "message": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+
+    # 3. 使用 user_id 从数据库中查询用户信息
+    user_data = database.get_user(user_id)
+    if not user_data:
+        return jsonify({"success": False, "message": "User not found"}), 404
+
+    # 4. 整理并返回个人资料信息（不包含密码等敏感信息）
+    profile_info = {
+        "userId": user_data.get("user_id"),
+        "firstName": user_data.get("first_name"),
+        "lastName": user_data.get("last_name"),
+        "email": user_data.get("email"),
+        "phone": user_data.get("phone"),
+        "department": user_data.get("department"),
+        "role": user_data.get("role")  # 这是详细的角色，如 'PhD Student', 'Tutor'
+    }
+
+    return jsonify({"success": True, "profile": profile_info})
 
 # ---- 首页（仅演示跳转用）----
 @app.route('/')
