@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
 # v 生成 token 的库 v
 import jwt
-import datetime
+import datetime  # 用于 JWT 过期时间等
 # ^ 生成 token 的库 ^
 
 # —————————rag———————————
@@ -14,15 +14,18 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 import os
 import json
+from datetime import datetime  # 用于文件时间展示
+
 app = Flask(__name__)
 CORS(app)
+
 # ———— AI 聊天配置区域 ————
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL = "Qwen/QwQ-32B"
 API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 
 # 生成 token 的密钥
-SECRET_KEY = "your_secret_key"  # 请替换为安全的密钥
+SECRET_KEY = "hdingo_secret_key"
 
 # ————————————————————
 
@@ -40,32 +43,73 @@ def hello():
 
 # ---- 假用户数据 ----
 fake_users = [
-    {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "phd"},
-    {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "tutor"},
-    {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "lecturer"},
-    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com", "role": "admin", "subrole": None},
-    # 可以继续添加更多账号
+    {
+        "id": 1,
+        "username": "phd1",
+        "password": "pass123",
+        "email": "staff1@example.com",
+        "role": "staff",
+        "subrole": "phd",
+        "firstName": "Jiaxin",
+        "lastName": "Weng",
+        "phone": "0413962xxx",
+        "department": "CSE"
+    },
+    {
+        "id": 2,
+        "username": "tutor1",
+        "password": "pass123",
+        "email": "staff2@example.com",
+        "role": "staff",
+        "subrole": "tutor",
+        "firstName": "Vincent",
+        "lastName": "Nono",
+        "phone": "0413123xxx",
+        "department": "CSE"
+    },
+    {
+        "id": 3,
+        "username": "lecturer1",
+        "password": "pass123",
+        "email": "staff3@example.com",
+        "role": "staff",
+        "subrole": "lecturer",
+        "firstName": "Alice",
+        "lastName": "Smith",
+        "phone": "0413999xxx",
+        "department": "CSE"
+    },
+    {
+        "id": 4,
+        "username": "admin1",
+        "password": "adminpass",
+        "email": "admin1@example.com",
+        "role": "admin",
+        "subrole": None,
+        "firstName": "Admin",
+        "lastName": "User",
+        "phone": "0413888xxx",
+        "department": "CSE"
+    },
 ]
 
 
-# ---- 登录接口, 现在使用 JWT 登录, 用于后期鉴权 ----
+# ---- 登录接口 (JWT) ----
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get("username") # 前端给的 username
-    password = data.get("password") # 前端给的 password
-    role = data.get("role") # 前端想要以 staff 或 admin 登录
+    username = data.get("username")
+    password = data.get("password")
+    role = data.get("role")
 
-    # 检查 role 是否为 staff 或 admin，否则返回 400
     if role not in ["staff", "admin"]:
         return jsonify({"success": False, "message": "Invalid role"}), 400
-    
-    # 模拟查找用户，如果用户存在且密码正确，则返回成功
+
     user = next((u for u in fake_users if u["username"] == username), None)
     if user and user["password"] == password:
         if (role == "staff" and user["role"] == "staff") or (role == "admin" and user["role"] == "admin"):
             user_obj = {
-                "id": 1,  # 可根据实际情况生成或查表, 可存可不存, 看后期需要
+                "id": user["id"],
                 "username": user["username"],
                 "role": user["role"],
                 "subrole": user["subrole"]
@@ -75,7 +119,6 @@ def login():
                 "username": user_obj["username"],
                 "role": user_obj["role"],
                 "subrole": user_obj["subrole"],
-                # 暂时不设置过期时间, 后期需要再设置
                 # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
             }
             token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -93,8 +136,6 @@ def login():
 # ---- SSO登录模拟 ----
 @app.route('/api/sso-login', methods=['GET'])
 def sso_login():
-    # 实际项目会重定向到UNSW SSO登录页，这里仅做演示，直接"登录成功"
-    # 可以考虑带一个 ?next= 参数指明回跳页面
     return jsonify({"success": True, "role": "staff", "message": "SSO Login success!"})
 
 
@@ -104,11 +145,9 @@ def search_api():
     data = request.get_json()
     query = data.get("query", "").strip()
 
-    # 关键词提取和多热编码
     extracted = extract_keywords(query)
     query_encoded = multi_hot_encode(extracted)
 
-    # 遍历所有条目，计算分数
     results = []
     for item in DATABASE:
         score = calculate_similarity(query_encoded, item["keywords_encoded"], query, item["title"])
@@ -119,48 +158,9 @@ def search_api():
             "year": item.get("year", "")
         })
 
-    # 按分数排序，只返回相关度>0的前5个
     filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
-
-
-# profile接口暂时不使用，因为前端没有调用
-'''
-@app.route('/api/profile', methods=['GET'])
-def profile():
-    # 从 URL 查询参数获取用户名，如 /api/profile?username=staff1
-    username = request.args.get("username")
-    if username:
-        # 查找匹配的用户
-        user = next((u for u in fake_users if u["username"] == username), None)
-        if not user:
-            return jsonify({"success": False, "message": "用户不存在"}), 404
-    else:
-        # 未指定用户名，默认返回第一个用户（适合 demo 环境）
-        user = fake_users[0]
-    return jsonify({
-        "success": True,
-        "username": user["username"],
-        "email": user["email"],
-        "role": user["role"]
-    })
-'''
-
-# logout暂时不使用，因为前端没有掉用
-'''
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    """
-    前端调用此接口时，后端返回登出成功消息。
-    如果将来引入 session 或 token，可以在此处清理 session/token。
-    """
-    # TODO: 若有 session，使用 session.clear() 等方法进行清理
-    # session.clear()
-
-    # TODO: 若有 token，返回前端指示删除本地 token
-    return jsonify({"success": True, "message": "Logout success!"})
-'''
 
 
 # ---- 首页（仅演示跳转用）----
@@ -169,9 +169,9 @@ def home():
     return 'Welcome to the demo backend!'
 
 
-
+# ---------------- RAG -----------------
 def rag_search(question):
-
+    # 注意：生产环境最好把以下加载放到全局，只加载一次
     model = SentenceTransformer("all-MiniLM-L6-v2")
     index = faiss.read_index("rag/zid_faq.index")
     with open("rag/zid_faq_ids.pkl", "rb") as f:
@@ -183,30 +183,29 @@ def rag_search(question):
 
     def retrieve(query, top_k=5, score_threshold=0.8):
         q_emb = model.encode([query])
-        D, I  = index.search(np.array(q_emb, dtype="float32"), top_k)
+        D, I = index.search(np.array(q_emb, dtype="float32"), top_k)
 
         results = []
         for dist, idx in zip(D[0], I[0]):
-            score = float(dist)        # 距离越小越相似
+            score = float(dist)  # 距离越小越相似
             if score > score_threshold:
                 continue
             entry = doc_map[ids[idx]]
-            src   = entry.get("source", {}) or {}
+            src = entry.get("source", {}) or {}
             results.append({
-                "score":    score,
+                "score": score,
                 "question": entry.get("question", ""),
-                "answer":   entry.get("answer", ""),
-                "title":    src.get("title", ""),
-                "url":      src.get("url", "")
+                "answer": entry.get("answer", ""),
+                "title": src.get("title", ""),
+                "url": src.get("url", "")
             })
         return results
 
     hits = retrieve(question, top_k=10, score_threshold=0.75)
 
     if not hits:
-        return "No results above score 0.75.", {}   # knowledge_str, reference_dict
+        return "No results above score 0.75.", {}
 
-    # 组装 knowledge 文本 + reference 字典
     parts = []
     ref_dict = {}
     for i, h in enumerate(hits, 1):
@@ -219,12 +218,16 @@ def rag_search(question):
 
     knowledge_str = "\n\n".join(parts)
     return knowledge_str, ref_dict
-# ------- 从 content 中尝试解析 JSON 的小工具 -------
+
+
 def try_load_json(text: str):
+    """优先解析模型输出为 JSON，失败则返回 None 和异常"""
     try:
         return json.loads(text), None
     except json.JSONDecodeError as e:
         return None, e
+
+
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
@@ -235,7 +238,6 @@ def ask():
 
     knowledge, reference = rag_search(question)
 
-    # 2) 让模型直接输出 JSON\
     payload = {
         "model": MODEL,
         "messages": [
@@ -262,6 +264,7 @@ def ask():
         ],
         "temperature": 0.7,
         "max_tokens": 4096,
+        # 若 API 支持，建议打开：
         # "response_format": {"type": "json_object"}
     }
 
@@ -276,25 +279,53 @@ def ask():
 
     content = result['choices'][0]['message']['content'].strip()
 
-    # 3) 解析模型输出（优先 JSON）
     data_json, err = try_load_json(content)
     if data_json is not None:
-        # 模型按要求返回 JSON
         answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        # 若模型没带引用，就用我们检索的
         if not model_ref:
             model_ref = reference
         return jsonify({"answer": answer, "reference": model_ref})
 
+    # Fallback：模型没按 JSON 格式返回
     return jsonify({"answer": content, "reference": reference})
+
+
+# 获取 staff profile, (现在是模拟数据), 需要后端做鉴权, 从数据库中获取
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except Exception:
+        return jsonify({"error": "Invalid token"}), 401
+
+    user_id = payload.get("id")
+    user = next((u for u in fake_users if u.get("id") == user_id), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({
+        "firstName": user.get("firstName"),
+        "lastName": user.get("lastName"),
+        "email": user.get("email"),
+        "phone": user.get("phone"),
+        "department": user.get("department"),
+        "role": user.get("subrole")
+    })
+
 
 @app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
     return send_from_directory('pdfs', filename)
 
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @app.route('/api/upload', methods=['POST'])
 def upload_pdf():
@@ -310,6 +341,40 @@ def upload_pdf():
         return jsonify({'success': True, 'message': '上传成功', 'filename': filename})
     else:
         return jsonify({'success': False, 'message': '只允许上传 PDF 文件'}), 400
+
+
+# 获取所有pdf文件
+@app.route('/api/admin/getpdfs', methods=['GET'])
+def list_pdfs():
+    pdf_dir = app.config['UPLOAD_FOLDER']
+    pdfs = []
+    for fname in os.listdir(pdf_dir):
+        if fname.lower().endswith('.pdf'):
+            fpath = os.path.join(pdf_dir, fname)
+            stat = os.stat(fpath)
+            pdfs.append({
+                'filename': fname,
+                'size': stat.st_size,
+                'upload_time': datetime.fromtimestamp(stat.st_ctime).isoformat()
+            })
+    return jsonify({'success': True, 'pdfs': pdfs})
+
+
+# 删除指定pdf文件
+@app.route('/api/admin/deletepdf/<filename>', methods=['DELETE'])
+def delete_pdf(filename):
+    if not filename or not filename.lower().endswith('.pdf'):
+        return jsonify({'success': False, 'error': 'Invalid filename'}), 400
+    pdf_dir = app.config['UPLOAD_FOLDER']
+    file_path = os.path.join(pdf_dir, filename)
+    if not os.path.isfile(file_path):
+        return jsonify({'success': False, 'error': 'File not found'}), 404
+    try:
+        os.remove(file_path)
+        return jsonify({'success': True, 'message': 'PDF deleted successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

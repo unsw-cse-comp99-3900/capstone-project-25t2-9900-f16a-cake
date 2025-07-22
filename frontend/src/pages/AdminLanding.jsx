@@ -1,11 +1,14 @@
 import React, { useRef, useState } from "react";
 import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormControlLabel } from "@mui/material";
 import { Auth } from "../utils/Auth";
+import FileManagement from "../components/FileManagement";
+import Dialog from "@mui/material/Dialog";
 
 function AdminLanding() {
   const fileInputRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
+  const [fileMgmtOpen, setFileMgmtOpen] = useState(false);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -71,7 +74,7 @@ function AdminLanding() {
           {/* 内容健康 */}
           <Paper sx={{ p: 2 }}>
             <Typography variant="subtitle1" sx={{ background: '#FFD600', px: 1, mb: 1 }}>Content health</Typography>
-            <Button variant="outlined" color="error" fullWidth>file delete</Button>
+            <Button variant="outlined" color="primary" fullWidth onClick={() => setFileMgmtOpen(true)}>File Management</Button>
           </Paper>
         </Box>
         {/* 右侧区域：未答疑问 */}
@@ -88,6 +91,13 @@ function AdminLanding() {
           </Paper>
         </Box>
       </Box>
+      {/* 文件管理弹窗 */}
+      <Dialog open={fileMgmtOpen} onClose={() => setFileMgmtOpen(false)} maxWidth="md" fullWidth>
+        <FileManagement />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
+          <Button onClick={() => setFileMgmtOpen(false)}>Close</Button>
+        </Box>
+      </Dialog>
     </Box>
   );
 }
