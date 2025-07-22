@@ -15,6 +15,8 @@ from sentence_transformers import SentenceTransformer
 import os
 import json
 from datetime import datetime  # 用于文件时间展示
+import time
+import random
 
 app = Flask(__name__)
 CORS(app)
@@ -291,7 +293,7 @@ def ask():
     return jsonify({"answer": content, "reference": reference})
 
 
-# 获取 staff profile, (现在是模拟数据), 需要后端做鉴权, 从数据库中获取
+# 获取 staff profile, (现在是模拟数据), 鉴权已经做了, 后续改成从真实数据库中获取即可
 @app.route('/api/profile', methods=['GET'])
 def get_profile():
     auth_header = request.headers.get('Authorization')
@@ -374,6 +376,16 @@ def delete_pdf(filename):
         return jsonify({'success': True, 'message': 'PDF deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/aichat/general', methods=['POST'])
+def aichat_general():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "question cannot be empty"}), 400
+    time.sleep(random.uniform(0.5, 1.5))  # 模拟AI延迟
+    return jsonify({"answer": f"This is a mock AI reply: {question}"})
 
 
 if __name__ == '__main__':

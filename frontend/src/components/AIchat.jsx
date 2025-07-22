@@ -20,6 +20,7 @@ import {
 
 const AIchat = () => {
   const [isOpen, setIsOpen] = useState(false);
+  // 用于保存所有历史消息
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -44,40 +45,45 @@ const AIchat = () => {
   }
 
   const handleSendMessage = async () => {
-    if (inputMessage.trim()) {
+    if (inputMessage.trim()) {  // 如果输入消息不为空
+      // 构建新消息, 这里是 user 发送的消息
       const newMessage = {
         id: messages.length + 1,
         text: inputMessage,
         sender: "user",
         timestamp: new Date(),
       };
+      // 保存到历史信息 messages 中
       setMessages([...messages, newMessage]);
-      setInputMessage("");
+      setInputMessage("");  // 清空输入框
 
       // 真实请求后端 AI
       try {
-        const resp = await fetch("/api/ask", {
+        const resp = await fetch("/api/aichat/general", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: inputMessage })
+          // 目前发送给后端的只有 user 的输入, 没有历史信息, 也没有chat mode 的区分
+          body: JSON.stringify({ question: inputMessage }),
         });
         const data = await resp.json();
-        const aiText = data.answer || (data.error ? `error: ${data.error}` : "AI无回复");
+        const aiText =
+          data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
         const aiResponse = {
+          // 构建存在历史信息中的 AI 消息
           id: messages.length + 2,
           text: aiText,
           sender: "ai",
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, aiResponse]);
+        setMessages((prev) => [...prev, aiResponse]);
       } catch {
         const aiResponse = {
           id: messages.length + 2,
-          text: "error: 网络或服务器异常",
+          text: "error: network or server error",
           sender: "ai",
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, aiResponse]);
+        setMessages((prev) => [...prev, aiResponse]);
       }
     }
   };
@@ -175,7 +181,8 @@ const AIchat = () => {
                   key={message.id}
                   sx={{
                     display: "flex",
-                    justifyContent: message.sender === "user" ? "flex-end" : "flex-start",
+                    justifyContent:
+                      message.sender === "user" ? "flex-end" : "flex-start",
                     px: 0,
                   }}
                 >
@@ -183,7 +190,8 @@ const AIchat = () => {
                     sx={{
                       p: 1.5,
                       maxWidth: "70%",
-                      backgroundColor: message.sender === "user" ? "#1976d2" : "white",
+                      backgroundColor:
+                        message.sender === "user" ? "#1976d2" : "white",
                       color: message.sender === "user" ? "white" : "black",
                       borderRadius: 2,
                       boxShadow: 1,
@@ -212,7 +220,14 @@ const AIchat = () => {
           <Divider />
 
           {/* 输入区域 */}
-          <Box sx={{ p: 2, backgroundColor: "white", borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
+          <Box
+            sx={{
+              p: 2,
+              backgroundColor: "white",
+              borderBottomLeftRadius: 8,
+              borderBottomRightRadius: 8,
+            }}
+          >
             <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
                 fullWidth
@@ -253,4 +268,4 @@ const AIchat = () => {
   );
 };
 
-export default AIchat; 
+export default AIchat;
