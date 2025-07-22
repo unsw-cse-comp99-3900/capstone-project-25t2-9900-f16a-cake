@@ -13,7 +13,7 @@ import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import os
-
+import json
 app = Flask(__name__)
 CORS(app)
 # ———— AI 聊天配置区域 ————
@@ -171,118 +171,123 @@ def home():
 
 
 def rag_search(question):
-    # 1. 加载模型
+
     model = SentenceTransformer("all-MiniLM-L6-v2")
-
-    # 2. 加载 Faiss 索引
     index = faiss.read_index("rag/zid_faq.index")
-
-    # 3. 加载 ID 映射
     with open("rag/zid_faq_ids.pkl", "rb") as f:
         ids = pickle.load(f)
-
-    import json
-
     with open("rag/zid_faq_docs.json", "r", encoding="utf-8") as f:
         docs = json.load(f)
 
+    doc_map = {d["id"]: d for d in docs}
+
     def retrieve(query, top_k=5, score_threshold=0.8):
         q_emb = model.encode([query])
-        D, I = index.search(np.array(q_emb, dtype="float32"), top_k)
+        D, I  = index.search(np.array(q_emb, dtype="float32"), top_k)
 
         results = []
         for dist, idx in zip(D[0], I[0]):
-            score = float(dist)  # 距离，越小越好
+            score = float(dist)        # 距离越小越相似
             if score > score_threshold:
                 continue
-            doc_id = ids[idx]
-            entry = doc_map[doc_id]
-
-            src = entry.get("source", {}) or {}
+            entry = doc_map[ids[idx]]
+            src   = entry.get("source", {}) or {}
             results.append({
-                "score": score,
+                "score":    score,
                 "question": entry.get("question", ""),
-                "answer": entry.get("answer", ""),
-                "title": src.get("title", ""),
-                "url": src.get("url", "")
+                "answer":   entry.get("answer", ""),
+                "title":    src.get("title", ""),
+                "url":      src.get("url", "")
             })
         return results
 
     hits = retrieve(question, top_k=10, score_threshold=0.75)
 
     if not hits:
-        result_str = "No results above score 0.75."
-    else:
-        parts = []
-        for i, h in enumerate(hits, 1):
-            ref_line = f"   Reference: {h['title']} - {h['url']}" if h["url"] else ""
-            parts.append(
-                f"{i}. Question: {h['question']}\n"
-                f"   Answer:   {h['answer']}\n"
-                f"{ref_line}"
-            )
-        result_str = "\n\n".join(parts)
+        return "No results above score 0.75.", {}   # knowledge_str, reference_dict
 
-    return result_str
+    # 组装 knowledge 文本 + reference 字典
+    parts = []
+    ref_dict = {}
+    for i, h in enumerate(hits, 1):
+        parts.append(
+            f"{i}. Question: {h['question']}\n"
+            f"   Answer:   {h['answer']}"
+        )
+        if h["url"]:
+            ref_dict[h["title"]] = h["url"]
+
+    knowledge_str = "\n\n".join(parts)
+    return knowledge_str, ref_dict
+# ------- 从 content 中尝试解析 JSON 的小工具 -------
+def try_load_json(text: str):
+    try:
+        return json.loads(text), None
+    except json.JSONDecodeError as e:
+        return None, e
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
-    hits = retrieve(question, top_k=10, score_threshold=0.75)
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "question 不能为空"}), 400
 
+    knowledge, reference = rag_search(question)
 
-    # 这部分是无法查询到结果的情况
-    if not hits:
-        result_str = "No results"
-        reference = ""
-
-    # ————————TODU：可以转移到人工接口的网页——————————————
-
-    else:
-        qa_parts = []
-        ref_parts = []
-        for i, h in enumerate(hits, 1):
-            qa_parts.append(
-                f"{i}. Question: {h['question']}\n"
-                f"   Answer:   {h['answer']}\n"
-                f"   Reference: {h['title']} - {h['url']}"
-            )
-            if h["url"]:
-                ref_parts.append(f'"{h["title"]}": "{h["url"]}"')
-        result_str = "\n\n".join(qa_parts)
-
-        # 这个输出的结果是标题和URL，可以根据链接进行跳转
-        reference = "\n".join(ref_parts)
-
+    # 2) 让模型直接输出 JSON\
     payload = {
         "model": MODEL,
         "messages": [
-            {"role": "system", "content": "You are AI assistance called ‘HDingo's Al chat bot’, an AI designed to "
-                                          "help new faculty, staff, and students in the School of Computer Science "
-                                          "and Engineering (CSE) complete their onboarding tasks. Your objectives "
-                                          "are:1. 快速、准确地回答关于入职流程、政策、资源、系统使用等方面的问题；2. "
-                                          "在回答中引用最新且经过审核的文档内容，保证信息一致性与权威性；3. 如果遇到不明确或超出权限的问题，引导用户提交 IT 工单或联系相关部门；4. "
-                                          "对话风格：专业、简洁、友好、易理解并且使用英语作为主要用语。你拥有以下能力：- 结合检索到的文档段落进行动态回答（RAG-Sequence / RAG-Token）；- "
-                                          "根据用户不同角色（教职工/学生/管理员）提供差异化视图和链接；- 支持文件上传下载、关键词搜索、反馈收集等功能调用。"
-                                         },
-            {"role": "user", "content": "please answer the question:"+question+"based on the:"+result_str}
-
+            {
+                "role": "system",
+                "content": (
+                    "You are AI assistance called 'HDingo's Al chat bot', an AI designed to help new faculty, staff, and "
+                    "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                    "Objectives:\n"
+                    "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                    "2. Cite the newest audited docs for consistency and authority.\n"
+                    "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                    "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n\n"
+                    "You must return ONLY valid JSON with two keys:\n"
+                    "  - \"answer\": string (the final answer)\n"
+                    "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                    "Do not include code fences. Do not include any additional keys."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"Question: {question}\n\nRelevant knowledge:\n{knowledge}"
+            }
         ],
         "temperature": 0.7,
-        "max_tokens": 4096
+        "max_tokens": 4096,
+        # "response_format": {"type": "json_object"}
     }
+
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
 
-    # 调用 SiliconFlow API
     resp = requests.post(API_URL, json=payload, headers=headers)
     resp.raise_for_status()
     result = resp.json()
 
-    # 提取回答
-    answer = result['choices'][0]['message']['content'].strip()
-    return jsonify({"answer": answer})
+    content = result['choices'][0]['message']['content'].strip()
+
+    # 3) 解析模型输出（优先 JSON）
+    data_json, err = try_load_json(content)
+    if data_json is not None:
+        # 模型按要求返回 JSON
+        answer = data_json.get("answer", "")
+        model_ref = data_json.get("reference", {})
+        # 若模型没带引用，就用我们检索的
+        if not model_ref:
+            model_ref = reference
+        return jsonify({"answer": answer, "reference": model_ref})
+
+    return jsonify({"answer": content, "reference": reference})
 
 @app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
