@@ -110,7 +110,7 @@ def login():
     if user and user["password"] == password:
         if (role == "staff" and user["role"] == "staff") or (role == "admin" and user["role"] == "admin"):
             user_obj = {
-                "id": 1,  # 可根据实际情况生成或查表, 可存可不存, 看后期需要
+                "id": user["id"],  # 修正：用当前用户的 id
                 "username": user["username"],
                 "role": user["role"],
                 "subrole": user["subrole"]
@@ -170,50 +170,10 @@ def search_api():
     return jsonify({"results": filtered})
 
 
-# profile接口暂时不使用，因为前端没有调用
-'''
-@app.route('/api/profile', methods=['GET'])
-def profile():
-    # 从 URL 查询参数获取用户名，如 /api/profile?username=staff1
-    username = request.args.get("username")
-    if username:
-        # 查找匹配的用户
-        user = next((u for u in fake_users if u["username"] == username), None)
-        if not user:
-            return jsonify({"success": False, "message": "用户不存在"}), 404
-    else:
-        # 未指定用户名，默认返回第一个用户（适合 demo 环境）
-        user = fake_users[0]
-    return jsonify({
-        "success": True,
-        "username": user["username"],
-        "email": user["email"],
-        "role": user["role"]
-    })
-'''
-
-# logout暂时不使用，因为前端没有掉用
-'''
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    """
-    前端调用此接口时，后端返回登出成功消息。
-    如果将来引入 session 或 token，可以在此处清理 session/token。
-    """
-    # TODO: 若有 session，使用 session.clear() 等方法进行清理
-    # session.clear()
-
-    # TODO: 若有 token，返回前端指示删除本地 token
-    return jsonify({"success": True, "message": "Logout success!"})
-'''
-
-
 # ---- 首页（仅演示跳转用）----
 @app.route('/')
 def home():
     return 'Welcome to the demo backend!'
-
-
 
 def rag_search(question):
     # 1. 加载模型
@@ -264,6 +224,7 @@ def rag_search(question):
         # 每条之间用两个换行分隔
         result_str = "\n\n".join(parts)
     return result_str
+    
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
