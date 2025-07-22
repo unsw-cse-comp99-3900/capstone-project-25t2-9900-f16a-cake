@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
+import database  # database.py
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
 # v 生成 token 的库 v
@@ -39,56 +40,66 @@ def hello():
     return jsonify(message="Hello from Flask! This is my test message, yeah!")
 
 
-# ---- 假用户数据 ----
-fake_users = [
-    {"username": "phd1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "phd"},
-    {"username": "tutor1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "tutor"},
-    {"username": "lecturer1", "password": "pass123", "email": "staff1@example.com", "role": "staff", "subrole": "lecturer"},
-    {"username": "admin1", "password": "adminpass", "email": "admin1@example.com", "role": "admin", "subrole": None},
-    # 可以继续添加更多账号
-]
-
-
-# ---- 登录接口, 现在使用 JWT 登录, 用于后期鉴权 ----
+# ---- 登录接口（查数据库 user_info）----
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get("username") # 前端给的 username
-    password = data.get("password") # 前端给的 password
-    role = data.get("role") # 前端想要以 staff 或 admin 登录
+    username = data.get("username")
+    password = data.get("password")
+    role = data.get("role")
 
-    # 检查 role 是否为 staff 或 admin，否则返回 400
     if role not in ["staff", "admin"]:
         return jsonify({"success": False, "message": "Invalid role"}), 400
-    
-    # 模拟查找用户，如果用户存在且密码正确，则返回成功
-    user = next((u for u in fake_users if u["username"] == username), None)
+
+    user = database.get_user(username)
     if user and user["password"] == password:
-        if (role == "staff" and user["role"] == "staff") or (role == "admin" and user["role"] == "admin"):
-            user_obj = {
-                "id": 1,  # 可根据实际情况生成或查表, 可存可不存, 看后期需要
-                "username": user["username"],
-                "role": user["role"],
-                "subrole": user["subrole"]
-            }
-            payload = {
-                "id": user_obj["id"],
-                "username": user_obj["username"],
-                "role": user_obj["role"],
-                "subrole": user_obj["subrole"],
-                # 暂时不设置过期时间, 后期需要再设置
-                # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-            return jsonify({
-                "success": True,
-                "token": token,
-                "user": user_obj
-            })
-        else:
+        # 注意：user_info 表应有 role 字段！否则可用 identity/is_admin 判断
+        db_role = "admin" if user.get("is_admin") == 1 else "staff"
+        if db_role != role:
             return jsonify({"success": False, "message": "Invalid role"}), 400
+        user_obj = {
+            "id": user["user_id"],
+            "username": user["user_id"],
+            "role": db_role,
+            "subrole": user.get("identity")
+        }
+        payload = {
+            **user_obj,
+            # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # 可选
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+        return jsonify({
+            "success": True,
+            "token": token,
+            "user": user_obj
+        })
     else:
         return jsonify({"success": False, "message": "Invalid username or password"}), 401
+    
+@app.route('/api/start_session', methods=['POST'])
+def api_start_session():
+    data = request.json
+    user_id = data['user_id']
+    title = data.get('title', 'Untitled Session')
+    session_id, error = database.start_session_db(user_id, title)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify({"session_id": session_id})
+
+@app.route('/api/add_message', methods=['POST'])
+def api_add_message():
+    data = request.json
+    ok, error = database.add_message_db(data['session_id'], data['role'], data['content'])
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify({"message": "Message added successfully"})
+
+@app.route('/api/get_messages/<session_id>', methods=['GET'])
+def api_get_messages(session_id):
+    messages, error = database.get_messages_db(session_id)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify(messages)
 
 
 # ---- SSO登录模拟 ----
@@ -124,44 +135,6 @@ def search_api():
     filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
-
-
-# profile接口暂时不使用，因为前端没有调用
-'''
-@app.route('/api/profile', methods=['GET'])
-def profile():
-    # 从 URL 查询参数获取用户名，如 /api/profile?username=staff1
-    username = request.args.get("username")
-    if username:
-        # 查找匹配的用户
-        user = next((u for u in fake_users if u["username"] == username), None)
-        if not user:
-            return jsonify({"success": False, "message": "用户不存在"}), 404
-    else:
-        # 未指定用户名，默认返回第一个用户（适合 demo 环境）
-        user = fake_users[0]
-    return jsonify({
-        "success": True,
-        "username": user["username"],
-        "email": user["email"],
-        "role": user["role"]
-    })
-'''
-
-# logout暂时不使用，因为前端没有掉用
-'''
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    """
-    前端调用此接口时，后端返回登出成功消息。
-    如果将来引入 session 或 token，可以在此处清理 session/token。
-    """
-    # TODO: 若有 session，使用 session.clear() 等方法进行清理
-    # session.clear()
-
-    # TODO: 若有 token，返回前端指示删除本地 token
-    return jsonify({"success": True, "message": "Logout success!"})
-'''
 
 
 # ---- 首页（仅演示跳转用）----
@@ -220,15 +193,32 @@ def rag_search(question):
         # 每条之间用两个换行分隔
         result_str = "\n\n".join(parts)
     return result_str
+
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
     data = request.get_json() or {}
     question = data.get('question', '').strip()
+    session_id = data.get('session_id', None)     # 需要前端传递
+    user_id = data.get('user_id', None) # <<<<<<<<<<<<<<<< 获取 user_id
+    user_role = data.get('role', 'user')
+
     if not question:
         return jsonify({"error": "question 不能为空"}), 400
-    knowlegde=rag_search(question)
+    
+    if not all([question, session_id, user_id]):
+        return jsonify({"error": "question, session_id, and user_id are required"}), 400
 
+    # 在写入消息前，检查并创建会话历史
+    ok, err = database.check_or_create_session(session_id, user_id, title=f"Chat on {datetime.now().strftime('%Y-%m-%d')}")
+    if not ok:
+        return jsonify({"error": f"Failed to ensure session exists: {err}"}), 500
+
+    # 1. 写入用户提问到数据库
+    _, user_err = database.add_message_db(session_id, user_role, question)
+
+    # 2. 生成AI回复（你的原有payload代码）
+    knowlegde=rag_search(question)
     payload = {
         "model": MODEL,
         "messages": [
@@ -258,6 +248,10 @@ def ask():
 
     # 提取回答
     answer = result['choices'][0]['message']['content'].strip()
+
+    # 3. 写入AI回复到数据库
+    _, ai_err = database.add_message_db(session_id, "ai", answer)
+    
     return jsonify({"answer": answer})
 
 @app.route('/pdfs/<path:filename>')

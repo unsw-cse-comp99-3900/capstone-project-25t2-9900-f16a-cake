@@ -4,18 +4,24 @@ export const Auth = {
     localStorage.setItem("role", user.role);
     localStorage.setItem("subrole", user.subrole ?? "none");
     localStorage.setItem("username", user.username);
+    // <<<<<<<<<<<<<<<< 添加这一行 >>>>>>>>>>>>>>>>>
+    localStorage.setItem("user_id", user.id); // 保存用户的唯一ID
   },
   clear: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("subrole");
     localStorage.removeItem("username");
+    // <<<<<<<<<<<<<<<< 最好也在这里添加一行 >>>>>>>>>>>>>>>>>
+    localStorage.removeItem("user_id");
   },
   getToken: () => localStorage.getItem("token"),
   getRole: () => localStorage.getItem("role"),
   getSubrole: () => localStorage.getItem("subrole"),
   getUsername: () => localStorage.getItem("username"),
-}; 
+  // <<<<<<<<<<<<<<<< 添加这个方法 >>>>>>>>>>>>>>>>>
+  getUserId: () => localStorage.getItem("user_id"),
+};
 
 
 // 1. 前端登录时给后端的数据格式
@@ -32,5 +38,5 @@ export const Auth = {
 //         "subrole": null
 //     }
 // }
-// 3. 前端保存的数据格式
-// [token, role, subrole, username]
+// 3. 前端保存的数据格式 (现在将包含 user_id)
+// [token, role, subrole, username, user_id]
