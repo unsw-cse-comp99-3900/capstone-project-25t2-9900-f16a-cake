@@ -11,6 +11,14 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  List as MUIList,
+  ListItem as MUIListItem,
+  ListItemText as MUIListItemText,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -20,24 +28,22 @@ import {
 // <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
 import { Auth } from "../utils/Auth"; 
 
+const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
+
 const AIchat = () => {
-  // 放在组件顶部，数据库sessionID
-  const [sessionId, setSessionId] = useState(() => {
-    // 如果localStorage已有，则复用；否则新生成
-    let sid = localStorage.getItem("ai_session_id");
-    if (!sid) {
-      sid = crypto.randomUUID();
-      localStorage.setItem("ai_session_id", sid);
-    }
-    return sid;
-  });
+  // sessionId 由后端生成
+  const [sessionId, setSessionId] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [openHistory, setOpenHistory] = useState(false);
+  const [historySessions, setHistorySessions] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   // 用于保存所有历史消息
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm HDingo's AI chat bot, how can I help you?",
+      text: GREETING_MESSAGE,
       sender: "ai",
       timestamp: new Date(),
     },
@@ -55,10 +61,10 @@ const AIchat = () => {
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (isOpen && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [isOpen, messages]);
 
   // 只有已登录用户才显示
   if (!localStorage.getItem("role")) {
@@ -104,15 +110,11 @@ const AIchat = () => {
       try {
         const resp = await fetch(apiUrl, {
           method: "POST",
-          // 这一部分应该只需要给后端发 token 和 question 就可以了
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             question: inputMessage,
-            session_id: sessionId, // 数据库内容
-            // <<-- 步骤 3: 在请求体中加入 user_id -->>
-            user_id: userId,
-            role: "user"
-          })
+            session_id: sessionId,
+          }),
         });
         const data = await resp.json();
         let aiText = data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
@@ -152,8 +154,97 @@ const AIchat = () => {
     }
   };
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
+  // 只有首次且 sessionId 为空时才新建 session
+  const handleOpenChat = async () => {
+    if (!isOpen) {
+      if (!sessionId) {
+        const user_id = localStorage.getItem('user_id');
+        if (!user_id) {
+          alert('User not logged in.');
+          return;
+        }
+        const resp = await fetch('/api/start_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id, title: 'Default Chat' })
+        });
+        const data = await resp.json();
+        if (data.session_id) setSessionId(data.session_id);
+        else alert('Failed to create chat session.');
+      }
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  // 新建会话
+  const handleNewChat = async () => {
+    const user_id = localStorage.getItem('user_id');
+    if (!user_id) {
+      alert('User not logged in.');
+      return;
+    }
+    const resp = await fetch('/api/start_session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, title: 'New Chat' })
+    });
+    const data = await resp.json();
+    if (data.session_id) {
+      setSessionId(data.session_id);
+      setMessages([
+        {
+          id: 1,
+          text: GREETING_MESSAGE,
+          sender: "ai",
+          timestamp: new Date(),
+        }
+      ]);
+    } else {
+      alert('Failed to create new chat.');
+    }
+  };
+
+  // 拉取历史会话
+  const fetchHistorySessions = async () => {
+    setLoadingHistory(true);
+    const user_id = localStorage.getItem('user_id');
+    if (!user_id) return;
+    const resp = await fetch(`/api/get_sessions/${user_id}`);
+    const data = await resp.json();
+    setHistorySessions(Array.isArray(data) ? data : []);
+    setLoadingHistory(false);
+  };
+
+  // 查看历史会话时拉取
+  const handleOpenHistory = async () => {
+    await fetchHistorySessions();
+    setOpenHistory(true);
+  };
+
+  // 切换到历史会话
+  const handleSelectHistorySession = async (session_id) => {
+    setOpenHistory(false);
+    setSessionId(session_id);
+    // 拉取该会话的所有消息
+    const resp = await fetch(`/api/get_messages/${session_id}`);
+    const msgs = await resp.json();
+    // 转换为前端消息格式，并在最前面加问候语
+    setMessages([
+      {
+        id: 0,
+        text: GREETING_MESSAGE,
+        sender: "ai",
+        timestamp: new Date(),
+      },
+      ...msgs.map((m, idx) => ({
+        id: idx + 1,
+        text: m.content,
+        sender: m.role,
+        timestamp: new Date(m.timestamp),
+      }))
+    ]);
   };
 
   return (
@@ -162,7 +253,7 @@ const AIchat = () => {
       <Fab
         color="primary"
         aria-label="AI Chat"
-        onClick={toggleChat}
+        onClick={handleOpenChat}
         sx={{
           position: "fixed",
           bottom: 16,
@@ -190,9 +281,9 @@ const AIchat = () => {
             position: "fixed",
             bottom: 80,
             right: 16,
-            width: "400px",
-            height: "60vh",
-            maxHeight: "60vh",
+            width: "500px",
+            height: "75vh",
+            maxHeight: "75vh",
             backgroundColor: "white",
             borderRadius: 2,
             boxShadow: 3,
@@ -220,23 +311,43 @@ const AIchat = () => {
             <Typography variant="h6">
               AI Chat - {currentMode.label} {/* 用来展示当前 ai 对话模式 */}
             </Typography>
-            <IconButton onClick={toggleChat} size="small">
-              <MinimizeIcon />
-            </IconButton>
-          </Box>
-          {/* 模式切换按钮组 */}
-          <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', gap: 2 }}>
-            {otherModes.map(m => (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Button
-                key={m.value}
                 variant="outlined"
                 size="small"
-                onClick={() => setMode(m.value)}
-                sx={{ minWidth: 100 }}
+                onClick={handleOpenHistory}
+                sx={{ minWidth: 80 }}
               >
-                {m.label}
+                View History
               </Button>
-            ))}
+              <IconButton onClick={handleOpenChat} size="small">
+                <MinimizeIcon />
+              </IconButton>
+            </Box>
+          </Box>
+          {/* 模式切换按钮组和 Save Chat 按钮同一行 */}
+          <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {otherModes.map(m => (
+                <Button
+                  key={m.value}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setMode(m.value)}
+                  sx={{ minWidth: 100 }}
+                >
+                  {m.label}
+                </Button>
+              ))}
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ background: '#1976d2', color: 'white', fontWeight: 600, minWidth: 80, boxShadow: 1, '&:hover': { background: '#1565c0' } }}
+              onClick={() => setOpenConfirm(true)}
+            >
+              New Chat
+            </Button>
           </Box>
 
           {/* 消息列表 */}
@@ -348,6 +459,52 @@ const AIchat = () => {
           </Box>
         </Box>
       )}
+
+      {/* New Chat 确认弹窗 */}
+      <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
+        <DialogTitle>Start New Chat?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You are about to leave the current conversation, but you can return to it from View History. Continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenConfirm(false)}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              setOpenConfirm(false);
+              await handleNewChat();
+            }}
+            color="primary"
+            variant="contained"
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 历史会话弹窗 */}
+      <Dialog open={openHistory} onClose={() => setOpenHistory(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Chat History</DialogTitle>
+        <DialogContent dividers>
+          {loadingHistory ? (
+            <Typography>Loading...</Typography>
+          ) : historySessions.length === 0 ? (
+            <Typography>No history found.</Typography>
+          ) : (
+            <MUIList>
+              {historySessions.map(s => (
+                <MUIListItem button key={s.session_id} onClick={() => handleSelectHistorySession(s.session_id)}>
+                  <MUIListItemText primary={s.title || s.session_id} secondary={s.created_at} />
+                </MUIListItem>
+              ))}
+            </MUIList>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenHistory(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
