@@ -11,6 +11,11 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -33,6 +38,7 @@ const AIchat = () => {
   });
 
   const [isOpen, setIsOpen] = useState(false);
+  const [openConfirm, setOpenConfirm] = useState(false);
   // 用于保存所有历史消息
   const [messages, setMessages] = useState([
     {
@@ -156,6 +162,34 @@ const AIchat = () => {
     setIsOpen(!isOpen);
   };
 
+  // 新建会话
+  const handleNewChat = async () => {
+    const user_id = localStorage.getItem('user_id');
+    if (!user_id) {
+      alert('User not logged in.');
+      return;
+    }
+    const resp = await fetch('/api/start_session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, title: 'New Chat' })
+    });
+    const data = await resp.json();
+    if (data.session_id) {
+      setMessages([
+        {
+          id: 1,
+          text: "Hi! I'm HDingo's AI chat bot, how can I help you?",
+          sender: "ai",
+          timestamp: new Date(),
+        }
+      ]);
+      // 如果你有 sessionId 相关逻辑，这里也要 setSessionId(data.session_id)
+    } else {
+      alert('Failed to create new chat.');
+    }
+  };
+
   return (
     <>
       {/* 悬浮聊天按钮 */}
@@ -224,19 +258,29 @@ const AIchat = () => {
               <MinimizeIcon />
             </IconButton>
           </Box>
-          {/* 模式切换按钮组 */}
-          <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', gap: 2 }}>
-            {otherModes.map(m => (
-              <Button
-                key={m.value}
-                variant="outlined"
-                size="small"
-                onClick={() => setMode(m.value)}
-                sx={{ minWidth: 100 }}
-              >
-                {m.label}
-              </Button>
-            ))}
+          {/* 模式切换按钮组和 Save Chat 按钮同一行 */}
+          <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {otherModes.map(m => (
+                <Button
+                  key={m.value}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setMode(m.value)}
+                  sx={{ minWidth: 100 }}
+                >
+                  {m.label}
+                </Button>
+              ))}
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ background: '#1976d2', color: 'white', fontWeight: 600, minWidth: 80, boxShadow: 1, '&:hover': { background: '#1565c0' } }}
+              onClick={() => setOpenConfirm(true)}
+            >
+              New Chat
+            </Button>
           </Box>
 
           {/* 消息列表 */}
@@ -348,6 +392,29 @@ const AIchat = () => {
           </Box>
         </Box>
       )}
+
+      {/* New Chat 确认弹窗 */}
+      <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
+        <DialogTitle>Start New Chat?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You will not be able to return to the current conversation, but you can view it in chat history. Continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenConfirm(false)}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              setOpenConfirm(false);
+              await handleNewChat();
+            }}
+            color="primary"
+            variant="contained"
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
