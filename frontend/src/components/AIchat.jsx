@@ -63,6 +63,9 @@ const AIchat = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState("");
 
+  const [editingHistoryId, setEditingHistoryId] = useState(null);
+  const [editingHistoryTitle, setEditingHistoryTitle] = useState("");
+
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
   useEffect(() => {
@@ -651,34 +654,85 @@ const AIchat = () => {
             <Typography>No history found.</Typography>
           ) : (
             <MUIList>
-              {historySessions.map(s => (
-                <MUIListItem
-                  button
-                  key={s.session_id}
-                  onClick={() => handleSelectHistorySession(s.session_id)}
-                  selected={sessionId === s.session_id}
-                  secondaryAction={
-                    <IconButton edge="end" aria-label="delete" onClick={e => { e.stopPropagation(); handleDeleteSession(s.session_id); }}>
-                      <DeleteIcon />
-                    </IconButton>
-                  }
-                  sx={sessionId === s.session_id ? { background: '#FFF9C4' } : {}}
-                >
-                  <MUIListItemText
-                    primary={
-                      <span style={sessionId === s.session_id ? { fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } : {}}>
-                        {s.title || s.session_id}
-                        {sessionId === s.session_id && (
-                          <span style={{ color: '#1976d2', fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
-                            Current Session
-                          </span>
-                        )}
-                      </span>
+              {(() => {
+                const current = historySessions.find(s => s.session_id === sessionId);
+                const others = historySessions.filter(s => s.session_id !== sessionId);
+                const ordered = current ? [current, ...others] : others;
+                return ordered.map(s => (
+                  <MUIListItem
+                    button
+                    key={s.session_id}
+                    onClick={() => handleSelectHistorySession(s.session_id)}
+                    selected={sessionId === s.session_id}
+                    secondaryAction={
+                      <>
+                        <IconButton edge="end" aria-label="edit" onClick={e => { e.stopPropagation(); setEditingHistoryId(s.session_id); setEditingHistoryTitle(s.title || ""); }}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton edge="end" aria-label="delete" onClick={e => { e.stopPropagation(); handleDeleteSession(s.session_id); }}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
                     }
-                    secondary={s.created_at}
-                  />
-                </MUIListItem>
-              ))}
+                    sx={sessionId === s.session_id ? { background: '#FFF9C4' } : {}}
+                  >
+                    <MUIListItemText
+                      primary={
+                        editingHistoryId === s.session_id ? (
+                          <TextField
+                            value={editingHistoryTitle}
+                            onChange={e => setEditingHistoryTitle(e.target.value)}
+                            size="small"
+                            variant="standard"
+                            sx={{ minWidth: 80, fontSize: 15 }}
+                            inputProps={{ maxLength: 50 }}
+                            autoFocus
+                            onBlur={async () => {
+                              const newTitle = editingHistoryTitle.trim() || "Untitled Session";
+                              if (newTitle !== s.title) {
+                                const resp = await fetch("/api/update_session_title", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ session_id: s.session_id, title: newTitle })
+                                });
+                                const data = await resp.json();
+                                if (data.success) {
+                                  setHistorySessions(prev => prev.map(item => item.session_id === s.session_id ? { ...item, title: newTitle } : item));
+                                  if (sessionId === s.session_id) setSessionTitle(newTitle);
+                                } else {
+                                  alert(data.error || "Failed to update title");
+                                }
+                              }
+                              setEditingHistoryId(null);
+                              setEditingHistoryTitle("");
+                            }}
+                            onKeyDown={async e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.target.blur();
+                              }
+                              if (e.key === 'Escape') {
+                                setEditingHistoryId(null);
+                                setEditingHistoryTitle("");
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span style={sessionId === s.session_id ? { fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } : {}}>
+                            {s.title || s.session_id}
+                            {sessionId === s.session_id && (
+                              <span style={{ color: '#1976d2', fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
+                                Current Session
+                              </span>
+                            )}
+                          </span>
+                        )
+                      }
+                      secondary={s.created_at}
+                    />
+                  </MUIListItem>
+                ));
+              })()}
             </MUIList>
           )}
         </DialogContent>
