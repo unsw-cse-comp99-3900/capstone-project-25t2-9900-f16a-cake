@@ -88,6 +88,27 @@ const AIchat = () => {
       setMessages([...messages, newMessage]);
       setInputMessage("");  // 清空输入框
 
+      // 如果是新会话第一次发消息，自动用用户输入更新 title
+      if (sessionTitle === "New Chat" && messages.length === 1) {
+        setSessionTitle(inputMessage);
+        // 异步更新后端 title
+        if (sessionId) {
+          fetch("/api/update_session_title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, title: inputMessage })
+          }).then(async resp => {
+            const data = await resp.json();
+            if (!data.success) {
+              alert(data.error || "Failed to update title");
+            } else {
+              // 更新 historySessions 里的 title
+              setHistorySessions(prev => prev.map(s => s.session_id === sessionId ? { ...s, title: inputMessage } : s));
+            }
+          });
+        }
+      }
+
       // 根据模式选择不同的后端 API
       let apiUrl = "/api/aichat/general";
       if (mode === "rag") apiUrl = "/api/aichat/rag";
