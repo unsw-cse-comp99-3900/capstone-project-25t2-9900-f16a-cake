@@ -16,6 +16,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  List as MUIList,
+  ListItem as MUIListItem,
+  ListItemText as MUIListItemText,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -25,17 +28,22 @@ import {
 // <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
 import { Auth } from "../utils/Auth"; 
 
+const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
+
 const AIchat = () => {
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
+  const [openHistory, setOpenHistory] = useState(false);
+  const [historySessions, setHistorySessions] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   // 用于保存所有历史消息
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hi! I'm HDingo's AI chat bot, how can I help you?",
+      text: GREETING_MESSAGE,
       sender: "ai",
       timestamp: new Date(),
     },
@@ -188,7 +196,7 @@ const AIchat = () => {
       setMessages([
         {
           id: 1,
-          text: "Hi! I'm HDingo's AI chat bot, how can I help you?",
+          text: GREETING_MESSAGE,
           sender: "ai",
           timestamp: new Date(),
         }
@@ -196,6 +204,47 @@ const AIchat = () => {
     } else {
       alert('Failed to create new chat.');
     }
+  };
+
+  // 拉取历史会话
+  const fetchHistorySessions = async () => {
+    setLoadingHistory(true);
+    const user_id = localStorage.getItem('user_id');
+    if (!user_id) return;
+    const resp = await fetch(`/api/get_sessions/${user_id}`);
+    const data = await resp.json();
+    setHistorySessions(Array.isArray(data) ? data : []);
+    setLoadingHistory(false);
+  };
+
+  // 查看历史会话时拉取
+  const handleOpenHistory = async () => {
+    await fetchHistorySessions();
+    setOpenHistory(true);
+  };
+
+  // 切换到历史会话
+  const handleSelectHistorySession = async (session_id) => {
+    setOpenHistory(false);
+    setSessionId(session_id);
+    // 拉取该会话的所有消息
+    const resp = await fetch(`/api/get_messages/${session_id}`);
+    const msgs = await resp.json();
+    // 转换为前端消息格式，并在最前面加问候语
+    setMessages([
+      {
+        id: 0,
+        text: GREETING_MESSAGE,
+        sender: "ai",
+        timestamp: new Date(),
+      },
+      ...msgs.map((m, idx) => ({
+        id: idx + 1,
+        text: m.content,
+        sender: m.role,
+        timestamp: new Date(m.timestamp),
+      }))
+    ]);
   };
 
   return (
@@ -262,9 +311,19 @@ const AIchat = () => {
             <Typography variant="h6">
               AI Chat - {currentMode.label} {/* 用来展示当前 ai 对话模式 */}
             </Typography>
-            <IconButton onClick={handleOpenChat} size="small">
-              <MinimizeIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleOpenHistory}
+                sx={{ minWidth: 80 }}
+              >
+                View History
+              </Button>
+              <IconButton onClick={handleOpenChat} size="small">
+                <MinimizeIcon />
+              </IconButton>
+            </Box>
           </Box>
           {/* 模式切换按钮组和 Save Chat 按钮同一行 */}
           <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
@@ -406,7 +465,7 @@ const AIchat = () => {
         <DialogTitle>Start New Chat?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You will not be able to return to the current conversation, but you can view it in chat history. Continue?
+            You are about to leave the current conversation, but you can return to it from View History. Continue?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -421,6 +480,29 @@ const AIchat = () => {
           >
             Confirm
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 历史会话弹窗 */}
+      <Dialog open={openHistory} onClose={() => setOpenHistory(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Chat History</DialogTitle>
+        <DialogContent dividers>
+          {loadingHistory ? (
+            <Typography>Loading...</Typography>
+          ) : historySessions.length === 0 ? (
+            <Typography>No history found.</Typography>
+          ) : (
+            <MUIList>
+              {historySessions.map(s => (
+                <MUIListItem button key={s.session_id} onClick={() => handleSelectHistorySession(s.session_id)}>
+                  <MUIListItemText primary={s.title || s.session_id} secondary={s.created_at} />
+                </MUIListItem>
+              ))}
+            </MUIList>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenHistory(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </>

@@ -101,3 +101,19 @@ def check_or_create_session(session_id, user_id, title="New Chat"):
     finally:
         cursor.close()
         conn.close()
+
+def get_sessions_db(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT session_id, title, created_at FROM chat_history WHERE user_id = %s ORDER BY created_at DESC",
+            (user_id,)
+        )
+        sessions = cursor.fetchall()
+        return sessions, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()

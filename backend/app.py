@@ -105,6 +105,13 @@ def api_get_messages(session_id):
         return jsonify({"error": error}), 400
     return jsonify(messages)
 
+@app.route('/api/get_sessions/<user_id>', methods=['GET'])
+def api_get_sessions(user_id):
+    sessions, error = database.get_sessions_db(user_id)
+    if error:
+        return jsonify({"error": error}), 400
+    return jsonify(sessions)
+
 
 # ---- SSO登录模拟 ----
 @app.route('/api/sso-login', methods=['GET'])
