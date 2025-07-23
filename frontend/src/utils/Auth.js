@@ -14,6 +14,7 @@ export const Auth = {
     localStorage.removeItem("username");
     // <<<<<<<<<<<<<<<< 最好也在这里添加一行 >>>>>>>>>>>>>>>>>
     localStorage.removeItem("user_id");
+    localStorage.removeItem("ai_session_id");
   },
   getToken: () => localStorage.getItem("token"),
   getRole: () => localStorage.getItem("role"),

@@ -26,16 +26,8 @@ import {
 import { Auth } from "../utils/Auth"; 
 
 const AIchat = () => {
-  // 放在组件顶部，数据库sessionID
-  const [sessionId, setSessionId] = useState(() => {
-    // 如果localStorage已有，则复用；否则新生成
-    let sid = localStorage.getItem("ai_session_id");
-    if (!sid) {
-      sid = crypto.randomUUID();
-      localStorage.setItem("ai_session_id", sid);
-    }
-    return sid;
-  });
+  // sessionId 由后端生成
+  const [sessionId, setSessionId] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -110,15 +102,11 @@ const AIchat = () => {
       try {
         const resp = await fetch(apiUrl, {
           method: "POST",
-          // 这一部分应该只需要给后端发 token 和 question 就可以了
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             question: inputMessage,
-            session_id: sessionId, // 数据库内容
-            // <<-- 步骤 3: 在请求体中加入 user_id -->>
-            user_id: userId,
-            role: "user"
-          })
+            session_id: sessionId,
+          }),
         });
         const data = await resp.json();
         let aiText = data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
@@ -158,8 +146,28 @@ const AIchat = () => {
     }
   };
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
+  // 只有首次且 sessionId 为空时才新建 session
+  const handleOpenChat = async () => {
+    if (!isOpen) {
+      if (!sessionId) {
+        const user_id = localStorage.getItem('user_id');
+        if (!user_id) {
+          alert('User not logged in.');
+          return;
+        }
+        const resp = await fetch('/api/start_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id, title: 'Default Chat' })
+        });
+        const data = await resp.json();
+        if (data.session_id) setSessionId(data.session_id);
+        else alert('Failed to create chat session.');
+      }
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
   };
 
   // 新建会话
@@ -176,6 +184,7 @@ const AIchat = () => {
     });
     const data = await resp.json();
     if (data.session_id) {
+      setSessionId(data.session_id);
       setMessages([
         {
           id: 1,
@@ -184,7 +193,6 @@ const AIchat = () => {
           timestamp: new Date(),
         }
       ]);
-      // 如果你有 sessionId 相关逻辑，这里也要 setSessionId(data.session_id)
     } else {
       alert('Failed to create new chat.');
     }
@@ -196,7 +204,7 @@ const AIchat = () => {
       <Fab
         color="primary"
         aria-label="AI Chat"
-        onClick={toggleChat}
+        onClick={handleOpenChat}
         sx={{
           position: "fixed",
           bottom: 16,
@@ -224,9 +232,9 @@ const AIchat = () => {
             position: "fixed",
             bottom: 80,
             right: 16,
-            width: "400px",
-            height: "60vh",
-            maxHeight: "60vh",
+            width: "500px",
+            height: "75vh",
+            maxHeight: "75vh",
             backgroundColor: "white",
             borderRadius: 2,
             boxShadow: 3,
@@ -254,7 +262,7 @@ const AIchat = () => {
             <Typography variant="h6">
               AI Chat - {currentMode.label} {/* 用来展示当前 ai 对话模式 */}
             </Typography>
-            <IconButton onClick={toggleChat} size="small">
+            <IconButton onClick={handleOpenChat} size="small">
               <MinimizeIcon />
             </IconButton>
           </Box>
