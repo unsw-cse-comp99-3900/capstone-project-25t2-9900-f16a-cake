@@ -53,10 +53,10 @@ const AIchat = () => {
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (isOpen && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [isOpen, messages]);
 
   // 只有已登录用户才显示
   if (!localStorage.getItem("role")) {

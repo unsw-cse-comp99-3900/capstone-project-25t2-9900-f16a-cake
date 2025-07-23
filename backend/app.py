@@ -89,6 +89,7 @@ def api_start_session():
         return jsonify({"error": error}), 400
     return jsonify({"session_id": session_id})
 
+# 这个 api 接口可以删除, 前端用不到, 但是 api_add_message 方法需要保留
 @app.route('/api/add_message', methods=['POST'])
 def api_add_message():
     data = request.json
@@ -388,24 +389,45 @@ def delete_pdf(filename):
 def aichat_general():
     data = request.get_json() or {}
     question = data.get('question', '').strip()
-    if not question:
-        return jsonify({"error": "question cannot be empty"}), 400
+    session_id = data.get('session_id')
+    if not question or not session_id:
+        return jsonify({"error": "question and session_id cannot be empty"}), 400
+    # 保存用户消息到数据库
+    database.add_message_db(session_id, 'user', question)
+
+
+    # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))  # 模拟AI延迟
-    return jsonify({"answer": f"This is a mock AI reply: {question}"})
+    ai_reply = f"This is a mock AI reply: {question}"
+    # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
+
+    
+    # 保存 AI 回复到数据库
+    database.add_message_db(session_id, 'ai', ai_reply)
+    return jsonify({"answer": ai_reply})
 
 # AI chat 的 rag 模式
 @app.route('/api/aichat/rag', methods=['POST'])
 def aichat_rag():
     data = request.get_json() or {}
     question = data.get('question', '').strip()
-    if not question:
-        return jsonify({"error": "question cannot be empty"}), 400
+    session_id = data.get('session_id')
+    if not question or not session_id:
+        return jsonify({"error": "question and session_id cannot be empty"}), 400
+    database.add_message_db(session_id, 'user', question)
+
+    
+    # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))
-    # 用 pdfs 下的 PDF 作为 source，返回完整 URL
     pdf_title = "Account Disabled - CSE taggi.pdf"
     pdf_url = f"http://localhost:8000/pdfs/{pdf_title.replace(' ', '%20')}"
+    ai_reply = f"[RAG] This is a mock RAG reply: {question}"
+    # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
+
+    
+    database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({
-        "answer": f"[RAG] This is a mock RAG reply: {question}",
+        "answer": ai_reply,
         "reference": {pdf_title: pdf_url}
     })
 
@@ -414,16 +436,25 @@ def aichat_rag():
 def aichat_checklist():
     data = request.get_json() or {}
     question = data.get('question', '').strip()
-    if not question:
-        return jsonify({"error": "question cannot be empty"}), 400
+    session_id = data.get('session_id')
+    if not question or not session_id:
+        return jsonify({"error": "question and session_id cannot be empty"}), 400
+    database.add_message_db(session_id, 'user', question)
+
+
+    # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))
-    # checklist 模式返回 checklist 风格内容
     checklist = [
         {"item": "Step 1: Do something", "done": False},
         {"item": "Step 2: Do something else", "done": False},
         {"item": "Step 3: Finish up", "done": False}
     ]
-    return jsonify({"answer": f"[Checklist] Here is your checklist for: {question}", "checklist": checklist})
+    ai_reply = f"[Checklist] Here is your checklist for: {question}"
+    # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
+
+    
+    database.add_message_db(session_id, 'ai', ai_reply)
+    return jsonify({"answer": ai_reply, "checklist": checklist})
 
 
 if __name__ == '__main__':
