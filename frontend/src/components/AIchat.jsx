@@ -24,6 +24,7 @@ import {
   Send as SendIcon,
   Minimize as MinimizeIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 // <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
 import { Auth } from "../utils/Auth"; 
@@ -313,6 +314,71 @@ const AIchat = () => {
     }
   };
 
+  const handleDeleteSession = async (session_id) => {
+    if (!window.confirm("Are you sure you want to delete this chat session? This cannot be undone.")) return;
+    // 先删除后端数据库里的 session
+    const resp = await fetch("/api/delete_session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      setHistorySessions(prev => prev.filter(s => s.session_id !== session_id));
+      // 如果当前会话被删，重置当前会话并新建
+      if (sessionId === session_id) {
+        const user_id = localStorage.getItem('user_id');
+        // 再新建一个 session
+        if (user_id) {
+          const resp = await fetch('/api/start_session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, title: 'New Chat' })
+          });
+          const newData = await resp.json();
+          // 如果新建成功，更新当前会话
+          if (newData.session_id) {
+            setSessionId(newData.session_id);
+            setSessionTitle('New Chat');
+            setMessages([
+              {
+                id: 1,
+                text: GREETING_MESSAGE,
+                sender: "ai",
+                timestamp: new Date(),
+              },
+            ]);
+          } else {
+            alert('Failed to create new chat.');
+            setSessionId(null);
+            setSessionTitle('New Chat');
+            setMessages([
+              {
+                id: 1,
+                text: GREETING_MESSAGE,
+                sender: "ai",
+                timestamp: new Date(),
+              },
+            ]);
+          }
+        } else {
+          setSessionId(null);
+          setSessionTitle('New Chat');
+          setMessages([
+            {
+              id: 1,
+              text: GREETING_MESSAGE,
+              sender: "ai",
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      }
+    } else {
+      alert(data.error || "Failed to delete session");
+    }
+  };
+
   return (
     <>
       {/* 悬浮聊天按钮 */}
@@ -586,8 +652,31 @@ const AIchat = () => {
           ) : (
             <MUIList>
               {historySessions.map(s => (
-                <MUIListItem button key={s.session_id} onClick={() => handleSelectHistorySession(s.session_id)}>
-                  <MUIListItemText primary={s.title || s.session_id} secondary={s.created_at} />
+                <MUIListItem
+                  button
+                  key={s.session_id}
+                  onClick={() => handleSelectHistorySession(s.session_id)}
+                  selected={sessionId === s.session_id}
+                  secondaryAction={
+                    <IconButton edge="end" aria-label="delete" onClick={e => { e.stopPropagation(); handleDeleteSession(s.session_id); }}>
+                      <DeleteIcon />
+                    </IconButton>
+                  }
+                  sx={sessionId === s.session_id ? { background: '#FFF9C4' } : {}}
+                >
+                  <MUIListItemText
+                    primary={
+                      <span style={sessionId === s.session_id ? { fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } : {}}>
+                        {s.title || s.session_id}
+                        {sessionId === s.session_id && (
+                          <span style={{ color: '#1976d2', fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
+                            Current Session
+                          </span>
+                        )}
+                      </span>
+                    }
+                    secondary={s.created_at}
+                  />
                 </MUIListItem>
               ))}
             </MUIList>

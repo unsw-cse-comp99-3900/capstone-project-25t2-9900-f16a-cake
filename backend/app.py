@@ -476,6 +476,18 @@ def update_session_title():
     else:
         return jsonify({'success': False, 'error': err}), 500
 
+@app.route('/api/delete_session', methods=['POST'])
+def delete_session():
+    data = request.get_json() or {}
+    session_id = data.get('session_id')
+    if not session_id:
+        return jsonify({'success': False, 'error': 'session_id required'}), 400
+    ok, err = database.delete_session(session_id)
+    if ok:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': err}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
