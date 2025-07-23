@@ -117,3 +117,19 @@ def get_sessions_db(user_id):
     finally:
         cursor.close()
         conn.close()
+
+def update_session_title(session_id, new_title):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE chat_history SET title = %s WHERE session_id = %s",
+            (new_title, session_id)
+        )
+        conn.commit()
+        return True, None
+    except Exception as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()

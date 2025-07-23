@@ -21,9 +21,9 @@ import {
   ListItemText as MUIListItemText,
 } from "@mui/material";
 import {
-  Close as CloseIcon,
   Send as SendIcon,
   Minimize as MinimizeIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 // <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
 import { Auth } from "../utils/Auth"; 
@@ -33,6 +33,7 @@ const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
 const AIchat = () => {
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
+  const [sessionTitle, setSessionTitle] = useState("New Chat");
 
   const [isOpen, setIsOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -57,6 +58,9 @@ const AIchat = () => {
   const [mode, setMode] = useState("general");
   const currentMode = MODES.find(m => m.value === mode); // 当前模式, 有上面一行决定, 现在是 general
   const otherModes = MODES.filter(m => m.value !== mode); // 其他模式, 现在是 rag 和 general
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState("");
 
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
@@ -166,11 +170,13 @@ const AIchat = () => {
         const resp = await fetch('/api/start_session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, title: 'Default Chat' })
+          body: JSON.stringify({ user_id, title: 'New Chat' })
         });
         const data = await resp.json();
-        if (data.session_id) setSessionId(data.session_id);
-        else alert('Failed to create chat session.');
+        if (data.session_id) {
+          setSessionId(data.session_id);
+          setSessionTitle('New Chat');
+        } else alert('Failed to create chat session.');
       }
       setIsOpen(true);
     } else {
@@ -193,6 +199,9 @@ const AIchat = () => {
     const data = await resp.json();
     if (data.session_id) {
       setSessionId(data.session_id);
+      setSessionTitle('New Chat');
+      setEditingTitle(false);
+      setTitleInput("");
       setMessages([
         {
           id: 1,
@@ -245,6 +254,42 @@ const AIchat = () => {
         timestamp: new Date(m.timestamp),
       }))
     ]);
+    // 查找 title
+    const found = historySessions.find(s => s.session_id === session_id);
+    setSessionTitle(found ? (found.title || session_id) : session_id);
+    setEditingTitle(false);
+    setTitleInput("");
+  };
+
+  const handleEditTitle = () => {
+    setTitleInput(sessionTitle);
+    setEditingTitle(true);
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitle(false);
+    setTitleInput("");
+  };
+
+  const handleSaveTitle = async () => {
+    if (!sessionId) return;
+    const newTitle = titleInput.trim() || "Untitled Session";
+    // 假设有后端接口 /api/update_session_title
+    const resp = await fetch("/api/update_session_title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, title: newTitle })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      setSessionTitle(newTitle);
+      setEditingTitle(false);
+      setTitleInput("");
+      // 更新 historySessions 里的 title
+      setHistorySessions(prev => prev.map(s => s.session_id === sessionId ? { ...s, title: newTitle } : s));
+    } else {
+      alert(data.error || "Failed to update title");
+    }
   };
 
   return (
@@ -348,6 +393,32 @@ const AIchat = () => {
             >
               New Chat
             </Button>
+          </Box>
+          {/* 会话标题展示 */}
+          <Box sx={{ px: 2, py: 0.5, background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 1 }}>
+            {editingTitle ? (
+              <TextField
+                value={titleInput}
+                onChange={e => setTitleInput(e.target.value)}
+                size="small"
+                variant="standard"
+                sx={{ minWidth: 120, fontSize: 16 }}
+                inputProps={{ maxLength: 50 }}
+                autoFocus
+                onBlur={handleSaveTitle}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSaveTitle();
+                  if (e.key === 'Escape') handleCancelEditTitle();
+                }}
+              />
+            ) : (
+              <>
+                <Typography variant="subtitle2" sx={{ color: 'grey.700', fontWeight: 500, mr: 1 }}>
+                  {sessionTitle}
+                </Typography>
+                <IconButton size="small" onClick={handleEditTitle} sx={{ color: 'grey.700' }}><EditIcon fontSize="small" /></IconButton>
+              </>
+            )}
           </Box>
 
           {/* 消息列表 */}

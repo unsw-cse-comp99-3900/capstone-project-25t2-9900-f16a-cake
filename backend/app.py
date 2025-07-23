@@ -463,6 +463,19 @@ def aichat_checklist():
     database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({"answer": ai_reply, "checklist": checklist})
 
+@app.route('/api/update_session_title', methods=['POST'])
+def update_session_title():
+    data = request.get_json() or {}
+    session_id = data.get('session_id')
+    title = data.get('title')
+    if not session_id or not title:
+        return jsonify({'success': False, 'error': 'session_id and title required'}), 400
+    ok, err = database.update_session_title(session_id, title)
+    if ok:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': err}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
