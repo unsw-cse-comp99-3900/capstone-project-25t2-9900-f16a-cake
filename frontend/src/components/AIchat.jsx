@@ -21,9 +21,10 @@ import {
   ListItemText as MUIListItemText,
 } from "@mui/material";
 import {
-  Close as CloseIcon,
   Send as SendIcon,
   Minimize as MinimizeIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 // <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
 import { Auth } from "../utils/Auth"; 
@@ -33,6 +34,7 @@ const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
 const AIchat = () => {
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
+  const [sessionTitle, setSessionTitle] = useState("New Chat");
 
   const [isOpen, setIsOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -57,6 +59,12 @@ const AIchat = () => {
   const [mode, setMode] = useState("general");
   const currentMode = MODES.find(m => m.value === mode); // 当前模式, 有上面一行决定, 现在是 general
   const otherModes = MODES.filter(m => m.value !== mode); // 其他模式, 现在是 rag 和 general
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState("");
+
+  const [editingHistoryId, setEditingHistoryId] = useState(null);
+  const [editingHistoryTitle, setEditingHistoryTitle] = useState("");
 
   // 自动滚动到底部
   const messagesEndRef = useRef(null);
@@ -83,6 +91,27 @@ const AIchat = () => {
       // 保存到历史信息 messages 中
       setMessages([...messages, newMessage]);
       setInputMessage("");  // 清空输入框
+
+      // 如果是新会话第一次发消息，自动用用户输入更新 title
+      if (sessionTitle === "New Chat" && messages.length === 1) {
+        setSessionTitle(inputMessage);
+        // 异步更新后端 title
+        if (sessionId) {
+          fetch("/api/update_session_title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, title: inputMessage })
+          }).then(async resp => {
+            const data = await resp.json();
+            if (!data.success) {
+              alert(data.error || "Failed to update title");
+            } else {
+              // 更新 historySessions 里的 title
+              setHistorySessions(prev => prev.map(s => s.session_id === sessionId ? { ...s, title: inputMessage } : s));
+            }
+          });
+        }
+      }
 
       // 根据模式选择不同的后端 API
       let apiUrl = "/api/aichat/general";
@@ -166,11 +195,13 @@ const AIchat = () => {
         const resp = await fetch('/api/start_session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, title: 'Default Chat' })
+          body: JSON.stringify({ user_id, title: 'New Chat' })
         });
         const data = await resp.json();
-        if (data.session_id) setSessionId(data.session_id);
-        else alert('Failed to create chat session.');
+        if (data.session_id) {
+          setSessionId(data.session_id);
+          setSessionTitle('New Chat');
+        } else alert('Failed to create chat session.');
       }
       setIsOpen(true);
     } else {
@@ -193,6 +224,9 @@ const AIchat = () => {
     const data = await resp.json();
     if (data.session_id) {
       setSessionId(data.session_id);
+      setSessionTitle('New Chat');
+      setEditingTitle(false);
+      setTitleInput("");
       setMessages([
         {
           id: 1,
@@ -245,6 +279,107 @@ const AIchat = () => {
         timestamp: new Date(m.timestamp),
       }))
     ]);
+    // 查找 title
+    const found = historySessions.find(s => s.session_id === session_id);
+    setSessionTitle(found ? (found.title || session_id) : session_id);
+    setEditingTitle(false);
+    setTitleInput("");
+  };
+
+  const handleEditTitle = () => {
+    setTitleInput(sessionTitle);
+    setEditingTitle(true);
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitle(false);
+    setTitleInput("");
+  };
+
+  const handleSaveTitle = async () => {
+    if (!sessionId) return;
+    const newTitle = titleInput.trim() || "Untitled Session";
+    // 假设有后端接口 /api/update_session_title
+    const resp = await fetch("/api/update_session_title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, title: newTitle })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      setSessionTitle(newTitle);
+      setEditingTitle(false);
+      setTitleInput("");
+      // 更新 historySessions 里的 title
+      setHistorySessions(prev => prev.map(s => s.session_id === sessionId ? { ...s, title: newTitle } : s));
+    } else {
+      alert(data.error || "Failed to update title");
+    }
+  };
+
+  const handleDeleteSession = async (session_id) => {
+    if (!window.confirm("Are you sure you want to delete this chat session? This cannot be undone.")) return;
+    // 先删除后端数据库里的 session
+    const resp = await fetch("/api/delete_session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      setHistorySessions(prev => prev.filter(s => s.session_id !== session_id));
+      // 如果当前会话被删，重置当前会话并新建
+      if (sessionId === session_id) {
+        const user_id = localStorage.getItem('user_id');
+        // 再新建一个 session
+        if (user_id) {
+          const resp = await fetch('/api/start_session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, title: 'New Chat' })
+          });
+          const newData = await resp.json();
+          // 如果新建成功，更新当前会话
+          if (newData.session_id) {
+            setSessionId(newData.session_id);
+            setSessionTitle('New Chat');
+            setMessages([
+              {
+                id: 1,
+                text: GREETING_MESSAGE,
+                sender: "ai",
+                timestamp: new Date(),
+              },
+            ]);
+          } else {
+            alert('Failed to create new chat.');
+            setSessionId(null);
+            setSessionTitle('New Chat');
+            setMessages([
+              {
+                id: 1,
+                text: GREETING_MESSAGE,
+                sender: "ai",
+                timestamp: new Date(),
+              },
+            ]);
+          }
+        } else {
+          setSessionId(null);
+          setSessionTitle('New Chat');
+          setMessages([
+            {
+              id: 1,
+              text: GREETING_MESSAGE,
+              sender: "ai",
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      }
+    } else {
+      alert(data.error || "Failed to delete session");
+    }
   };
 
   return (
@@ -348,6 +483,32 @@ const AIchat = () => {
             >
               New Chat
             </Button>
+          </Box>
+          {/* 会话标题展示 */}
+          <Box sx={{ px: 2, py: 0.5, background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 1 }}>
+            {editingTitle ? (
+              <TextField
+                value={titleInput}
+                onChange={e => setTitleInput(e.target.value)}
+                size="small"
+                variant="standard"
+                sx={{ minWidth: 120, fontSize: 16 }}
+                inputProps={{ maxLength: 50 }}
+                autoFocus
+                onBlur={handleSaveTitle}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSaveTitle();
+                  if (e.key === 'Escape') handleCancelEditTitle();
+                }}
+              />
+            ) : (
+              <>
+                <Typography variant="subtitle2" sx={{ color: 'grey.700', fontWeight: 500, mr: 1 }}>
+                  {sessionTitle}
+                </Typography>
+                <IconButton size="small" onClick={handleEditTitle} sx={{ color: 'grey.700' }}><EditIcon fontSize="small" /></IconButton>
+              </>
+            )}
           </Box>
 
           {/* 消息列表 */}
@@ -493,11 +654,85 @@ const AIchat = () => {
             <Typography>No history found.</Typography>
           ) : (
             <MUIList>
-              {historySessions.map(s => (
-                <MUIListItem button key={s.session_id} onClick={() => handleSelectHistorySession(s.session_id)}>
-                  <MUIListItemText primary={s.title || s.session_id} secondary={s.created_at} />
-                </MUIListItem>
-              ))}
+              {(() => {
+                const current = historySessions.find(s => s.session_id === sessionId);
+                const others = historySessions.filter(s => s.session_id !== sessionId);
+                const ordered = current ? [current, ...others] : others;
+                return ordered.map(s => (
+                  <MUIListItem
+                    button
+                    key={s.session_id}
+                    onClick={() => handleSelectHistorySession(s.session_id)}
+                    selected={sessionId === s.session_id}
+                    secondaryAction={
+                      <>
+                        <IconButton edge="end" aria-label="edit" onClick={e => { e.stopPropagation(); setEditingHistoryId(s.session_id); setEditingHistoryTitle(s.title || ""); }}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton edge="end" aria-label="delete" onClick={e => { e.stopPropagation(); handleDeleteSession(s.session_id); }}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    }
+                    sx={sessionId === s.session_id ? { background: '#FFF9C4' } : {}}
+                  >
+                    <MUIListItemText
+                      primary={
+                        editingHistoryId === s.session_id ? (
+                          <TextField
+                            value={editingHistoryTitle}
+                            onChange={e => setEditingHistoryTitle(e.target.value)}
+                            size="small"
+                            variant="standard"
+                            sx={{ minWidth: 80, fontSize: 15 }}
+                            inputProps={{ maxLength: 50 }}
+                            autoFocus
+                            onBlur={async () => {
+                              const newTitle = editingHistoryTitle.trim() || "Untitled Session";
+                              if (newTitle !== s.title) {
+                                const resp = await fetch("/api/update_session_title", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ session_id: s.session_id, title: newTitle })
+                                });
+                                const data = await resp.json();
+                                if (data.success) {
+                                  setHistorySessions(prev => prev.map(item => item.session_id === s.session_id ? { ...item, title: newTitle } : item));
+                                  if (sessionId === s.session_id) setSessionTitle(newTitle);
+                                } else {
+                                  alert(data.error || "Failed to update title");
+                                }
+                              }
+                              setEditingHistoryId(null);
+                              setEditingHistoryTitle("");
+                            }}
+                            onKeyDown={async e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.target.blur();
+                              }
+                              if (e.key === 'Escape') {
+                                setEditingHistoryId(null);
+                                setEditingHistoryTitle("");
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span style={sessionId === s.session_id ? { fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 } : {}}>
+                            {s.title || s.session_id}
+                            {sessionId === s.session_id && (
+                              <span style={{ color: '#1976d2', fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
+                                Current Session
+                              </span>
+                            )}
+                          </span>
+                        )
+                      }
+                      secondary={s.created_at}
+                    />
+                  </MUIListItem>
+                ));
+              })()}
             </MUIList>
           )}
         </DialogContent>

@@ -117,3 +117,35 @@ def get_sessions_db(user_id):
     finally:
         cursor.close()
         conn.close()
+
+def update_session_title(session_id, new_title):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE chat_history SET title = %s WHERE session_id = %s",
+            (new_title, session_id)
+        )
+        conn.commit()
+        return True, None
+    except Exception as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_session(session_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # 先删除 messages 表中该 session 的所有消息
+        cursor.execute("DELETE FROM messages WHERE session_id = %s", (session_id,))
+        # 再删除 chat_history 表中的 session
+        cursor.execute("DELETE FROM chat_history WHERE session_id = %s", (session_id,))
+        conn.commit()
+        return True, None
+    except Exception as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
