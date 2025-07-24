@@ -8,12 +8,18 @@ import jwt
 import datetime  # 用于 JWT 过期时间等
 # ^ 生成 token 的库 ^
 
+# ————————生成rag————————
+import re
+import uuid
+import logging
+import pdfplumber
+from werkzeug.utils import secure_filename
+
 # —————————rag———————————
 import faiss
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import os
 import json
 from datetime import datetime  # 用于文件时间展示
 import time
@@ -26,6 +32,17 @@ list_pdf = []  # 公用pdf列表
 
 app = Flask(__name__)
 CORS(app)
+
+# 上传配置
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+RAG_FOLDER = os.path.join(os.path.dirname(__file__), 'rag')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(RAG_FOLDER, exist_ok=True)
+
+# RAG 模型初始化
+ragMODEL = SentenceTransformer('all-MiniLM-L6-v2')
+PDF_URL_BASE = "http://localhost:8000/pdfs"
 
 # ———— AI 聊天配置区域 ————
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
@@ -221,17 +238,26 @@ def list_pdf_names(pdfs_dir="pdfs"):
     return pdf_names
 
 
-def rag_search(question, top_k=10, score_threshold=0.75):
+def rag_search(question, top_k=10, score_threshold=0.85):
+    # 1. 先拿到所有 PDF 的前缀名
+    pdf_list = list_pdf_names()
+
+    # 2. 生成 query 向量
     model = SentenceTransformer("all-MiniLM-L6-v2")
     q_emb = model.encode([question])
-    pdf_list = list_pdf_names()
+
     all_hits = []
-    for pdf_file in (pdf_list or []):
-        prefix = os.path.splitext(os.path.basename(pdf_file))[0]
+    for prefix in pdf_list:
+        # 3. 构造索引 & 元数据路径
         idx_path = os.path.join(BASE_DIR, "rag", f"{prefix}.index")
         ids_path = os.path.join(BASE_DIR, "rag", f"{prefix}_ids.pkl")
         docs_path = os.path.join(BASE_DIR, "rag", f"{prefix}_docs.json")
 
+        # 如果没有对应文件就跳过
+        if not (os.path.exists(idx_path) and os.path.exists(ids_path) and os.path.exists(docs_path)):
+            continue
+
+        # 4. 加载索引和文档映射
         index = faiss.read_index(idx_path)
         with open(ids_path, "rb") as f:
             ids = pickle.load(f)
@@ -239,6 +265,7 @@ def rag_search(question, top_k=10, score_threshold=0.75):
             docs = json.load(f)
         doc_map = {d["id"]: d for d in docs}
 
+        # 5. 检索 top_k
         D, I = index.search(np.array(q_emb, dtype="float32"), top_k)
         for dist, idx in zip(D[0], I[0]):
             if dist > score_threshold:
@@ -249,29 +276,32 @@ def rag_search(question, top_k=10, score_threshold=0.75):
                 "pdf": prefix,
                 "question": entry.get("question", ""),
                 "answer": entry.get("answer", ""),
-                "title": entry.get("source", {}).get("title", ""),
-                "url": entry.get("source", {}).get("url", "")
+                # 改这里：title 直接用 prefix；url 用 pdfs 目录下的文件路径
+                "title": prefix,
+                "url": f"{PDF_URL_BASE}/{prefix}.pdf",
             })
 
-    # 排序并截取 Top-K
+    # 6. 全部合并后排序并取最终 top_k
     all_hits = sorted(all_hits, key=lambda x: x["score"])[:top_k]
-
-    # 组织输出：knowledge_str 和按 PDF 分组的 ref_dict
+    if not all_hits:
+        return {}
+    # 7. 组装返回值
     parts = []
     ref_dict = {}
-    for i, h in enumerate(all_hits, 1):
-        parts.append(
-            f"{i}. （{h['pdf']}）Question: {h['question']}\n"
-            f"   Answer:   {h['answer']}"
-        )
-        # 把每条命中按 pdf 分组
-        pdf = h["pdf"]
-        ref_dict.setdefault(pdf, []).append({
-            "title": h["title"],
-            "url": h["url"]
-        })
+    for h in all_hits:
+        prefix = h["pdf"]
+        url = h["url"]
+        # 如果同一个 pdf 出现多次，这里会被后面的覆盖一次，最终得到唯一映射
+        ref_dict[prefix] = url
 
+    # 构造 knowledge_str 同之前
+    parts = [
+        f"{i}. （{h['pdf']}）Question: {h['question']}\n"
+        f"   Answer:   {h['answer']}"
+        for i, h in enumerate(all_hits, 1)
+    ]
     knowledge_str = "\n\n".join(parts)
+
     return knowledge_str, ref_dict
 
 
@@ -306,9 +336,17 @@ def ask():
     if user_err:
         # 即使写入失败，也可以选择继续，但最好记录日志
         print(f"Error writing user message to DB: {user_err}")
-
+    result = rag_search(question)
+    # 如果 rag_search 返回 {}，表示没命中
+    if not result:
+        return jsonify({
+            "answer": "ops, I couldn't find anything, Need I turn to real human?",
+            "reference": {}
+        })
     # 2. RAG 检索
-    knowledge, reference = rag_search(question)
+    knowledge, reference = result
+    print(knowledge)
+    # 这里增加了如果找不到直接返回结果
 
     # 3. 构造并请求 LLM
     payload = {
@@ -380,20 +418,137 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ————————生成rag————————
+def extract_text_from_pdf(path):
+    """
+    提取 PDF 中文本，并返回整个文档的字符串。
+    """
+    texts = []
+    with pdfplumber.open(path) as pdf:
+        for page_num, page in enumerate(pdf.pages, start=1):
+            try:
+                text = page.extract_text()
+            except Exception as e:
+                logging.error(f"第{page_num}页提取文本时出错: {e}")
+                continue
+            if text:
+                texts.append(text)
+    return "\n".join(texts)
+
+
+def parse_qa_pairs(full_text):
+    """
+    从全文中提取问答对。
+    匹配问号结尾或数字标题行作为问题，后续内容作为答案。
+    """
+    docs = []
+    lines = [line.strip() for line in full_text.splitlines()]
+    heading_re = re.compile(r'^(\d+(?:\.\d+)*):\s*(.+)')
+    i = 0
+    while i < len(lines):
+        question = None
+        line = lines[i]
+        if line.endswith('?') or line.endswith('？'):
+            question = line
+        else:
+            m = heading_re.match(line)
+            if m:
+                question = m.group(2)
+        if question:
+            answer_lines = []
+            j = i + 1
+            while j < len(lines) and lines[j]:
+                if lines[j].endswith('?') or heading_re.match(lines[j]):
+                    break
+                answer_lines.append(lines[j])
+                j += 1
+            answer = ' '.join(answer_lines).strip()
+            docs.append({
+                'id': f"qa_{uuid.uuid4().hex[:8]}",
+                'question': question,
+                'answer': answer
+            })
+            i = j
+        else:
+            i += 1
+    return docs
+
+
+def build_docs_from_pdf(pdf_path, title, url=None, last_edited=None):
+    """
+    从 PDF 构建问答文档列表。
+    """
+    text = extract_text_from_pdf(pdf_path)
+    qa = parse_qa_pairs(text)
+    docs = []
+    for item in qa:
+        docs.append({
+            **item,
+            'source': {
+                'title': title,
+                'url': url or pdf_path,
+                'last_edited': last_edited or datetime.today().isoformat()
+            }
+        })
+    return docs
+
+
 @app.route('/api/upload', methods=['POST'])
-def upload_pdf():
+def upload_and_generate_rag():
+    # 1. 文件接收及验证
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': '没有文件部分'}), 400
     file = request.files['file']
     if file.filename == '':
         return jsonify({'success': False, 'message': '未选择文件'}), 400
-    if file and allowed_file(file.filename):
-        filename = file.filename
-        save_path = os.path.join(str(app.config['UPLOAD_FOLDER']), str(filename))
-        file.save(save_path)
-        return jsonify({'success': True, 'message': '上传成功', 'filename': filename})
-    else:
+    if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': '只允许上传 PDF 文件'}), 400
+
+    # 2. 保存 PDF
+    filename = secure_filename(file.filename)
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(pdf_path)
+
+    # 3. 解析 PDF，生成问答对
+    docs = build_docs_from_pdf(
+        pdf_path=pdf_path,
+        title=filename,
+        url=None,
+        last_edited=None
+    )
+
+    # 4. 针对本文件单独生成 embeddings 和 FAISS 索引
+    texts = [d['question'] + ' ' + d['answer'] for d in docs]
+    embeddings = ragMODEL.encode(texts, show_progress_bar=False)
+    dim = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dim)
+    index.add(np.array(embeddings, dtype='float32'))
+
+    # 5. 构造输出文件名
+    base = os.path.splitext(filename)[0]
+    index_file = os.path.join(RAG_FOLDER, f"{base}.index")
+    docs_file = os.path.join(RAG_FOLDER, f"{base}_docs.json")
+    ids_file = os.path.join(RAG_FOLDER, f"{base}_ids.pkl")
+
+    # 6. 写入磁盘
+    faiss.write_index(index, index_file)
+    with open(docs_file, 'w', encoding='utf-8') as f:
+        json.dump(docs, f, ensure_ascii=False, indent=2)
+
+    # 7. 保存 ID 列表到 pkl
+    ids = [d['id'] for d in docs]
+    with open(ids_file, 'wb') as f:
+        pickle.dump(ids, f)
+
+    # 8. 返回结果
+    return jsonify({
+        'success': True,
+        'message': '上传成功，已生成新的 RAG 文件',
+        'pdf': filename,
+        'index_path': index_file,
+        'docs_path': docs_file,
+        'entries': len(docs)
+    }), 200
 
 
 # 获取所有pdf文件
@@ -505,17 +660,70 @@ def aichat_rag():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question)
 
-    # 在这一部分加上 真实 ai 会话的逻辑 vvvv
-    time.sleep(random.uniform(0.5, 1.5))
-    pdf_title = "Account Disabled - CSE taggi.pdf"
-    pdf_url = f"http://localhost:8000/pdfs/{pdf_title.replace(' ', '%20')}"
-    ai_reply = f"[RAG] This is a mock RAG reply: {question}"
-    # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
+    result = rag_search(question)
+
+    # 如果 rag_search 返回 {}，表示没有需要的结果
+    if not result:
+        return jsonify({
+            "answer": "ops, I couldn't find anything, Need I turn to real human?",
+            "reference": {}
+        })
+
+    # 2. RAG 检索
+    knowledge, reference = result
+
+    # 3. 构造并请求 LLM
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are AI assistance called 'HDingo's Al chat bot', an AI designed to help new faculty, staff, and "
+                    "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                    "Objectives:\n"
+                    "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                    "2. Cite the newest audited docs for consistency and authority.\n"
+                    "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                    "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n\n"
+                    "You must return ONLY valid JSON with two keys:\n"
+                    "  - \"answer\": string (the final answer)\n"
+                    "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                    "Do not include code fences. Do not include any additional keys."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"Question: {question}\n\nRelevant knowledge:\n{knowledge}"
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 4096,
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    resp = requests.post(API_URL, json=payload, headers=headers)
+    resp.raise_for_status()
+    result = resp.json()
+
+    # 4. 解析 LLM 回复
+    content = result['choices'][0]['message']['content'].strip()
+    data_json, err = try_load_json(content)
+
+    if data_json is not None:
+        ai_reply = data_json.get("answer", "")
+    else:
+        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        ai_reply = content
+    print(reference)
 
     database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({
         "answer": ai_reply,
-        "reference": {pdf_title: pdf_url}
+        "reference": reference
     })
 
 
