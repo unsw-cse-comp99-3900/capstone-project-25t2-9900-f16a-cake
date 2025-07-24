@@ -159,7 +159,6 @@ if __name__ == '__main__':
     print(f"Indexed {index.ntotal} vectors.")
     print(index)
 
-    # 5. 可选：保存索引到文件
     faiss.write_index(index, 'zid_faq.index')
     print("FAISS index saved to 'zid_faq.index'.")
 

@@ -19,8 +19,10 @@ from datetime import datetime  # 用于文件时间展示
 import time
 import random
 import os
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+list_pdf = []  # 公用pdf列表
 
 app = Flask(__name__)
 CORS(app)
@@ -45,6 +47,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 @app.route("/api/hello")
 def hello():
     return jsonify(message="Hello from Flask! This is my test message, yeah!")
+
 
 # ---- 登录接口（查数据库 user_info）----
 @app.route('/api/login', methods=['POST'])
@@ -81,7 +84,8 @@ def login():
         })
     else:
         return jsonify({"success": False, "message": "Invalid username or password"}), 401
-    
+
+
 @app.route('/api/start_session', methods=['POST'])
 def api_start_session():
     data = request.json
@@ -92,6 +96,7 @@ def api_start_session():
         return jsonify({"error": error}), 400
     return jsonify({"session_id": session_id})
 
+
 # 这个 api 接口可以删除, 前端用不到, 但是 api_add_message 方法需要保留
 @app.route('/api/add_message', methods=['POST'])
 def api_add_message():
@@ -101,12 +106,14 @@ def api_add_message():
         return jsonify({"error": error}), 400
     return jsonify({"message": "Message added successfully"})
 
+
 @app.route('/api/get_messages/<session_id>', methods=['GET'])
 def api_get_messages(session_id):
     messages, error = database.get_messages_db(session_id)
     if error:
         return jsonify({"error": error}), 400
     return jsonify(messages)
+
 
 @app.route('/api/get_sessions/<user_id>', methods=['GET'])
 def api_get_sessions(user_id):
@@ -144,6 +151,7 @@ def search_api():
     filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
+
 
 # ---- 获取用户个人资料接口 ----
 @app.route('/api/profile', methods=['GET'])
@@ -186,6 +194,7 @@ def get_profile():
 
     return jsonify({"success": True, "profile": profile_info})
 
+
 # ---- 首页（仅演示跳转用）----
 @app.route('/')
 def home():
@@ -193,59 +202,74 @@ def home():
 
 
 # ---------------- RAG -----------------
-def rag_search(question):
-    # 注意：生产环境最好把以下加载放到全局，只加载一次
-    index_path = os.path.join(BASE_DIR, "rag", "zid_faq.index")
-    # print(f"[DEBUG] Loading FAISS index from: {index_path}")
-    index = faiss.read_index(index_path)
+def list_pdf_names(pdfs_dir="pdfs"):
+    """
+    返回指定目录下所有 .pdf 文件的文件名。
+    """
+    try:
+        files = os.listdir(pdfs_dir)
+    except FileNotFoundError:
+        # 如果目录不存在，返回空列表
+        return []
+    pdf_names = []
+    for f in files:
+        # 忽略隐藏文件和非 .pdf 文件
+        if not f.lower().endswith(".pdf"):
+            continue
+        name, _ = os.path.splitext(f)
+        pdf_names.append(name)
+    return pdf_names
+
+
+def rag_search(question, top_k=10, score_threshold=0.75):
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    # index = faiss.read_index("rag/zid_faq.index")
-    # 加载 ID 列表
-    ids_path = os.path.join(BASE_DIR, "rag", "zid_faq_ids.pkl")
-    with open(ids_path, "rb") as f:
-        ids = pickle.load(f)
+    q_emb = model.encode([question])
+    pdf_list = list_pdf_names()
+    all_hits = []
+    for pdf_file in (pdf_list or []):
+        prefix = os.path.splitext(os.path.basename(pdf_file))[0]
+        idx_path = os.path.join(BASE_DIR, "rag", f"{prefix}.index")
+        ids_path = os.path.join(BASE_DIR, "rag", f"{prefix}_ids.pkl")
+        docs_path = os.path.join(BASE_DIR, "rag", f"{prefix}_docs.json")
 
-    # 加载文档内容
-    docs_path = os.path.join(BASE_DIR, "rag", "zid_faq_docs.json")
-    with open(docs_path, "r", encoding="utf-8") as f:
-        docs = json.load(f)
+        index = faiss.read_index(idx_path)
+        with open(ids_path, "rb") as f:
+            ids = pickle.load(f)
+        with open(docs_path, "r", encoding="utf-8") as f:
+            docs = json.load(f)
+        doc_map = {d["id"]: d for d in docs}
 
-    doc_map = {d["id"]: d for d in docs}
-
-    def retrieve(query, top_k=5, score_threshold=0.8):
-        q_emb = model.encode([query])
         D, I = index.search(np.array(q_emb, dtype="float32"), top_k)
-
-        results = []
         for dist, idx in zip(D[0], I[0]):
-            score = float(dist)  # 距离越小越相似
-            if score > score_threshold:
+            if dist > score_threshold:
                 continue
             entry = doc_map[ids[idx]]
-            src = entry.get("source", {}) or {}
-            results.append({
-                "score": score,
+            all_hits.append({
+                "score": float(dist),
+                "pdf": prefix,
                 "question": entry.get("question", ""),
                 "answer": entry.get("answer", ""),
-                "title": src.get("title", ""),
-                "url": src.get("url", "")
+                "title": entry.get("source", {}).get("title", ""),
+                "url": entry.get("source", {}).get("url", "")
             })
-        return results
 
-    hits = retrieve(question, top_k=10, score_threshold=0.75)
+    # 排序并截取 Top-K
+    all_hits = sorted(all_hits, key=lambda x: x["score"])[:top_k]
 
-    if not hits:
-        return "No results above score 0.75.", {}
-
+    # 组织输出：knowledge_str 和按 PDF 分组的 ref_dict
     parts = []
     ref_dict = {}
-    for i, h in enumerate(hits, 1):
+    for i, h in enumerate(all_hits, 1):
         parts.append(
-            f"{i}. Question: {h['question']}\n"
+            f"{i}. （{h['pdf']}）Question: {h['question']}\n"
             f"   Answer:   {h['answer']}"
         )
-        if h["url"]:
-            ref_dict[h["title"]] = h["url"]
+        # 把每条命中按 pdf 分组
+        pdf = h["pdf"]
+        ref_dict.setdefault(pdf, []).append({
+            "title": h["title"],
+            "url": h["url"]
+        })
 
     knowledge_str = "\n\n".join(parts)
     return knowledge_str, ref_dict
@@ -257,6 +281,7 @@ def try_load_json(text: str):
         return json.loads(text), None
     except json.JSONDecodeError as e:
         return None, e
+
 
 # ---- AI 聊天接口 ----
 @app.route('/api/ask', methods=['POST'])
@@ -271,7 +296,8 @@ def ask():
         return jsonify({"error": "question, session_id, and user_id are required"}), 400
 
     # 在写入消息前，检查并创建会话历史
-    ok, err = database.check_or_create_session(session_id, user_id, title=f"Chat on {datetime.now().strftime('%Y-%m-%d')}")
+    ok, err = database.check_or_create_session(session_id, user_id,
+                                               title=f"Chat on {datetime.now().strftime('%Y-%m-%d')}")
     if not ok:
         return jsonify({"error": f"Failed to ensure session exists: {err}"}), 500
 
@@ -281,10 +307,9 @@ def ask():
         # 即使写入失败，也可以选择继续，但最好记录日志
         print(f"Error writing user message to DB: {user_err}")
 
-
     # 2. RAG 检索
     knowledge, reference = rag_search(question)
-    
+
     # 3. 构造并请求 LLM
     payload = {
         "model": MODEL,
@@ -327,12 +352,12 @@ def ask():
     data_json, err = try_load_json(content)
 
     final_answer = ""
-    final_reference = reference # 默认使用RAG的引用
+    final_reference = reference  # 默认使用RAG的引用
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if model_ref: # 如果模型返回了引用，就用模型的
+        if model_ref:  # 如果模型返回了引用，就用模型的
             final_reference = model_ref
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
@@ -342,8 +367,9 @@ def ask():
     _, ai_err = database.add_message_db(session_id, "ai", final_answer)
     if ai_err:
         print(f"Error writing AI message to DB: {ai_err}")
-    
+
     return jsonify({"answer": final_answer, "reference": final_reference})
+
 
 @app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
@@ -402,6 +428,7 @@ def delete_pdf(filename):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 # AI chat 的 general 模式
 @app.route('/api/aichat/general', methods=['POST'])
 def aichat_general():
@@ -452,29 +479,21 @@ def aichat_general():
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
-    final_answer = ""
-    
-
     if data_json is not None:
         final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if model_ref: # 如果模型返回了引用，就用模型的
+        if model_ref:  # 如果模型返回了引用，就用模型的
             final_reference = model_ref
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
 
+    ai_reply = final_answer
 
-
-    # 在这一部分加上 真实 ai 会话的逻辑 vvvv
-    time.sleep(random.uniform(0.5, 1.5))  # 模拟AI延迟
-    ai_reply = final_answer 
-    # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
-
-    
     # 保存 AI 回复到数据库
     database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({"answer": ai_reply})
+
 
 # AI chat 的 rag 模式
 @app.route('/api/aichat/rag', methods=['POST'])
@@ -486,7 +505,6 @@ def aichat_rag():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question)
 
-    
     # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))
     pdf_title = "Account Disabled - CSE taggi.pdf"
@@ -494,12 +512,12 @@ def aichat_rag():
     ai_reply = f"[RAG] This is a mock RAG reply: {question}"
     # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
 
-    
     database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({
         "answer": ai_reply,
         "reference": {pdf_title: pdf_url}
     })
+
 
 # AI chat 的 checklist 模式
 @app.route('/api/aichat/checklist', methods=['POST'])
@@ -525,7 +543,7 @@ def aichat_checklist():
                     "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
                     "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n"
                     "5. When answering procedural or instructional questions, provide a checklist starting with numbered steps "
-                    "like '1.', '2.', '3.', etc., each describing a clear and actionable task.\n\n"
+                    "like 'step1.', 'step2.', 'step3.', etc., each describing a clear and actionable task.\n\n"
                     "You must return ONLY valid JSON with two keys:\n"
                     "  - \"answer\": string (the final answer)\n"
                     "  - \"reference\": object (mapping title -> url of cited docs)\n"
@@ -534,7 +552,7 @@ def aichat_checklist():
             },
             {
                 "role": "user",
-                "content": f"Question: {question}\n\nRelevant knowledge:\n{knowledge}"
+                "content": f"give me a checklist about Question: {question}\n\n Relevant knowledge:\n{knowledge}"
             }
         ],
         "temperature": 0.7,
@@ -554,30 +572,25 @@ def aichat_checklist():
     data_json, err = try_load_json(content)
 
     final_answer = ""
-    final_reference = reference # 默认使用RAG的引用
+    final_reference = reference  # 默认使用RAG的引用
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if model_ref: # 如果模型返回了引用，就用模型的
+        if model_ref:  # 如果模型返回了引用，就用模型的
             final_reference = model_ref
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
 
-    # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))
     checklist = [
-        {"item": "Step 1: Do something", "done": False},
-        {"item": "Step 2: Do something else", "done": False},
-        {"item": "Step 3: Finish up", "done": False}
     ]
-    ai_reply = final_answer 
-    # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
+    ai_reply = final_answer
 
-    
     database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({"answer": ai_reply, "checklist": checklist})
+
 
 @app.route('/api/update_session_title', methods=['POST'])
 def update_session_title():
@@ -591,6 +604,7 @@ def update_session_title():
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': err}), 500
+
 
 @app.route('/api/delete_session', methods=['POST'])
 def delete_session():
