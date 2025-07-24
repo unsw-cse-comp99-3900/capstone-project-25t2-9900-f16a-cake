@@ -18,6 +18,9 @@ import json
 from datetime import datetime  # 用于文件时间展示
 import time
 import random
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 app = Flask(__name__)
 CORS(app)
@@ -192,11 +195,19 @@ def home():
 # ---------------- RAG -----------------
 def rag_search(question):
     # 注意：生产环境最好把以下加载放到全局，只加载一次
+    index_path = os.path.join(BASE_DIR, "rag", "zid_faq.index")
+    # print(f"[DEBUG] Loading FAISS index from: {index_path}")
+    index = faiss.read_index(index_path)
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    index = faiss.read_index("rag/zid_faq.index")
-    with open("rag/zid_faq_ids.pkl", "rb") as f:
+    # index = faiss.read_index("rag/zid_faq.index")
+    # 加载 ID 列表
+    ids_path = os.path.join(BASE_DIR, "rag", "zid_faq_ids.pkl")
+    with open(ids_path, "rb") as f:
         ids = pickle.load(f)
-    with open("rag/zid_faq_docs.json", "r", encoding="utf-8") as f:
+
+    # 加载文档内容
+    docs_path = os.path.join(BASE_DIR, "rag", "zid_faq_docs.json")
+    with open(docs_path, "r", encoding="utf-8") as f:
         docs = json.load(f)
 
     doc_map = {d["id"]: d for d in docs}
@@ -401,11 +412,63 @@ def aichat_general():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     # 保存用户消息到数据库
     database.add_message_db(session_id, 'user', question)
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are AI assistance called 'HDingo's Al chat bot', an AI designed to help new faculty, staff, and "
+                    "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                    "Objectives:\n"
+                    "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                    "2. Cite the newest audited docs for consistency and authority.\n"
+                    "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                    "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n\n"
+                    "You must return ONLY valid JSON with two keys:\n"
+                    "  - \"answer\": string (the final answer)\n"
+                    "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                    "Do not include code fences. Do not include any additional keys."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"Question: {question}\n\n"
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 4096,
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    resp = requests.post(API_URL, json=payload, headers=headers)
+    resp.raise_for_status()
+    result = resp.json()
+
+    # 4. 解析 LLM 回复
+    content = result['choices'][0]['message']['content'].strip()
+    data_json, err = try_load_json(content)
+
+    final_answer = ""
+    
+
+    if data_json is not None:
+        final_answer = data_json.get("answer", "")
+        model_ref = data_json.get("reference", {})
+        if model_ref: # 如果模型返回了引用，就用模型的
+            final_reference = model_ref
+    else:
+        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        final_answer = content
+
 
 
     # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))  # 模拟AI延迟
-    ai_reply = f"This is a mock AI reply: {question}"
+    ai_reply = final_answer 
     # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
 
     
@@ -447,7 +510,60 @@ def aichat_checklist():
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question)
+    knowledge, reference = rag_search(question)
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are AI assistance called 'HDingo's AI chat bot', an AI designed to help new faculty, staff, and "
+                    "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                    "Objectives:\n"
+                    "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                    "2. Cite the newest audited docs for consistency and authority.\n"
+                    "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                    "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n"
+                    "5. When answering procedural or instructional questions, provide a checklist starting with numbered steps "
+                    "like '1.', '2.', '3.', etc., each describing a clear and actionable task.\n\n"
+                    "You must return ONLY valid JSON with two keys:\n"
+                    "  - \"answer\": string (the final answer)\n"
+                    "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                    "Do not include code fences. Do not include any additional keys."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"Question: {question}\n\nRelevant knowledge:\n{knowledge}"
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 4096,
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
 
+    resp = requests.post(API_URL, json=payload, headers=headers)
+    resp.raise_for_status()
+    result = resp.json()
+
+    # 4. 解析 LLM 回复
+    content = result['choices'][0]['message']['content'].strip()
+    data_json, err = try_load_json(content)
+
+    final_answer = ""
+    final_reference = reference # 默认使用RAG的引用
+
+    if data_json is not None:
+        final_answer = data_json.get("answer", "")
+        model_ref = data_json.get("reference", {})
+        if model_ref: # 如果模型返回了引用，就用模型的
+            final_reference = model_ref
+    else:
+        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        final_answer = content
 
     # 在这一部分加上 真实 ai 会话的逻辑 vvvv
     time.sleep(random.uniform(0.5, 1.5))
@@ -456,7 +572,7 @@ def aichat_checklist():
         {"item": "Step 2: Do something else", "done": False},
         {"item": "Step 3: Finish up", "done": False}
     ]
-    ai_reply = f"[Checklist] Here is your checklist for: {question}"
+    ai_reply = final_answer 
     # 在这一部分加上 真实 ai 会话的逻辑 ^^^^
 
     
