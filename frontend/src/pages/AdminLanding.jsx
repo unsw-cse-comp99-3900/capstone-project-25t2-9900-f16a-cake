@@ -73,17 +73,12 @@ function AdminLanding() {
             height: '100%' 
           }}>
             <Typography variant="h6" sx={{ 
-              background: '#FFD600',
-              px: 2, 
-              py: 1,
               mb: 3, 
               fontSize: 20,
               fontWeight: 'bold',
-              alignSelf: 'flex-start',
-              mt: 0,
-              borderRadius: 1,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              color: '#333'
+              color: '#333',
+              borderBottom: '2px solid #FFD600',
+              pb: 1
             }}>
               Content health
             </Typography>
@@ -149,17 +144,12 @@ function AdminLanding() {
             height: '45%' 
           }}>
             <Typography variant="h6" sx={{ 
-              background: '#FFD600',
-              px: 2, 
-              py: 1,
               mb: 2, 
               fontSize: 20,
               fontWeight: 'bold',
-              alignSelf: 'flex-start',
-              mt: 0,
-              borderRadius: 1,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              color: '#333'
+              color: '#333',
+              borderBottom: '2px solid #FFD600',
+              pb: 1
             }}>
               User engagement
             </Typography>
@@ -248,17 +238,12 @@ function AdminLanding() {
             height: '55%' 
           }}>
             <Typography variant="h6" sx={{ 
-              background: '#FFD600',
-              px: 2, 
-              py: 1,
               mb: 3, 
               fontSize: 20,
               fontWeight: 'bold',
-              alignSelf: 'flex-start',
-              mt: 0,
-              borderRadius: 1,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              color: '#333'
+              color: '#333',
+              borderBottom: '2px solid #FFD600',
+              pb: 1
             }}>
               Unanswered queries
             </Typography>
