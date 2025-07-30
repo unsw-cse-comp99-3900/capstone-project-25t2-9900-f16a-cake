@@ -827,5 +827,24 @@ def delete_session():
         return jsonify({'success': False, 'error': err}), 500
 
 
+@app.route('/api/user-engagement', methods=['GET'])
+def get_user_engagement():
+    # Mock data for user engagement over the last 7 days
+    mock_data = [
+        {"date": "2024-01-15", "active_users": 12},
+        {"date": "2024-01-16", "active_users": 18},
+        {"date": "2024-01-17", "active_users": 15},
+        {"date": "2024-01-18", "active_users": 22},
+        {"date": "2024-01-19", "active_users": 19},
+        {"date": "2024-01-20", "active_users": 25},
+        {"date": "2024-01-21", "active_users": 21}
+    ]
+    
+    return jsonify({
+        "success": True,
+        "data": mock_data
+    })
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

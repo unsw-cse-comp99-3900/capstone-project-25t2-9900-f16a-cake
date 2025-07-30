@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Typography, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { Box, Button, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 
 function FileManagement() {
   const [pdfs, setPdfs] = useState([]);
@@ -53,22 +53,22 @@ function FileManagement() {
   };
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>PDF File Management</Typography>
+    <Box>
+      <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold' }}>PDF File Management</Typography>
       {loading ? (
-        <Typography>Loading...</Typography>
+        <Typography variant="body2">Loading...</Typography>
       ) : error ? (
-        <Typography color="error">{error}</Typography>
+        <Typography variant="body2" color="error">{error}</Typography>
       ) : pdfs.length === 0 ? (
-        <Typography>No PDF files found.</Typography>
+        <Typography variant="body2">No PDF files found.</Typography>
       ) : (
-        <Box>
+        <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
           {pdfs.map(pdf => (
             <Box key={pdf.filename} sx={{ display: 'flex', alignItems: 'center', mb: 1, borderBottom: '1px solid #eee', pb: 1 }}>
-              <Typography sx={{ flex: 1 }}>{pdf.filename}</Typography>
-              <Typography sx={{ width: 120, mr: 2 }} variant="body2">{(pdf.size/1024).toFixed(1)} KB</Typography>
-              <Typography sx={{ width: 200, mr: 2 }} variant="body2">{new Date(pdf.upload_time).toLocaleString()}</Typography>
-              <Button variant="outlined" color="error" onClick={() => setDeleteTarget(pdf.filename)}>Delete</Button>
+              <Typography variant="body2" sx={{ flex: 1, fontSize: 12 }}>{pdf.filename}</Typography>
+              <Typography sx={{ width: 80, mr: 1 }} variant="caption">{(pdf.size/1024).toFixed(1)} KB</Typography>
+              <Typography sx={{ width: 120, mr: 1 }} variant="caption">{new Date(pdf.upload_time).toLocaleDateString()}</Typography>
+              <Button variant="outlined" color="error" size="small" onClick={() => setDeleteTarget(pdf.filename)}>Delete</Button>
             </Box>
           ))}
         </Box>
@@ -87,7 +87,7 @@ function FileManagement() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+    </Box>
   );
 }
 
