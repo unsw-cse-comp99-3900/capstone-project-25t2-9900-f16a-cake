@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
+from flask_mail import Mail, Message
 import database  # database.py
 from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
 import requests
@@ -32,6 +33,16 @@ list_pdf = []  # 公用pdf列表
 
 app = Flask(__name__)
 CORS(app)
+
+# 邮件配置 - Gmail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # 使用Gmail SMTP
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'hdingo9900@gmail.com'  # 系统邮箱
+app.config['MAIL_PASSWORD'] = 'gflf gpux rqdi sbkh'     # 系统邮箱应用密码
+app.config['MAIL_DEFAULT_SENDER'] = 'hdingo9900@gmail.com'
+
+mail = Mail(app)
 
 # 上传配置
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
@@ -895,20 +906,70 @@ def submit_feedback():
             "timestamp": datetime.now().isoformat()
         }
         
-        # 打印反馈信息（开发时用于调试）
-        print("New feedback received:")
-        print(f"From: {feedback_data['name']} ({feedback_data['email']})")
-        print(f"Category: {feedback_data['category']}")
-        print(f"Subject: {feedback_data['subject']}")
-        print(f"Rating: {feedback_data['rating']}/5")
-        print(f"Description: {feedback_data['description']}")
-        print(f"Allow contact: {feedback_data['allow_contact']}")
-        print("-" * 50)
+        # 获取所有admin邮箱
+        admins, err = database.get_all_admins()
+        if err:
+            print(f"Error getting admin emails: {err}")
+            return jsonify({
+                "success": False,
+                "message": "Failed to get admin emails"
+            }), 500
         
-        return jsonify({
-            "success": True,
-            "message": "Feedback submitted successfully"
-        })
+        if not admins:
+            print("No admin users found")
+            return jsonify({
+                "success": False,
+                "message": "No admin users found"
+            }), 500
+        
+        # 发送邮件给所有admin
+        admin_emails = [admin['email'] for admin in admins]
+        
+        # 构建邮件内容
+        subject = f"[HDingo Feedback] {feedback_data['subject']}"
+        
+        # 邮件正文
+        body = f"""
+New feedback received from HDingo system:
+
+From: {feedback_data['name']} ({feedback_data['email']})
+Category: {feedback_data['category']}
+Subject: {feedback_data['subject']}
+Rating: {feedback_data['rating']}/5
+Allow Contact: {'Yes' if feedback_data['allow_contact'] else 'No'}
+
+Description:
+{feedback_data['description']}
+
+---
+This email was sent automatically by HDingo system.
+Timestamp: {feedback_data['timestamp']}
+        """.strip()
+        
+        try:
+            # 发送邮件
+            msg = Message(
+                subject=subject,
+                recipients=admin_emails,
+                body=body
+            )
+            mail.send(msg)
+            
+            print(f"Feedback email sent successfully to {len(admin_emails)} admins:")
+            for email in admin_emails:
+                print(f"  - {email}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Feedback submitted and sent to admins successfully"
+            })
+            
+        except Exception as e:
+            print(f"Error sending email: {str(e)}")
+            return jsonify({
+                "success": False,
+                "message": "Feedback submitted but failed to send email to admins"
+            }), 500
         
     except jwt.InvalidTokenError:
         return jsonify({

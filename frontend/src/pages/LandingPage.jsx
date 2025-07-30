@@ -63,7 +63,7 @@ function LandingPage() {
         open={showSuccessPopup}
         autoHideDuration={5000}
         onClose={() => setShowSuccessPopup(false)}
-        message="Thank you for your feedback! We'll review it and get back to you soon."
+        message="Thank you for your feedback! It has been sent to our admin team."
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{
           '& .MuiSnackbarContent-root': {
