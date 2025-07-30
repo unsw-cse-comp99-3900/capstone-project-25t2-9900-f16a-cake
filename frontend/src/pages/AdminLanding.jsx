@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormControlLabel, Stack } from "@mui/material";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Auth } from "../utils/Auth";
 import FileManagement from "../components/FileManagement";
 
@@ -7,6 +8,27 @@ function AdminLanding() {
   const fileInputRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
+  const [userEngagementData, setUserEngagementData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 获取用户活跃度数据
+  useEffect(() => {
+    const fetchUserEngagement = async () => {
+      try {
+        const response = await fetch('/api/user-engagement');
+        const result = await response.json();
+        if (result.success) {
+          setUserEngagementData(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user engagement data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserEngagement();
+  }, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -120,11 +142,11 @@ function AdminLanding() {
           <Paper sx={{ 
             p: 4, 
             mb: 3, 
-            minHeight: 180, 
+            minHeight: 250, 
             display: 'flex', 
             flexDirection: 'column', 
             justifyContent: 'flex-start', 
-            height: '30%' 
+            height: '45%' 
           }}>
             <Typography variant="h6" sx={{ 
               background: '#FFD600',
@@ -145,12 +167,72 @@ function AdminLanding() {
             <Box sx={{ 
               flex: 1,
               display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
+              flexDirection: 'column',
               background: '#f5f5f5', 
-              borderRadius: 1 
+              borderRadius: 1,
+              minHeight: 180,
+              overflow: 'hidden'
             }}>
-              <Typography variant="caption" sx={{ fontSize: 16 }}>eg. active user over 7 days</Typography>
+              {loading ? (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  flex: 1
+                }}>
+                  <Typography variant="body2" sx={{ fontSize: 16 }}>Loading...</Typography>
+                </Box>
+              ) : userEngagementData.length > 0 ? (
+                <>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      textAlign: 'center', 
+                      py: 1, 
+                      fontWeight: 'bold',
+                      color: '#333'
+                    }}
+                  >
+                    Daily Active Users (Last 7 Days)
+                  </Typography>
+                  <Box sx={{ flex: 1, px: 2, pb: 2, minHeight: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={userEngagementData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 12 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip 
+                          formatter={(value) => [value, 'active users']}
+                          labelFormatter={(label) => `date: ${label}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="active_users" 
+                          stroke="#FFD600" 
+                          strokeWidth={2}
+                          dot={{ fill: '#FFD600', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#FFD600', strokeWidth: 2, fill: '#fff' }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </>
+              ) : (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  flex: 1
+                }}>
+                  <Typography variant="body2" sx={{ fontSize: 16 }}>No data</Typography>
+                </Box>
+              )}
             </Box>
           </Paper>
           
@@ -158,12 +240,12 @@ function AdminLanding() {
           <Paper sx={{ 
             flex: 1, 
             p: 4, 
-            minHeight: 200, 
+            minHeight: 150, 
             display: 'flex', 
             flexDirection: 'column', 
             justifyContent: 'flex-start', 
             alignItems: 'stretch', 
-            height: '70%' 
+            height: '55%' 
           }}>
             <Typography variant="h6" sx={{ 
               background: '#FFD600',
@@ -181,10 +263,10 @@ function AdminLanding() {
               Unanswered queries
             </Typography>
             
-            <Stack spacing={3}>
+            <Stack spacing={2} sx={{ flex: 1, overflow: 'auto' }}>
               {[1,2,3,4].map(i => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', border: '1px solid #eee', borderRadius: 1, p: 2 }}>
-                  <Typography sx={{ flex: 1, fontSize: 16 }}>{`querie ${i}`}</Typography>
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', border: '1px solid #eee', borderRadius: 1, p: 1.5 }}>
+                  <Typography sx={{ flex: 1, fontSize: 14 }}>{`querie ${i}`}</Typography>
                   <FormControlLabel control={<Checkbox />} label="Checkbox" />
                 </Box>
               ))}
