@@ -16,6 +16,7 @@ import SuggestButton from "./components/SuggestButton";
 import AdminLanding from "./pages/AdminLanding";
 import RequireAdmin from "./components/RequireAdmin";
 import RequireStaff from "./components/RequireStaff";
+import Feedback from "./pages/Feedback";
 
 function AppContent() {
   const location = useLocation();
@@ -72,6 +73,13 @@ function AppContent() {
               <RequireAdmin>
                 <AdminLanding />
               </RequireAdmin>
+            </RequireAuth>
+          } />
+          <Route path="/feedback" element={
+            <RequireAuth>
+              <RequireStaff>
+                <Feedback />
+              </RequireStaff>
             </RequireAuth>
           } />
         </Routes>

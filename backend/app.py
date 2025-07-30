@@ -846,5 +846,81 @@ def get_user_engagement():
     })
 
 
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    # 从请求头获取token
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get('username')
+        
+        # 从数据库获取用户详细信息
+        user = database.get_user(user_id)
+        if not user:
+            return jsonify({
+                "success": False,
+                "message": "User not found"
+            }), 404
+        
+        data = request.get_json()
+        
+        # 验证必需字段
+        required_fields = ['category', 'subject', 'description']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    "success": False,
+                    "message": f"Missing required field: {field}"
+                }), 400
+        
+        # 构建反馈数据，包含用户信息
+        feedback_data = {
+            "user_id": user_id,
+            "name": f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
+            "email": user.get('email'),
+            "category": data.get('category'),
+            "subject": data.get('subject'),
+            "description": data.get('description'),
+            "rating": data.get('rating', 0),
+            "allow_contact": data.get('allowContact', False),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # 打印反馈信息（开发时用于调试）
+        print("New feedback received:")
+        print(f"From: {feedback_data['name']} ({feedback_data['email']})")
+        print(f"Category: {feedback_data['category']}")
+        print(f"Subject: {feedback_data['subject']}")
+        print(f"Rating: {feedback_data['rating']}/5")
+        print(f"Description: {feedback_data['description']}")
+        print(f"Allow contact: {feedback_data['allow_contact']}")
+        print("-" * 50)
+        
+        return jsonify({
+            "success": True,
+            "message": "Feedback submitted successfully"
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

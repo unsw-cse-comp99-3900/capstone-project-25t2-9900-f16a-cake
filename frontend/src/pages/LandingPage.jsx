@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Paper, Button } from "@mui/material";
+import { Box, Typography, Paper, Button, Snackbar } from "@mui/material";
 
 function LandingPage() {
   const [role, setRole] = useState("");
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     setRole(storedRole || "");
     document.title = "Homepage";
+    
+    // 检查是否需要显示成功popup
+    const shouldShowSuccess = localStorage.getItem('showFeedbackSuccess');
+    if (shouldShowSuccess === 'true') {
+      setShowSuccessPopup(true);
+      localStorage.removeItem('showFeedbackSuccess'); // 清除标记
+    }
   }, []);
 
   // 根据不同角色显示不同内容
@@ -49,6 +57,22 @@ function LandingPage() {
           <Typography variant="body1">{search_info}</Typography>
         </Paper>
       </Box>
+      
+      {/* 成功提示Popup */}
+      <Snackbar
+        open={showSuccessPopup}
+        autoHideDuration={5000}
+        onClose={() => setShowSuccessPopup(false)}
+        message="Thank you for your feedback! We'll review it and get back to you soon."
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          '& .MuiSnackbarContent-root': {
+            backgroundColor: '#4caf50',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        }}
+      />
     </Box>
   );
 }
