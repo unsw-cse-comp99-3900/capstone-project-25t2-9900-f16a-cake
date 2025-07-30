@@ -149,3 +149,18 @@ def delete_session(session_id):
     finally:
         cursor.close()
         conn.close()
+
+
+def get_all_admins():
+    """获取所有admin用户的邮箱"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT email, first_name, last_name FROM user_info WHERE is_admin = 1")
+        admins = cursor.fetchall()
+        return admins, None
+    except Exception as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
