@@ -751,7 +751,47 @@ def aichat_rag():
         "reference": reference
     })
 
+from typing import Dict, Any, List
 
+def parse_checklist_to_items(text: str) -> Dict[str, Any]:
+    """
+    将形如
+      "Here’s a checklist to access your CSE files from your own computer: step1. … step2. …"
+    的文本解析为：
+    {
+      "answer": "Here’s a checklist to access your CSE files from your own computer",
+      "checklist": [
+         {"item": "Step 1: …", "done": False},
+         {"item": "Step 2: …", "done": False},
+         ...
+      ]
+    }
+    """
+    # 1. 提取 answer（第一个冒号之前的内容）
+    prefix, _, rest = text.partition(':')
+    answer = prefix.strip()
+
+    # 2. 按 stepX. 分块
+    chunks = re.split(r'(?=(?:step\d+)\.)', rest)
+
+    items: List[Dict[str, Any]] = []
+    for chunk in chunks:
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        # 匹配 stepX. 以及后面的描述
+        m = re.match(r'step(\d+)\.\s*(.*)', chunk, flags=re.DOTALL)
+        if m:
+            idx = int(m.group(1))
+            desc = m.group(2).strip()
+            # 构造 “Step {idx}: {desc}”
+            item_text = f"Step {idx}: {desc}"
+            items.append({"item": item_text, "done": False})
+
+    return {
+        "answer": answer,
+        "checklist": items
+    }
 # AI chat 的 checklist 模式
 @app.route('/api/aichat/checklist', methods=['POST'])
 def aichat_checklist():
@@ -816,11 +856,16 @@ def aichat_checklist():
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
 
-    time.sleep(random.uniform(0.5, 1.5))
-    checklist = [
-    ]
-    ai_reply = final_answer
+    # time.sleep(random.uniform(0.5, 1.5))
+    # checklist = [
+    # ]
+    # ai_reply = final_answer
+    # 3. 调用解析函数
+    result = parse_checklist_to_items(final_answer)
 
+    # 4. 拆包到 ai_reply 和 checklist
+    ai_reply = result["answer"]
+    checklist = result["checklist"]
     database.add_message_db(session_id, 'ai', ai_reply)
     return jsonify({"answer": ai_reply, "checklist": checklist})
 
