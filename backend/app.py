@@ -508,12 +508,12 @@ def build_docs_from_pdf(pdf_path, title, url=None, last_edited=None):
 def upload_and_generate_rag():
     # 1. 文件接收及验证
     if 'file' not in request.files:
-        return jsonify({'success': False, 'message': '没有文件部分'}), 400
+        return jsonify({'success': False, 'message': 'No file part'}), 400
     file = request.files['file']
     if file.filename == '':
-        return jsonify({'success': False, 'message': '未选择文件'}), 400
+        return jsonify({'success': False, 'message': 'No file selected'}), 400
     if not allowed_file(file.filename):
-        return jsonify({'success': False, 'message': '只允许上传 PDF 文件'}), 400
+        return jsonify({'success': False, 'message': 'Only PDF files are allowed'}), 400
 
     # 2. 保存 PDF
     filename = secure_filename(file.filename)
@@ -528,38 +528,52 @@ def upload_and_generate_rag():
         last_edited=None
     )
 
-    # 4. 针对本文件单独生成 embeddings 和 FAISS 索引
+    # 4. 准备 texts 并生成 embeddings
     texts = [d['question'] + ' ' + d['answer'] for d in docs]
-    embeddings = ragMODEL.encode(texts, show_progress_bar=False)
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dim)
-    index.add(np.array(embeddings, dtype='float32'))
+    if not texts:
+        return jsonify({
+            'success': False,
+            'message': 'No Q&A pairs found in the PDF. Please check the file content.'
+        }), 400
 
-    # 5. 构造输出文件名
-    base = os.path.splitext(filename)[0]
-    index_file = os.path.join(RAG_FOLDER, f"{base}.index")
-    docs_file = os.path.join(RAG_FOLDER, f"{base}_docs.json")
-    ids_file = os.path.join(RAG_FOLDER, f"{base}_ids.pkl")
+    embeddings = ragMODEL.encode(
+        texts,
+        convert_to_numpy=True,
+        show_progress_bar=False
+    )
+    emb_array = np.array(embeddings, dtype='float32')
+    if emb_array.ndim == 1:
+        emb_array = np.vstack(emb_array)
+
+    # 5. 构建 FAISS 索引
+    dim = emb_array.shape[1]
+    index = faiss.IndexFlatL2(dim)
+    index.add(emb_array)
 
     # 6. 写入磁盘
+    base = os.path.splitext(filename)[0]
+    index_file = os.path.join(RAG_FOLDER, f"{base}.index")
     faiss.write_index(index, index_file)
+
+    docs_file = os.path.join(RAG_FOLDER, f"{base}_docs.json")
     with open(docs_file, 'w', encoding='utf-8') as f:
         json.dump(docs, f, ensure_ascii=False, indent=2)
 
-    # 7. 保存 ID 列表到 pkl
+    ids_file = os.path.join(RAG_FOLDER, f"{base}_ids.pkl")
     ids = [d['id'] for d in docs]
     with open(ids_file, 'wb') as f:
         pickle.dump(ids, f)
 
-    # 8. 返回结果
+    # 7. 返回结果
     return jsonify({
         'success': True,
-        'message': '上传成功，已生成新的 RAG 文件',
+        'message': 'Upload succeeded, new RAG files have been generated',
         'pdf': filename,
         'index_path': index_file,
         'docs_path': docs_file,
         'entries': len(docs)
     }), 200
+
 
 
 # 获取所有pdf文件
