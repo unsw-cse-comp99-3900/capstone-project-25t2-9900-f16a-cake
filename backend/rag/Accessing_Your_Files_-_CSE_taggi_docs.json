@@ -1,0 +1,102 @@
+[
+  {
+    "id": "qa_74a569cf",
+    "question": "From a CSE lab machine, VLAB or CSE login server",
+    "answer": "Your home directory is available automatically, under /home/CSE_account (eg. /home/z1234567) New terminals and file browsers start in this directory.",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_4b0f0b85",
+    "question": "From your own computer",
+    "answer": "If you are connecting from any other network (uniwide, external internet, etc), you will need an SSH/SCP/SFTP client to access your files. Clients using CIFS/SMB will not work unless you use a VPN so it will be simpler to use SSH/SCP/SFTP.",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_44ab46d8",
+    "question": "Using Windows",
+    "answer": "We recommend WinSCP, as it is popular, well-supported and free. To connect: Select SFTP as the protocol Enter the host login.cse.unsw.edu.au Enter your zID and zPass as the username and password Click 'Connect' (you may wish to click 'Save' first, to save these details for next time) Or, recently Window added support for OpenSSL (Guide). You can use that much as you would use scp on a Linux computer. https://taggi.cse.unsw.edu.au/FAQ/Accessing_Your_Files/ 1/3 2025/7/3 16:01 Accessing Your Files - CSE taggi",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_26e1c1df",
+    "question": "Using a SSH-key",
+    "answer": "You need have WinSCP offer your current SSH key as a credential. 1. Convert your existing SSH private key to a format that WinSCP reads. 2. Use the converted private key in WinSCP.",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_d9ce79ed",
+    "question": "Using Mac",
+    "answer": "The preferred SFTP client for Mac is Cyberduck. To connect: Click 'Open Connection' Select SFTP as the protocol Enter the server login.cse.unsw.edu.au Enter <your zID> and <your zPass> as the username and password Click 'Connect' (you may wish to click 'Add to keychain' first, to save your credentials for next time) (Or on the commandline use scp)",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_87e57e6f",
+    "question": "Using Linux (ubuntu)",
+    "answer": "Open the file browser Click on the File menu Click 'Connect to server' Enter the path ssh://login.cse.unsw.edu.au Click 'Connect' Use your zID and zPass as the username and password when prompted. (Or on the commandline use scp)",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_14e51484",
+    "question": "Using a SSH client",
+    "answer": "If the computer you are using has a command-line SSH client, then you can use that to access files at CSE.",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_b52f4282",
+    "question": "Make an archive",
+    "answer": "If you can connect to CSE using SSH then you can save an archive of CSE files and stream it to your computer. For instance, to make an archive of your CSE home directory: ssh username@login.cse.unsw.edu.au \"tar -czf - ~\" > cse_homedir.tar.gz Running that command does not change your CSE account and does not use up CSE account quota.",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_31464a60",
+    "question": "Rsync",
+    "answer": "https://taggi.cse.unsw.edu.au/FAQ/Accessing_Your_Files/ 2/3 2025/7/3 16:01 Accessing Your Files - CSE taggi You can use Rsync to keep a local copy of some files at CSE (or the reverse). To update a local copy of your remote CSE account: rsync -az \"username@login.cse.unsw.edu.au:\" cse_home/",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  },
+  {
+    "id": "qa_7339d65d",
+    "question": "Other pages like this",
+    "answer": "Uploading and Downloading Files from CSE Using SSHFS Last edited by robertd 19/12/2023 https://taggi.cse.unsw.edu.au/FAQ/Accessing_Your_Files/ 3/3",
+    "source": {
+      "title": "Accessing_Your_Files_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Accessing_Your_Files_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:19.111117"
+    }
+  }
+]

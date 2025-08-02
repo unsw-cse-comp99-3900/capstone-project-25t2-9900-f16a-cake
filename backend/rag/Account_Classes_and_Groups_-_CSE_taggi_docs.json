@@ -1,0 +1,162 @@
+[
+  {
+    "id": "qa_a236dffd",
+    "question": "CSE Account Classes",
+    "answer": "Every CSE account belongs to at least one Account Class. Account classes are used to: Describe your relationship with the school Give you access to CSE computers and files Give you resources such as disk quota Put you on relevant mailing lists Account classes fall into three categories: User classes, Miscellaneous classes and Group classes.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_970216b1",
+    "question": "User classes",
+    "answer": "User classes are the primary categories that your account fits into. There is a User class for every basic relationship with the school, for instance: COMP1234_Student COMP1234_Lecturer, COMP2345_Tutor CSEOffice_Admin, CSE_Teaching, CSE_Research https://taggi.cse.unsw.edu.au/FAQ/Account_Classes_and_Groups/ 1/4 2025/7/3 16:01 Account Classes and Groups - CSE taggi As your relationship with the school changes (enrolling in or finishing courses, changing contracts, etc), your account classes will change to match. If your active relationship with the school ends, and you therefore aren't in any User classes, your CSE account will be disabled.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_e608427a",
+    "question": "Miscellaneous classes",
+    "answer": "Miscellaneous classes give you access to CSE resources and services such as temporary disk quota, or login access to restricted machines. For instance, being in the GriegNetworkAccess class lets you log into the Grieg database server.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_85d94b69",
+    "question": "Group classes",
+    "answer": "Group classes provide membership in their correspondingly-named unix group. Unix groups are part of standard Unix file permissions to control access to specific files and directories.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_52037add",
+    "question": "Checking your account classes",
+    "answer": "To see your current class memberships, run the acc command with your zID: % acc z1234567 User Name : z1234567 Uid : 1234 Groups : spider Expires : 1 Aug 2018 User classes : COMP1511_Student[01aug17], 3778_Student Group classes : group.spider[01aug18] Misc classes : Personal100MegDiscQuota[01aug17] ... User Classes: This is a student enrolled in COMP9331 and the 3645 program. Group Classes: They're a member of group.spider, giving them access to files group-owned by spider. Misc Classes: They're in Personal100MegDiscQuota, which grants extra disk space. Expires: Shows the account's expiry date - the expiry date of the last User class to expire. All classes have an expiry date, shown in square brackets. If the date isn't shown, it's the same as the overall expiry date for the account. System Support will send you a warning mail when any of your account classes are nearing their expiration date.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_bd5606c0",
+    "question": "Class Membership and Expiry Dates",
+    "answer": "Account class membership and expiry dates are managed in different ways, depending on the class in question.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_a3a06ba5",
+    "question": "Student Classes",
+    "answer": "Membership in _Student classes is set by official UNSW enrolment records. https://taggi.cse.unsw.edu.au/FAQ/Account_Classes_and_Groups/ 2/4 2025/7/3 16:01 Account Classes and Groups - CSE taggi If you change your enrolment in a course or a program during session, your CSE account will be updated the next day. Discontinuing from a course or program doesnt expire the corresponding class membership - it simply deletes it. This means that you will not receive an expiry-warning mail about the account class in question. If this was your last User class, then your account will immediately expire, again without a warning mail.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_bb96698b",
+    "question": "Course Classes (eg: COMP2031_Student)",
+    "answer": "Students are put into course classes while they're enrolled and the course is in session. Start Date (earliest): A week before the start of session Expiry Date (latest): Six weeks after the end of session.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_b44a1192",
+    "question": "Undergraduate Thesis Classes (eg: COMP4910_Student)",
+    "answer": "Start Date (earliest): Four weeks before the start of session Expiry Date (latest): The day before the start of next session",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_ec3a5e7b",
+    "question": "Postgraduate Thesis Classes (eg: COMP9902_Student)",
+    "answer": "Start Date (earliest): Beginning of the year Expiry Date (latest): Session 1 HECS census date (generally the 31st of March) next year. Note that the CSE_Thesis class is not tied to official enrolment records. Since thesis enrolments can take a long time to process, new PhD students are manually added into this class for six weeks to keep their account active until their enrolment comes through. If you're expiring from CSE_Thesis and your thesis enrolment (in COMP9902_Student or similar) has come through, you don't need to do anything. If your enrolment has not yet come through, and there's a week or less left on your CSE_Thesis membership, contact System Support to extend it.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_5c6eb598",
+    "question": "CSE Program Classes (eg: 3778_Student)",
+    "answer": "As well as individual course classes, students are also placed in program classes matching their degree program. If you're in a CSE program such as Bachelor of Science (Computer Science) you will be put in a matching class like 3778_Student. (See note below) CSE program classes remain active for the entire length of your program. Start Date (earliest): A week before the start of your first session enrolled at CSE Expiry Date (latest): HECS census date of the session after your last session enrolled at CSE. (31st of March for session 1, 31st of August for session 2). In order to be put into a CSE program class, you must also register your major stream / study plan. If you aren't in a CSE plan, your account will not be active outside of your course enrolments. If in doubt, check with Student Services.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_194102e6",
+    "question": "Non-CSE Program Classes (eg: UGrad_Student)",
+    "answer": "https://taggi.cse.unsw.edu.au/FAQ/Account_Classes_and_Groups/ 3/4 2025/7/3 16:01 Account Classes and Groups - CSE taggi If you're enrolled in a CSE course, but your program is provided by another school, then you will be put into a generic program class such as Ugrad_Student. Non-CSE program classes only remain active while you're enrolled in at least one CSE course. Start Date (earliest): A week before the start of session (while you're enrolled at CSE) Expiry Date (latest): The day before the start of the session after session",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_6c3e12c6",
+    "question": "Non-Student Classes",
+    "answer": "",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_0a0ce384",
+    "question": "Course-related Classes (eg: COMP1011_Supervisor or COMP1011_Tutor)",
+    "answer": "Membership of _Lecturer, _Supervisor and _Tutor classes is managed by the Teachadmin group. See Academic Course Administration for details.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_b4928b8f",
+    "question": "Staff, Research, Visitor and Courtesy classes",
+    "answer": "All other User classes - for instance CSE_Research, CSE_Teaching and CSEOffice_Admin - are managed manually by CSG. If you are expiring from one of these clases but your relationship with the school is continuing: For staff or research classes: Contact the School office, asking them to confirm your ongoing position to CSG For all other User classes: Contact your supervisor or sponsor, asking them to confirm your ongoing relationship with the school to CSG. We typically only extend these classes by a maximum of three years at a time, even for permanent positions. Just send confirmation through when the expiry is coming up, and we can extend it again.",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  },
+  {
+    "id": "qa_7f0b31b5",
+    "question": "Miscellaneous classes",
+    "answer": "Classes like Personal100MegDiscQuota, RattleAccess, etc are assigned manually by CSG. Generally you can mail SS directly to get these extended. Where this involves significant resources or access to research clusters, etc., we may need your supervisor to request this on your behalf. We typically only extend miscellaneous classes by a maximum of one year at a time. Last edited by jbc 23/06/2017 https://taggi.cse.unsw.edu.au/FAQ/Account_Classes_and_Groups/ 4/4",
+    "source": {
+      "title": "Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Classes_and_Groups_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:25.416090"
+    }
+  }
+]

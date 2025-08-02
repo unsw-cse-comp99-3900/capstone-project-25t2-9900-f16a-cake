@@ -1,0 +1,12 @@
+[
+  {
+    "id": "qa_81aa52ac",
+    "question": "1: Is your Account disabled?",
+    "answer": "If you get a message telling you that you are not permitted to login to one of the lab machines or login servers, this means that your account has been disabled. (If you're just getting Access Denied, you probably just need to reset your password.) We disable accounts as a safety measure if software in your account is misbehaving, or if it looks like your account has been compromised. We also disable accounts if there's been a serious breach of the rules, such as: Sharing your account credentials with someone else Trying to hack or compromise CSE systems or other people's accounts Failing to return loan items Tampering with equipment in the labs Eating and/or drinking in the labs If your account has been disabled, it usually means that we need to have an in-person conversation with you before we can re- enable it. Contact SS on ss@cse.unsw.edu.au or call us on 9385 54199 to make an appointment for this. Last edited by jbc 23/06/2017 https://taggi.cse.unsw.edu.au/FAQ/Account_Disabled/ 1/1",
+    "source": {
+      "title": "Account_Disabled_-_CSE_taggi.pdf",
+      "url": "C:\\Users\\piggyuuu\\Documents\\Master\\T5\\comp9900\\capstone-project-25t2-9900-f16a-cake\\backend\\pdfs\\Account_Disabled_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-02T20:53:29.101672"
+    }
+  }
+]
