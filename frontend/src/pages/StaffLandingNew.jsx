@@ -105,6 +105,8 @@ function StaffLandingNew() {
   useEffect(() => {
     fetchHistorySessions();
     fetchProfile();
+    // 只在组件挂载时执行一次，不需要依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 只有已登录用户才显示
