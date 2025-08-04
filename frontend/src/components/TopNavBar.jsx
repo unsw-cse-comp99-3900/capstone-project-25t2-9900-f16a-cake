@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { AppBar, Toolbar, Button, Box, IconButton, Avatar, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Switch, FormControlLabel } from "@mui/material";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Auth } from "../utils/Auth";
 
@@ -7,6 +7,8 @@ function TopNavBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [useNewLayout, setUseNewLayout] = useState(false);
+  const [profile, setProfile] = useState(null);
   const role = localStorage.getItem("role");
 
   // 点击 Log out 按钮时弹出 Dialog
@@ -26,12 +28,78 @@ function TopNavBar() {
     setOpen(false);
   };
 
+  // 获取配置
+  const fetchConfig = async () => {
+    try {
+      const response = await fetch('/api/readconfig');
+      const config = await response.json();
+      setUseNewLayout(config.layout === 'new');
+    } catch (error) {
+      console.error('Failed to fetch config:', error);
+    }
+  };
+
+  // 更新配置
+  const updateConfig = async (layout) => {
+    try {
+      const response = await fetch('/api/updateconfig', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ layout })
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('Config updated successfully');
+      }
+    } catch (error) {
+      console.error('Failed to update config:', error);
+    }
+  };
+
+  // 处理布局切换
+  const handleLayoutChange = (event) => {
+    const newLayout = event.target.checked ? 'new' : 'old';
+    setUseNewLayout(event.target.checked);
+    updateConfig(newLayout);
+  };
+
   // 判断当前是否在 search 页面
   const isSearchPage = location.pathname === "/search";
   // 判断当前是否在 profile 页面
   const isProfilePage = location.pathname === "/staff-profile";
   // 判断当前是否在 staff-landing 页面
   const isLandingPage = location.pathname === "/staff-landing";
+
+  // 获取用户信息
+  const fetchProfile = async () => {
+    const token = Auth.getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:8000/api/profile', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setProfile(data.profile);
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
+
+  // 组件加载时获取配置和用户信息
+  useEffect(() => {
+    if (role === "admin" || role === "staff") {
+      fetchConfig();
+      fetchProfile();
+    }
+  }, [role]);
 
   return (
     <AppBar
@@ -64,6 +132,17 @@ function TopNavBar() {
             </Typography>
             {/* 更多 admin 专属按钮 */}
             <Box sx={{ flexGrow: 1 }} />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useNewLayout}
+                  onChange={handleLayoutChange}
+                  color="primary"
+                />
+              }
+              label={useNewLayout ? "new layout" : "old layout"}
+              sx={{ mr: 2 }}
+            />
             <Button variant="outlined" sx={{ ml: 1 }} onClick={handleLogoutClick}>Log out</Button>
           </>
         ) : (
@@ -84,8 +163,27 @@ function TopNavBar() {
             {!isLandingPage && (
               <Button variant="outlined" sx={{ mr: 1 }} onClick={() => navigate('/staff-landing')}>Back Home</Button>
             )}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useNewLayout}
+                  onChange={handleLayoutChange}
+                  color="primary"
+                />
+              }
+              label={useNewLayout ? "new layout" : "old layout"}
+              sx={{ mr: 2 }}
+            />
             <IconButton onClick={() => navigate('/staff-profile')}>
-              <Avatar />
+              <Avatar sx={{ 
+                bgcolor: '#FFD600', 
+                color: '#222', 
+                fontSize: 16,
+                width: 32,
+                height: 32
+              }}>
+                {profile ? profile.firstName[0] : "U"}
+              </Avatar>
             </IconButton>
             <Button variant="outlined" sx={{ ml: 1 }} onClick={handleLogoutClick}>Log out</Button>
           </>
