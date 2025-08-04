@@ -1,6 +1,7 @@
 import mysql.connector
 import uuid
 from datetime import datetime, timedelta
+import json
 
 db_config = {
     'host': 'localhost',
@@ -52,6 +53,9 @@ def add_message_db(session_id, role, content, reference=None, checklist=None, mo
         checklist: 检查清单JSON字符串(可选)
         mode: 消息模式('general', 'rag', 'checklist', 'human_ticket')
         need_human: 是否需要人工介入(布尔值)
+    
+    Returns:
+        (success, message_id, error): 成功状态、消息ID、错误信息
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -60,10 +64,11 @@ def add_message_db(session_id, role, content, reference=None, checklist=None, mo
             "INSERT INTO messages (session_id, role, content, reference, checklist, mode, need_human) VALUES (%s, %s, %s, %s, %s, %s, %s)",
             (session_id, role, content, reference, checklist, mode, 1 if need_human else 0)
         )
+        message_id = cursor.lastrowid
         conn.commit()
-        return True, None
+        return True, message_id, None
     except mysql.connector.Error as err:
-        return False, str(err)
+        return False, None, str(err)
     finally:
         cursor.close()
         conn.close()
@@ -481,6 +486,59 @@ def update_message_checklist(message_id, checklist):
         )
         conn.commit()
         return cursor.rowcount > 0, None
+    except mysql.connector.Error as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_checklist_item_status(message_id, item_index, checked):
+    """
+    更新单个checklist项目的状态
+    
+    Args:
+        message_id: 消息ID
+        item_index: checklist项目的索引
+        checked: 是否已勾选
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # 首先获取当前的checklist
+        cursor.execute(
+            "SELECT checklist FROM messages WHERE message_id = %s",
+            (message_id,)
+        )
+        result = cursor.fetchone()
+        if not result:
+            return False, "Message not found"
+        
+        checklist_str = result[0]
+        if not checklist_str:
+            return False, "No checklist found"
+        
+        # 解析checklist JSON
+        try:
+            checklist = json.loads(checklist_str)
+        except json.JSONDecodeError:
+            return False, "Invalid checklist format"
+        
+        # 检查索引是否有效
+        if item_index < 0 or item_index >= len(checklist):
+            return False, "Invalid item index"
+        
+        # 更新指定项目的状态
+        checklist[item_index]['done'] = checked
+        
+        # 将更新后的checklist保存回数据库
+        updated_checklist_str = json.dumps(checklist)
+        cursor.execute(
+            "UPDATE messages SET checklist = %s WHERE message_id = %s",
+            (updated_checklist_str, message_id)
+        )
+        conn.commit()
+        return True, None
     except mysql.connector.Error as err:
         return False, str(err)
     finally:

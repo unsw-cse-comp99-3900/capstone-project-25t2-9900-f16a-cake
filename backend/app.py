@@ -915,10 +915,10 @@ from typing import Dict, Any, List
 def parse_checklist_to_items(text: str) -> Dict[str, Any]:
     """
     将形如
-      "Here’s a checklist to access your CSE files from your own computer: step1. … step2. …"
+      "Here's a checklist to access your CSE files from your own computer: step1. … step2. …"
     的文本解析为：
     {
-      "answer": "Here’s a checklist to access your CSE files from your own computer",
+      "answer": "Here's a checklist to access your CSE files from your own computer",
       "checklist": [
          {"item": "Step 1: …", "done": False},
          {"item": "Step 2: …", "done": False},
@@ -943,7 +943,7 @@ def parse_checklist_to_items(text: str) -> Dict[str, Any]:
         if m:
             idx = int(m.group(1))
             desc = m.group(2).strip()
-            # 构造 “Step {idx}: {desc}”
+            # 构造 "Step {idx}: {desc}"
             item_text = f"Step {idx}: {desc}"
             items.append({"item": item_text, "done": False})
 
@@ -2043,12 +2043,12 @@ def aichat_general_mock():
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     # 保存用户消息到数据库
-    database.add_message_db(session_id, 'user', question)
+    database.add_message_db(session_id, 'user', question, mode='general')
 
     ai_reply = mockmd
 
     # 保存 AI 回复到数据库
-    database.add_message_db(session_id, 'ai', ai_reply)
+    database.add_message_db(session_id, 'ai', ai_reply, mode='general')
     return jsonify({
         "answer": ai_reply,
         "reference": [],
@@ -2065,15 +2065,15 @@ def aichat_rag_mock():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
-    database.add_message_db(session_id, 'user', question)
-
-    ai_reply = "There is no reference for this RAG question.  \n\nYou can press the button below to ask for human help."
-
-    database.add_message_db(session_id, 'ai', ai_reply)
-
+    database.add_message_db(session_id, 'user', question, mode='rag')
+    # rag 逻辑判断是否需要转人工
     need = False
 
     if need:
+        # 需要人工
+        ai_reply = "There is no reference for this RAG question.  \n\nYou can press the button below to ask for human help."
+
+        database.add_message_db(session_id, 'ai', ai_reply, need_human=need, mode='rag')
         return jsonify({
             "answer": ai_reply,
             "reference": [],
@@ -2082,12 +2082,20 @@ def aichat_rag_mock():
             "need_human": True
         })
     else:
+        # 不需要人工, reference 要存到数据库
+        ai_reply = "I can find the answer in the following documents."
+        ai_reference = {
+            # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
+            "Account_Disabled_-_CSE_taggi": "http://localhost:8000/pdfs/Account_Disabled_-_CSE_taggi.pdf",
+            # "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
+        }
+        # 保存 AI 回复到数据库, 还有 reference 也要存到数据库
+        # 需要将字典转换为JSON字符串
+        reference_str = json.dumps(ai_reference) if ai_reference else None
+        database.add_message_db(session_id, 'ai', ai_reply, reference=reference_str, need_human=need, mode='rag')
         return jsonify({
-            "answer": mockmd,
-            "reference": {
-                "Account Disabled - CSE taggi.pdf": "http://localhost:8000/pdfs/Account_Disabled_-_CSE_taggi.pdf",
-                "Account expiry - CSE taggi.pdf": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
-            },
+            "answer": ai_reply,
+            "reference": ai_reference,
             "checklist": [],
             "mode": "rag",
             "need_human": False
@@ -2102,16 +2110,105 @@ def aichat_checklist_mock():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question)
 
-    ai_reply = "There is no reference for this checklist question.  \n\nYou can press the button below to ask for human help."
+    # rag 逻辑判断是否需要转人工
+    need = False
 
-    database.add_message_db(session_id, 'ai', ai_reply)
-    return jsonify({
-        "answer": ai_reply,
-        "reference": [],
-        "checklist": [],
-        "mode": "checklist",
-        "need_human": True
-    })
+    if need:
+        # 需要人工
+        ai_reply = "There is no reference for this Checklist question.  \n\nYou can press the button below to ask for human help."
+
+        database.add_message_db(session_id, 'ai', ai_reply, need_human=need, mode='checklist')
+        return jsonify({
+            "answer": ai_reply,
+            "reference": [],
+            "checklist": [],
+            "mode": "checklist",
+            "need_human": True
+        })
+    else:
+        # 不需要人工, checklist 要存到数据库
+        ai_reply = "Here's a checklist to access your CSE files from your own computer:"
+        ai_reference = {
+            # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
+            "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
+        }
+        ai_checklist = [
+            {
+                "item": "Step 1: 登录到CSE文件服务器 (sftp.cse.unsw.edu.au)",
+                "done": False
+            },
+            {
+                "item": "Step 2: 使用您的CSE用户名和密码进行身份验证",
+                "done": False
+            },
+            {
+                "item": "Step 3: 导航到您的home directory (/home/your_username)",
+                "done": False
+            },
+            {
+                "item": "Step 4: 创建或选择要上传文件的目录",
+                "done": False
+            },
+            {
+                "item": "Step 5: 使用put命令上传文件到服务器",
+                "done": False
+            },
+            {
+                "item": "Step 6: 验证文件上传成功并检查文件权限",
+                "done": False
+            }
+        ]
+        # 保存 AI 回复到数据库, 包含checklist和reference
+        # 需要将字典转换为JSON字符串
+        reference_str = json.dumps(ai_reference) if ai_reference else None
+        checklist_str = json.dumps(ai_checklist) if ai_checklist else None
+        success, message_id, error = database.add_message_db(session_id, 'ai', ai_reply, 
+                                                            reference=reference_str, 
+                                                            checklist=checklist_str,
+                                                            mode='checklist',
+                                                            need_human=False)
+        
+        if not success:
+            return jsonify({"error": f"Failed to save message: {error}"}), 500
+        
+        return jsonify({
+            "answer": ai_reply,
+            "reference": ai_reference,
+            "checklist": ai_checklist,
+            "mode": "checklist",
+            "need_human": False,
+            "message_id": message_id
+        })
+
+@app.route('/api/message/<int:message_id>/update-checklist-item', methods=['POST'])
+def update_checklist_item_api(message_id):
+    """
+    更新单个checklist项目的状态
+    """
+    data = request.get_json() or {}
+    item_index = data.get('item_index')
+    checked = data.get('checked', False)
+    
+    if item_index is None:
+        return jsonify({'success': False, 'error': 'item_index is required'}), 400
+    
+    try:
+        item_index = int(item_index)
+    except ValueError:
+        return jsonify({'success': False, 'error': 'item_index must be an integer'}), 400
+    
+    success, error = database.update_checklist_item_status(message_id, item_index, checked)
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'message': 'Checklist item status updated successfully'
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': error
+        }), 400
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

@@ -17,7 +17,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Checkbox,
+  FormControlLabel
 } from "@mui/material";
 import { 
   Send as SendIcon,
@@ -69,6 +71,9 @@ function StaffLandingNew() {
   
   // 用户信息
   const [profile, setProfile] = useState(null);
+  
+  // Checklist状态管理
+  const [checklistStates, setChecklistStates] = useState({});
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -233,22 +238,24 @@ function StaffLandingNew() {
         let aiText = data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
         let aiReference = undefined;
         let needHuman = data.need_human || false;
+        let aiChecklist = undefined;
         
         // checklist 模式特殊处理
         if (mode === "checklist" && data.checklist) {
-          aiText += "\n " + data.checklist.map((item, idx) => `${idx + 1}. ${item.item}`).join("\n");
+          aiChecklist = data.checklist;
         }
-        // rag 模式特殊处理，保存 reference 字段
-        if (mode === "rag" && data.reference && Object.keys(data.reference).length > 0) {
+        // rag 和 checklist 模式都处理 reference 字段
+        if ((mode === "rag" || mode === "checklist") && data.reference && Object.keys(data.reference).length > 0) {
           aiReference = data.reference;
         }
         
         const aiResponse = {
-          id: messages.length + 2,
+          id: data.message_id || messages.length + 2, // 使用API返回的消息ID，如果没有则使用前端生成的ID
           text: aiText,
           sender: "ai",
           timestamp: new Date(),
           reference: aiReference,
+          checklist: aiChecklist,
           needHuman: needHuman
         };
         setMessages((prev) => [...prev, aiResponse]);
@@ -343,20 +350,61 @@ function StaffLandingNew() {
       }
       
       // 转换为前端消息格式，并在最前面加问候语
-      setMessages([
+      const convertedMessages = [
         {
           id: 0,
           text: GREETING_MESSAGE,
           sender: "ai",
           timestamp: new Date(),
         },
-        ...msgs.map((m, idx) => ({
-          id: idx + 1,
-          text: m.content,
-          sender: m.role,
-          timestamp: new Date(m.timestamp),
-        }))
-      ]);
+        ...msgs.map((m) => {
+          // 解析 reference 字段（JSON字符串转对象）
+          let reference = null;
+          if (m.reference) {
+            try {
+              reference = JSON.parse(m.reference);
+            } catch (e) {
+              console.warn('Failed to parse reference:', m.reference, e);
+              reference = null;
+            }
+          }
+          
+          // 解析 checklist 字段（JSON字符串转对象）
+          let checklist = null;
+          if (m.checklist) {
+            try {
+              checklist = JSON.parse(m.checklist);
+            } catch (e) {
+              console.warn('Failed to parse checklist:', m.checklist, e);
+              checklist = null;
+            }
+          }
+          
+          return {
+            id: m.message_id,  // 使用数据库中的实际消息ID
+            text: m.content,
+            sender: m.role,
+            timestamp: new Date(m.timestamp),
+            reference: reference,  // 解析后的reference对象
+            checklist: checklist,  // 解析后的checklist对象
+            needHuman: m.need_human || false  // 添加needHuman字段
+          };
+        })
+      ];
+      
+      setMessages(convertedMessages);
+      
+      // 初始化checkbox状态，反映数据库中的实际状态
+      const newChecklistStates = {};
+      convertedMessages.forEach((message, messageIndex) => {
+        if (message.checklist && Array.isArray(message.checklist)) {
+          message.checklist.forEach((item, itemIndex) => {
+            const checkboxKey = `${session_id}-${messageIndex}-${itemIndex}`;
+            newChecklistStates[checkboxKey] = item.done || false;
+          });
+        }
+      });
+      setChecklistStates(newChecklistStates);
       // 查找 title
       const found = historySessions.find(s => s.session_id === session_id);
       setSessionTitle(found ? (found.title || session_id) : session_id);
@@ -381,6 +429,68 @@ function StaffLandingNew() {
   const handleHumanHelp = () => {
     // 打开人工帮助页面
     window.open('/human-help', '_blank');
+  };
+
+  // 处理checklist状态变化
+  const handleChecklistChange = async (messageId, itemIndex, checked) => {
+    // 使用会话ID和消息在会话中的位置来生成稳定的key
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    const checkboxKey = `${sessionId}-${messageIndex}-${itemIndex}`;
+    
+    // 更新本地状态
+    setChecklistStates(prev => ({
+      ...prev,
+      [checkboxKey]: checked
+    }));
+    
+    // 调用API更新数据库
+    try {
+      const response = await fetch(`/api/message/${messageId}/update-checklist-item`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          item_index: itemIndex,
+          checked: checked
+        })
+      });
+      
+      const data = await response.json();
+      if (!data.success) {
+        console.error('Failed to update checklist item:', data.error);
+        // 如果API调用失败，回滚本地状态
+        setChecklistStates(prev => ({
+          ...prev,
+          [checkboxKey]: !checked
+        }));
+      } else {
+        // API调用成功，更新本地消息中的checklist状态
+        setMessages(prev => prev.map(message => {
+          if (message.id === messageId && message.checklist) {
+            const updatedChecklist = [...message.checklist];
+            if (updatedChecklist[itemIndex]) {
+              updatedChecklist[itemIndex] = {
+                ...updatedChecklist[itemIndex],
+                done: checked
+              };
+            }
+            return {
+              ...message,
+              checklist: updatedChecklist
+            };
+          }
+          return message;
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating checklist item:', error);
+      // 如果API调用失败，回滚本地状态
+      setChecklistStates(prev => ({
+        ...prev,
+        [checkboxKey]: !checked
+      }));
+    }
   };
 
   // 显示删除确认弹窗
@@ -775,12 +885,75 @@ function StaffLandingNew() {
                               {children}
                             </code>
                           );
+                        },
+                        p: ({ children, ...props }) => {
+                          // 检查是否包含pre标签，如果包含则直接返回children
+                          const hasPre = React.Children.toArray(children).some(
+                            child => React.isValidElement(child) && child.type === 'pre'
+                          );
+                          if (hasPre) {
+                            return <>{children}</>;
+                          }
+                          return <p {...props}>{children}</p>;
                         }
                       }}
                     >
                       {message.text}
                     </ReactMarkdown>
                   </Box>
+                  
+                  {/* 显示checklist（Checklist模式） */}
+                  {message.sender === "ai" && message.checklist && Array.isArray(message.checklist) && message.checklist.length > 0 && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: '#f0f8ff', borderRadius: 1, border: '1px solid #cce7ff' }}>
+                      <Typography variant="caption" sx={{ color: 'grey.700', fontWeight: 600, display: 'block', mb: 1 }}>
+                        Checklist:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {message.checklist.map((item, index) => {
+                          const checkboxKey = `${message.id}-${index}`;
+                          const isChecked = checklistStates[checkboxKey] !== undefined 
+                            ? checklistStates[checkboxKey] 
+                            : item.done || false;
+                          
+                          return (
+                            <FormControlLabel
+                              key={index}
+                              control={
+                                <Checkbox
+                                  checked={isChecked}
+                                  onChange={(e) => handleChecklistChange(message.id, index, e.target.checked)}
+                                  sx={{
+                                    color: '#1976d2',
+                                    '&.Mui-checked': {
+                                      color: '#1976d2',
+                                    },
+                                  }}
+                                />
+                              }
+                              label={
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    textDecoration: isChecked ? 'line-through' : 'none',
+                                    color: isChecked ? 'grey.500' : 'inherit',
+                                    fontSize: '0.875rem'
+                                  }}
+                                >
+                                  {item.item}
+                                </Typography>
+                              }
+                              sx={{
+                                margin: 0,
+                                '& .MuiFormControlLabel-label': {
+                                  flex: 1,
+                                }
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  )}
                   
                   {/* 显示reference（RAG模式） */}
                   {message.sender === "ai" && message.reference && Object.keys(message.reference).length > 0 && !message.needHuman && (
