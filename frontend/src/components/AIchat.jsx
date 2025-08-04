@@ -27,7 +27,9 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 // <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
-import { Auth } from "../utils/Auth"; 
+import { Auth } from "../utils/Auth";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm'; 
 
 const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
 
@@ -114,9 +116,26 @@ const AIchat = () => {
       }
 
       // 根据模式选择不同的后端 API
+      let useMock = true;
+
       let apiUrl = "/api/aichat/general";
-      if (mode === "rag") apiUrl = "/api/aichat/rag";
-      else if (mode === "checklist") apiUrl = "/api/aichat/checklist";
+      if (useMock) {
+        apiUrl = "/api/aichat/mock/general";
+      }
+      
+      if (mode === "rag") {
+        if (useMock) {
+          apiUrl = "/api/aichat/mock/rag";
+        } else {
+          apiUrl = "/api/aichat/rag";
+        }
+      } else if (mode === "checklist") {
+        if (useMock) {
+          apiUrl = "/api/aichat/mock/checklist";
+        } else {
+          apiUrl = "/api/aichat/checklist";
+        }
+      }
 
       // ==========vvvv 这一部分感觉没必要, 因为没有登录的用户在前端无法访问到 vvvv==========
       // <<-- 步骤 2: 从 Auth 模块获取 user_id -->>
@@ -542,7 +561,70 @@ const AIchat = () => {
                       boxShadow: 1,
                     }}
                   >
-                    <Typography variant="body2">{message.text}</Typography>
+                    {/* 使用ReactMarkdown渲染AI消息，用户消息保持纯文本 */}
+                    {message.sender === "ai" ? (
+                      <Box sx={{ 
+                        '& h1, & h2, & h3, & h4, & h5, & h6': { 
+                          color: 'inherit',
+                          margin: '8px 0 4px 0',
+                          fontWeight: 600
+                        },
+                        '& h1': { fontSize: '1.5em' },
+                        '& h2': { fontSize: '1.3em' },
+                        '& h3': { fontSize: '1.1em' },
+                        '& p': { margin: '4px 0' },
+                        '& ul, & ol': { margin: '4px 0', paddingLeft: '20px' },
+                        '& li': { margin: '2px 0' },
+                        '& code': { 
+                          backgroundColor: 'rgba(0,0,0,0.1)', 
+                          padding: '2px 4px', 
+                          borderRadius: '3px',
+                          fontSize: '0.9em'
+                        },
+                        '& pre': { 
+                          backgroundColor: 'rgba(0,0,0,0.05)', 
+                          padding: '8px', 
+                          borderRadius: '4px',
+                          overflow: 'auto',
+                          margin: '8px 0'
+                        },
+                        '& blockquote': { 
+                          borderLeft: '3px solid #ccc', 
+                          paddingLeft: '10px', 
+                          margin: '8px 0',
+                          fontStyle: 'italic'
+                        },
+                        '& table': { 
+                          borderCollapse: 'collapse', 
+                          width: '100%',
+                          margin: '8px 0'
+                        },
+                        '& th, & td': { 
+                          border: '1px solid #ddd', 
+                          padding: '4px 8px',
+                          fontSize: '0.9em'
+                        },
+                        '& th': { 
+                          backgroundColor: 'rgba(0,0,0,0.05)',
+                          fontWeight: 600
+                        },
+                        '& a': { 
+                          color: message.sender === "user" ? 'white' : '#1976d2',
+                          textDecoration: 'underline'
+                        },
+                        '& img': { 
+                          maxWidth: '100%', 
+                          height: 'auto',
+                          borderRadius: '4px'
+                        }
+                      }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.text}
+                        </ReactMarkdown>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2">{message.text}</Typography>
+                    )}
                     {/* rag 模式下显示 reference, 如果是 AI 发的, 并且有 reference 字段, 显示 reference */}
                     {message.sender === "ai" && message.reference && (
                       <Box sx={{ mt: 1 }}>
