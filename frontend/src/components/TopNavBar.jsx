@@ -78,7 +78,6 @@ function TopNavBar() {
               {isProfilePage ? "My Profile" : isSearchPage ? "Search" : "Homepage"}
             </Typography>
             <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
-            <Button variant="outlined" sx={{ mx: 1 }}>scenario</Button>
             {/* 右侧头像和登出 */}
             <Box sx={{ flexGrow: 1 }} />
             {/* 除了 staff-landing 页面外都显示 Back Home 按钮 */}
