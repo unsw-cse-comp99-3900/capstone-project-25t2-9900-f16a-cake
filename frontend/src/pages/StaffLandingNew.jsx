@@ -303,7 +303,45 @@ function StaffLandingNew() {
     // 拉取该会话的所有消息
     try {
       const resp = await fetch(`/api/get_messages/${session_id}`);
+      
+      // 检查响应状态
+      if (!resp.ok) {
+        console.error(`API Error: ${resp.status} - ${resp.statusText}`);
+        // 如果API失败，设置默认状态
+        setMessages([
+          {
+            id: 1,
+            text: GREETING_MESSAGE,
+            sender: "ai",
+            timestamp: new Date(),
+          },
+        ]);
+        // 查找 title
+        const found = historySessions.find(s => s.session_id === session_id);
+        setSessionTitle(found ? (found.title || session_id) : session_id);
+        return;
+      }
+      
       const msgs = await resp.json();
+      
+      // 检查 msgs 是否为数组
+      if (!Array.isArray(msgs)) {
+        console.error('API returned non-array data:', msgs);
+        // 如果返回的不是数组，设置默认状态
+        setMessages([
+          {
+            id: 1,
+            text: GREETING_MESSAGE,
+            sender: "ai",
+            timestamp: new Date(),
+          },
+        ]);
+        // 查找 title
+        const found = historySessions.find(s => s.session_id === session_id);
+        setSessionTitle(found ? (found.title || session_id) : session_id);
+        return;
+      }
+      
       // 转换为前端消息格式，并在最前面加问候语
       setMessages([
         {
@@ -324,7 +362,18 @@ function StaffLandingNew() {
       setSessionTitle(found ? (found.title || session_id) : session_id);
     } catch (error) {
       console.error('Failed to load session messages:', error);
-      alert('Failed to load session messages.');
+      // 设置默认状态而不是显示错误
+      setMessages([
+        {
+          id: 1,
+          text: GREETING_MESSAGE,
+          sender: "ai",
+          timestamp: new Date(),
+        },
+      ]);
+      // 查找 title
+      const found = historySessions.find(s => s.session_id === session_id);
+      setSessionTitle(found ? (found.title || session_id) : session_id);
     }
   };
 

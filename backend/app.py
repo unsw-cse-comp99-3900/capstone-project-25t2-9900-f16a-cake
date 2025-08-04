@@ -734,7 +734,6 @@ def delete_pdf(document_id):
     return jsonify({'success': True, 'message': 'PDF and related RAG files deleted successfully'})
 
 
-# AI chat 的 general 模式
 @app.route('/api/aichat/general', methods=['POST'])
 def aichat_general():
     data = request.get_json() or {}
@@ -742,8 +741,10 @@ def aichat_general():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
+    
     # 保存用户消息到数据库
-    database.add_message_db(session_id, 'user', question)
+    database.add_message_db(session_id, 'user', question, mode='general')
+    
     payload = {
         "model": MODEL,
         "messages": [
@@ -784,19 +785,28 @@ def aichat_general():
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
+    final_answer = ""
+    final_reference = {}
+    need_human = False
+    
     if data_json is not None:
         final_answer = data_json.get("answer", "")
-        model_ref = data_json.get("reference", {})
-        if model_ref:  # 如果模型返回了引用，就用模型的
-            final_reference = model_ref
+        final_reference = data_json.get("reference", {})
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need_human = True
 
     ai_reply = final_answer
+    reference_str = json.dumps(final_reference) if final_reference else None
 
-    # 保存 AI 回复到数据库
-    database.add_message_db(session_id, 'ai', ai_reply)
+    # 保存 AI 回复到数据库，包含参考资料和模式信息
+    database.add_message_db(session_id, 'ai', ai_reply, 
+                           reference=reference_str, 
+                           mode='general',
+                           need_human=need_human)
+    
     return jsonify({"answer": ai_reply})
 
 
@@ -808,12 +818,19 @@ def aichat_rag():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
-    database.add_message_db(session_id, 'user', question)
+    
+    # 保存用户消息到数据库
+    database.add_message_db(session_id, 'user', question, mode='rag')
 
     result = rag_search(question)
 
     # 如果 rag_search 返回 {}，表示没有需要的结果
     if not result:
+        # 没有找到相关资料时，标记为需要人工介入
+        database.add_message_db(session_id, 'ai', 
+                               "ops, I couldn't find anything, Need I turn to real human?",
+                               mode='rag',
+                               need_human=True)
         return jsonify({
             "answer": "ops, I couldn't find anything, Need I turn to real human?",
             "reference": {}
@@ -863,17 +880,34 @@ def aichat_rag():
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
+    final_answer = ""
+    final_reference = reference  # 默认使用RAG的引用
+    need_human = False
+
     if data_json is not None:
-        ai_reply = data_json.get("answer", "")
+        final_answer = data_json.get("answer", "")
+        model_ref = data_json.get("reference", {})
+        if model_ref:  # 如果模型返回了引用，就用模型的
+            final_reference = model_ref
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
-        ai_reply = content
+        final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need_human = True
+    
+    ai_reply = final_answer
+    reference_str = json.dumps(final_reference) if final_reference else None
     print(reference)
 
-    database.add_message_db(session_id, 'ai', ai_reply)
+    # 保存 AI 回复到数据库，包含参考资料
+    database.add_message_db(session_id, 'ai', ai_reply,
+                           reference=reference_str,
+                           mode='rag',
+                           need_human=need_human)
+    
     return jsonify({
         "answer": ai_reply,
-        "reference": reference
+        "reference": final_reference
     })
 
 from typing import Dict, Any, List
@@ -925,8 +959,12 @@ def aichat_checklist():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
-    database.add_message_db(session_id, 'user', question)
+    
+    # 保存用户消息到数据库
+    database.add_message_db(session_id, 'user', question, mode='checklist')
+    
     knowledge, reference = rag_search(question)
+    
     payload = {
         "model": MODEL,
         "messages": [
@@ -971,6 +1009,7 @@ def aichat_checklist():
 
     final_answer = ""
     final_reference = reference  # 默认使用RAG的引用
+    need_human = False
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
@@ -980,18 +1019,27 @@ def aichat_checklist():
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need_human = True
 
-    # time.sleep(random.uniform(0.5, 1.5))
-    # checklist = [
-    # ]
-    # ai_reply = final_answer
     # 3. 调用解析函数
     result = parse_checklist_to_items(final_answer)
 
     # 4. 拆包到 ai_reply 和 checklist
     ai_reply = result["answer"]
     checklist = result["checklist"]
-    database.add_message_db(session_id, 'ai', ai_reply)
+    
+    # 将checklist转换为JSON字符串存储
+    checklist_str = json.dumps(checklist) if checklist else None
+    reference_str = json.dumps(final_reference) if final_reference else None
+    
+    # 保存 AI 回复到数据库，包含checklist
+    database.add_message_db(session_id, 'ai', ai_reply,
+                           reference=reference_str,
+                           checklist=checklist_str,
+                           mode='checklist',
+                           need_human=need_human)
+    
     return jsonify({"answer": ai_reply, "checklist": checklist})
 
 
@@ -1163,9 +1211,584 @@ Timestamp: {feedback_data['timestamp']}
             "message": f"Server error: {str(e)}"
         }), 500
 
+# ==================== 新增的消息管理API ====================
+
+@app.route('/api/admin/messages/need-human', methods=['GET'])
+def get_messages_need_human_api():
+    """获取所有需要人工介入的消息"""
+    # 这里可以添加管理员权限验证
+    messages, error = database.get_messages_need_human()
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    return jsonify({
+        'success': True, 
+        'messages': messages,
+        'count': len(messages)
+    })
+
+
+@app.route('/api/admin/messages/stats', methods=['GET'])
+def get_message_stats_api():
+    """获取消息统计信息"""
+    stats, error = database.get_message_stats_by_mode()
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    return jsonify({
+        'success': True,
+        'stats': stats
+    })
+
+
+@app.route('/api/admin/messages/by-mode/<mode>', methods=['GET'])
+def get_messages_by_mode_api(mode):
+    """根据模式获取消息"""
+    if mode not in ['general', 'rag', 'checklist', 'human_ticket']:
+        return jsonify({'success': False, 'error': 'Invalid mode'}), 400
+    
+    limit = request.args.get('limit', 100, type=int)
+    messages, error = database.get_messages_by_mode(mode, limit)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    return jsonify({
+        'success': True,
+        'messages': messages,
+        'count': len(messages)
+    })
+
+
+@app.route('/api/admin/message/<int:message_id>/mark-human', methods=['POST'])
+def mark_message_human_api(message_id):
+    """标记消息需要人工介入"""
+    data = request.get_json() or {}
+    need_human = data.get('need_human', True)
+    
+    success, error = database.mark_message_need_human(message_id, need_human)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    if not success:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'message': f'Message {"marked as" if need_human else "unmarked from"} needing human intervention'
+    })
+
+
+@app.route('/api/admin/message/<int:message_id>/update-reference', methods=['POST'])
+def update_message_reference_api(message_id):
+    """更新消息的参考资料"""
+    data = request.get_json() or {}
+    reference = data.get('reference', '')
+    
+    success, error = database.update_message_reference(message_id, reference)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    if not success:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'message': 'Message reference updated successfully'
+    })
+
+
+@app.route('/api/admin/message/<int:message_id>/update-checklist', methods=['POST'])
+def update_message_checklist_api(message_id):
+    """更新消息的检查清单"""
+    data = request.get_json() or {}
+    checklist = data.get('checklist', [])
+    
+    # 将checklist转换为JSON字符串
+    checklist_str = json.dumps(checklist) if checklist else None
+    
+    success, error = database.update_message_checklist(message_id, checklist_str)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    if not success:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'message': 'Message checklist updated successfully'
+    })
+
+
+@app.route('/api/message/<int:message_id>/details', methods=['GET'])
+def get_message_details_api(message_id):
+    """获取单个消息的详细信息"""
+    conn = database.get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT m.*, ch.user_id, ch.title as session_title, "
+            "ui.first_name, ui.last_name, ui.email "
+            "FROM messages m "
+            "JOIN chat_history ch ON m.session_id = ch.session_id "
+            "JOIN user_info ui ON ch.user_id = ui.user_id "
+            "WHERE m.message_id = %s",
+            (message_id,)
+        )
+        message = cursor.fetchone()
+        
+        if not message:
+            return jsonify({'success': False, 'error': 'Message not found'}), 404
+        
+        # 处理布尔值转换和JSON解析
+        message['need_human'] = bool(message['need_human'])
+        if message['checklist']:
+            try:
+                message['checklist'] = json.loads(message['checklist'])
+            except json.JSONDecodeError:
+                message['checklist'] = None
+        
+        if message['reference']:
+            try:
+                message['reference'] = json.loads(message['reference'])
+            except json.JSONDecodeError:
+                pass  # 保持原始字符串
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+        
+    except Exception as err:
+        return jsonify({'success': False, 'error': str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ==================== 转人工工单系统API ====================
+
+@app.route('/api/save_ticket', methods=['POST'])
+def save_ticket_api():
+    """保存转人工请求工单"""
+    # 从请求头获取token进行身份验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        staff_id = payload.get('username') or payload.get('id')
+        
+        if not staff_id:
+            return jsonify({
+                "success": False,
+                "message": "Invalid token: missing user ID"
+            }), 401
+        
+        # 从数据库获取用户详细信息
+        user = database.get_user(staff_id)
+        if not user:
+            return jsonify({
+                "success": False,
+                "message": "User not found"
+            }), 404
+        
+        data = request.get_json()
+        
+        # 验证必需字段
+        required_fields = ['session_id', 'content']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    "success": False,
+                    "message": f"Missing required field: {field}"
+                }), 400
+        
+        session_id = data.get('session_id')
+        content = data.get('content')
+        staff_email = user.get('email', '')
+        
+        # 保存工单到数据库
+        ticket_id, error = database.save_ticket(session_id, staff_id, staff_email, content)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to save ticket: {error}"
+            }), 500
+        
+        # 发送邮件通知管理员（可选）
+        try:
+            admins, err = database.get_all_admins()
+            if not err and admins:
+                admin_emails = [admin['email'] for admin in admins]
+                
+                subject = f"[HDingo] New Human Support Request - Ticket #{ticket_id}"
+                body = f"""
+New human support request received:
+
+Ticket ID: {ticket_id}
+From: {user.get('first_name', '')} {user.get('last_name', '')} ({staff_email})
+Department: {user.get('department', 'N/A')}
+Role: {user.get('role', 'N/A')}
+Session ID: {session_id}
+
+Request Content:
+{content}
+
+Please log in to the admin panel to review and process this request.
+
+---
+This email was sent automatically by HDingo system.
+Time: {datetime.now().isoformat()}
+                """.strip()
+                
+                msg = Message(
+                    subject=subject,
+                    recipients=admin_emails,
+                    body=body
+                )
+                mail.send(msg)
+                print(f"Notification email sent to {len(admin_emails)} admins for ticket #{ticket_id}")
+        except Exception as e:
+            print(f"Warning: Failed to send notification email for ticket #{ticket_id}: {str(e)}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Ticket created successfully",
+            "ticket_id": ticket_id
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/get_tickets', methods=['GET'])
+def get_tickets_api():
+    """获取工单列表"""
+    # 从请求头获取token进行管理员权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        
+        # 检查是否是管理员
+        if user_role != 'admin':
+            return jsonify({
+                "success": False,
+                "message": "Admin access required"
+            }), 403
+        
+        # 获取查询参数
+        show_all = request.args.get('all', 'false').lower() == 'true'
+        limit = request.args.get('limit', 100, type=int)
+        
+        if show_all:
+            tickets, error = database.get_all_tickets(limit)
+        else:
+            tickets, error = database.get_unfinished_tickets(limit)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get tickets: {error}"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "tickets": tickets,
+            "count": len(tickets)
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/finish_ticket', methods=['POST'])
+def finish_ticket_api():
+    """完成工单处理"""
+    # 从请求头获取token进行管理员权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        
+        # 检查是否是管理员
+        if user_role != 'admin':
+            return jsonify({
+                "success": False,
+                "message": "Admin access required"
+            }), 403
+        
+        data = request.get_json()
+        
+        # 验证必需字段
+        if not data.get('ticket_id'):
+            return jsonify({
+                "success": False,
+                "message": "Missing required field: ticket_id"
+            }), 400
+        
+        ticket_id = data.get('ticket_id')
+        admin_notes = data.get('admin_notes', '')
+        
+        # 更新工单状态
+        success, error = database.finish_ticket(ticket_id, admin_notes)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to finish ticket: {error}"
+            }), 500
+        
+        if not success:
+            return jsonify({
+                "success": False,
+                "message": "Ticket not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "message": "Ticket marked as finished successfully"
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/tickets/stats', methods=['GET'])
+def get_tickets_stats_api():
+    """获取工单统计信息"""
+    # 从请求头获取token进行管理员权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        
+        # 检查是否是管理员
+        if user_role != 'admin':
+            return jsonify({
+                "success": False,
+                "message": "Admin access required"
+            }), 403
+        
+        stats, error = database.get_tickets_stats()
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get tickets stats: {error}"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "stats": stats
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/ticket/<int:ticket_id>', methods=['GET'])
+def get_ticket_details_api(ticket_id):
+    """获取单个工单详情"""
+    # 从请求头获取token进行权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        user_id = payload.get('username') or payload.get('id')
+        
+        # 获取工单详情
+        ticket, error = database.get_ticket_by_id(ticket_id)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get ticket details: {error}"
+            }), 500
+        
+        if not ticket:
+            return jsonify({
+                "success": False,
+                "message": "Ticket not found"
+            }), 404
+        
+        # 权限检查：管理员可以查看所有工单，普通用户只能查看自己的工单
+        if user_role != 'admin' and ticket['staff_id'] != user_id:
+            return jsonify({
+                "success": False,
+                "message": "Access denied: You can only view your own tickets"
+            }), 403
+        
+        return jsonify({
+            "success": True,
+            "ticket": ticket
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/my_tickets', methods=['GET'])
+def get_my_tickets_api():
+    """获取当前用户的工单列表"""
+    # 从请求头获取token进行身份验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        staff_id = payload.get('username') or payload.get('id')
+        
+        if not staff_id:
+            return jsonify({
+                "success": False,
+                "message": "Invalid token: missing user ID"
+            }), 401
+        
+        # 获取查询参数
+        limit = request.args.get('limit', 50, type=int)
+        
+        tickets, error = database.get_tickets_by_staff(staff_id, limit)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get tickets: {error}"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "tickets": tickets,
+            "count": len(tickets)
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+# 新版 旧版 布局的切换和保存
+@app.route('/api/readconfig', methods=['GET'])
+def read_config():
+    config = load_config()
+    return jsonify(config)
+
+@app.route('/api/updateconfig', methods=['POST'])
+def update_config():
+    data = request.get_json()
+    if not data or 'layout' not in data:
+        return jsonify({'error': 'layout field is required'}), 400
+    
+    if data['layout'] not in ['new', 'old']:
+        return jsonify({'error': 'layout must be "new" or "old"'}), 400
+    
+    config = load_config()
+    config['layout'] = data['layout']
+    save_config(config)
+    
+    return jsonify({'success': True, 'config': config})
+
+
 # mock ai chat api for frontend development
 
-mockmd =     ai_reply = """---
+mockmd = """---
 __Advertisement :)__
 
 - __[pica](https://nodeca.github.io/pica/demo/)__ - high quality and fast image
@@ -1448,7 +2071,7 @@ def aichat_rag_mock():
 
     database.add_message_db(session_id, 'ai', ai_reply)
 
-    need = True
+    need = False
 
     if need:
         return jsonify({
@@ -1489,27 +2112,6 @@ def aichat_checklist_mock():
         "mode": "checklist",
         "need_human": True
     })
-
-# 新版 旧版 布局的切换和保存
-@app.route('/api/readconfig', methods=['GET'])
-def read_config():
-    config = load_config()
-    return jsonify(config)
-
-@app.route('/api/updateconfig', methods=['POST'])
-def update_config():
-    data = request.get_json()
-    if not data or 'layout' not in data:
-        return jsonify({'error': 'layout field is required'}), 400
-    
-    if data['layout'] not in ['new', 'old']:
-        return jsonify({'error': 'layout must be "new" or "old"'}), 400
-    
-    config = load_config()
-    config['layout'] = data['layout']
-    save_config(config)
-    
-    return jsonify({'success': True, 'config': config})
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
