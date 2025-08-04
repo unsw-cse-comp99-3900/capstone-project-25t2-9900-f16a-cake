@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { Box, Button, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 
-function FileManagement() {
+const FileManagement = forwardRef((props, ref) => {
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,6 +26,11 @@ function FileManagement() {
       setLoading(false);
     }
   };
+
+  // 暴露fetchPdfs方法给父组件
+  useImperativeHandle(ref, () => ({
+    fetchPdfs
+  }));
 
   useEffect(() => {
     fetchPdfs();
@@ -89,6 +94,6 @@ function FileManagement() {
       </Dialog>
     </Box>
   );
-}
+});
 
 export default FileManagement; 
