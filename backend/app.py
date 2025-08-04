@@ -27,6 +27,23 @@ import time
 import random
 import os
 
+# 配置文件路径
+CONFIG_FILE = 'config.json'
+
+def load_config():
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # 如果文件不存在，创建默认配置
+        default_config = {"layout": "old"}
+        save_config(default_config)
+        return default_config
+
+def save_config(config):
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 list_pdf = []  # 公用pdf列表
@@ -1431,7 +1448,7 @@ def aichat_rag_mock():
 
     database.add_message_db(session_id, 'ai', ai_reply)
 
-    need = False
+    need = True
 
     if need:
         return jsonify({
@@ -1472,6 +1489,27 @@ def aichat_checklist_mock():
         "mode": "checklist",
         "need_human": True
     })
+
+# 新版 旧版 布局的切换和保存
+@app.route('/api/readconfig', methods=['GET'])
+def read_config():
+    config = load_config()
+    return jsonify(config)
+
+@app.route('/api/updateconfig', methods=['POST'])
+def update_config():
+    data = request.get_json()
+    if not data or 'layout' not in data:
+        return jsonify({'error': 'layout field is required'}), 400
+    
+    if data['layout'] not in ['new', 'old']:
+        return jsonify({'error': 'layout must be "new" or "old"'}), 400
+    
+    config = load_config()
+    config['layout'] = data['layout']
+    save_config(config)
+    
+    return jsonify({'success': True, 'config': config})
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

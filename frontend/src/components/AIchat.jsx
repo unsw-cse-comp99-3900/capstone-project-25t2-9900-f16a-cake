@@ -34,7 +34,7 @@ import remarkGfm from 'remark-gfm';
 
 const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
 
-const AIchat = () => {
+const AIchat = ({ showFab = true }) => {
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
   const [sessionTitle, setSessionTitle] = useState("New Chat");
@@ -42,6 +42,8 @@ const AIchat = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openHistory, setOpenHistory] = useState(false);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
   const [historySessions, setHistorySessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   // 用于保存所有历史消息
@@ -76,6 +78,8 @@ const AIchat = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [isOpen, messages]);
+
+
 
   // 只有已登录用户才显示
   if (!localStorage.getItem("role")) {
@@ -346,42 +350,91 @@ const AIchat = () => {
     window.open('/human-help', '_blank');
   };
 
-  const handleDeleteSession = async (session_id) => {
-    if (!window.confirm("Are you sure you want to delete this chat session? This cannot be undone.")) return;
+  // 显示删除确认弹窗
+  const handleShowDeleteConfirm = (session_id) => {
+    setSessionToDelete(session_id);
+    setOpenDeleteConfirm(true);
+  };
+
+  // 执行删除会话
+  const handleConfirmDelete = async () => {
+    if (!sessionToDelete) return;
+    
     // 先删除后端数据库里的 session
     const resp = await fetch("/api/delete_session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id })
+      body: JSON.stringify({ session_id: sessionToDelete })
     });
     const data = await resp.json();
     if (data.success) {
-      setHistorySessions(prev => prev.filter(s => s.session_id !== session_id));
-      // 如果当前会话被删，重置当前会话并新建
-      if (sessionId === session_id) {
-        const user_id = localStorage.getItem('user_id');
-        // 再新建一个 session
-        if (user_id) {
-          const resp = await fetch('/api/start_session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, title: 'New Chat' })
-          });
-          const newData = await resp.json();
-          // 如果新建成功，更新当前会话
-          if (newData.session_id) {
-            setSessionId(newData.session_id);
-            setSessionTitle('New Chat');
-            setMessages([
-              {
-                id: 1,
-                text: GREETING_MESSAGE,
-                sender: "ai",
-                timestamp: new Date(),
-              },
-            ]);
+      // 如果当前会话被删，需要切换到其他会话或新建
+      if (sessionId === sessionToDelete) {
+        // 获取删除后的会话列表
+        const updatedSessions = historySessions.filter(s => s.session_id !== sessionToDelete);
+        setHistorySessions(updatedSessions);
+        
+        if (updatedSessions.length > 0) {
+          // 如果有其他会话，自动切换到最新的，但不关闭历史会话弹窗
+          const latestSession = updatedSessions[0];
+          // 直接设置会话ID和加载消息，而不调用handleSelectHistorySession
+          setSessionId(latestSession.session_id);
+          setSessionTitle(latestSession.title || latestSession.session_id);
+          
+          // 加载该会话的消息
+          const resp = await fetch(`/api/get_messages/${latestSession.session_id}`);
+          const msgs = await resp.json();
+          setMessages([
+            {
+              id: 0,
+              text: GREETING_MESSAGE,
+              sender: "ai",
+              timestamp: new Date(),
+            },
+            ...msgs.map((m, idx) => ({
+              id: idx + 1,
+              text: m.content,
+              sender: m.role,
+              timestamp: new Date(m.timestamp),
+            }))
+          ]);
+        } else {
+          // 如果没有会话了，自动新建一个
+          const user_id = localStorage.getItem('user_id');
+          if (user_id) {
+            const resp = await fetch('/api/start_session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id, title: 'New Chat' })
+            });
+            const newData = await resp.json();
+            if (newData.session_id) {
+              setSessionId(newData.session_id);
+              setSessionTitle('New Chat');
+              setMessages([
+                {
+                  id: 1,
+                  text: GREETING_MESSAGE,
+                  sender: "ai",
+                  timestamp: new Date(),
+                },
+              ]);
+              // 刷新历史会话列表以包含新创建的会话
+              fetchHistorySessions();
+            } else {
+              alert('Failed to create new chat.');
+              setSessionId(null);
+              setSessionTitle('New Chat');
+              setMessages([
+                {
+                  id: 1,
+                  text: GREETING_MESSAGE,
+                  sender: "ai",
+                  timestamp: new Date(),
+                },
+              ]);
+            }
           } else {
-            alert('Failed to create new chat.');
             setSessionId(null);
             setSessionTitle('New Chat');
             setMessages([
@@ -393,50 +446,47 @@ const AIchat = () => {
               },
             ]);
           }
-        } else {
-          setSessionId(null);
-          setSessionTitle('New Chat');
-          setMessages([
-            {
-              id: 1,
-              text: GREETING_MESSAGE,
-              sender: "ai",
-              timestamp: new Date(),
-            },
-          ]);
         }
+      } else {
+        // 如果删除的不是当前会话，只需要更新列表
+        setHistorySessions(prev => prev.filter(s => s.session_id !== sessionToDelete));
       }
     } else {
       alert(data.error || "Failed to delete session");
     }
+    
+    setOpenDeleteConfirm(false);
+    setSessionToDelete(null);
   };
 
   return (
     <>
-      {/* 悬浮聊天按钮 */}
-      <Fab
-        color="primary"
-        aria-label="AI Chat"
-        onClick={handleOpenChat}
-        sx={{
-          position: "fixed",
-          bottom: 16,
-          right: 16,
-          width: 80,
-          height: 64,
-          background: "#FFD600",
-          color: "black",
-          fontWeight: "bold",
-          fontSize: 12,
-          boxShadow: 3,
-          borderRadius: "32px",
-          "&:hover": {
-            background: "#FFE44D",
-          },
-        }}
-      >
-        AI CHAT
-      </Fab>
+      {/* 悬浮聊天按钮 - 只在showFab为true时显示 */}
+      {showFab && (
+        <Fab
+          color="primary"
+          aria-label="AI Chat"
+          onClick={handleOpenChat}
+          sx={{
+            position: "fixed",
+            bottom: 16,
+            right: 16,
+            width: 80,
+            height: 64,
+            background: "#FFD600",
+            color: "black",
+            fontWeight: "bold",
+            fontSize: 12,
+            boxShadow: 3,
+            borderRadius: "32px",
+            "&:hover": {
+              background: "#FFE44D",
+            },
+          }}
+        >
+          AI CHAT
+        </Fab>
+      )}
 
       {/* 聊天对话框 */}
       {isOpen && (
@@ -775,7 +825,15 @@ const AIchat = () => {
       </Dialog>
 
       {/* 历史会话弹窗 */}
-      <Dialog open={openHistory} onClose={() => setOpenHistory(false)} maxWidth="xs" fullWidth>
+      <Dialog 
+        open={openHistory} 
+        onClose={() => setOpenHistory(false)} 
+        maxWidth="xs" 
+        fullWidth
+        keepMounted={false}
+        disableEscapeKeyDown={false}
+        disableBackdropClick={false}
+      >
         <DialogTitle>Chat History</DialogTitle>
         <DialogContent dividers>
           {loadingHistory ? (
@@ -799,7 +857,7 @@ const AIchat = () => {
                         <IconButton edge="end" aria-label="edit" onClick={e => { e.stopPropagation(); setEditingHistoryId(s.session_id); setEditingHistoryTitle(s.title || ""); }}>
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton edge="end" aria-label="delete" onClick={e => { e.stopPropagation(); handleDeleteSession(s.session_id); }}>
+                        <IconButton edge="end" aria-label="delete" onClick={e => { e.stopPropagation(); handleShowDeleteConfirm(s.session_id); }}>
                           <DeleteIcon />
                         </IconButton>
                       </>
@@ -868,6 +926,32 @@ const AIchat = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenHistory(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 删除确认弹窗 */}
+      <Dialog 
+        open={openDeleteConfirm} 
+        onClose={() => setOpenDeleteConfirm(false)}
+        disableEscapeKeyDown={false}
+        disableBackdropClick={false}
+        keepMounted={false}
+      >
+        <DialogTitle>Delete Chat Session?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You are about to delete this chat session. This action cannot be undone. Continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteConfirm(false)}>Cancel</Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
     </>
