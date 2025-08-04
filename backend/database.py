@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': '', # 需要是自己数据库的密码
+    'password': 'Yzh0131@', # 需要是自己数据库的密码
     'database': 'chat_system'
 }
 
@@ -40,13 +40,25 @@ def start_session_db(user_id, title="Untitled Session"):
         cursor.close()
         conn.close()
 
-def add_message_db(session_id, role, content):
+def add_message_db(session_id, role, content, reference=None, checklist=None, mode='general', need_human=False):
+    """
+    添加消息到数据库
+    
+    Args:
+        session_id: 会话ID
+        role: 消息角色('user' 或 'ai')
+        content: 消息内容
+        reference: 参考资料(可选)
+        checklist: 检查清单JSON字符串(可选)
+        mode: 消息模式('general', 'rag', 'checklist', 'human_ticket')
+        need_human: 是否需要人工介入(布尔值)
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO messages (session_id, role, content) VALUES (%s, %s, %s)",
-            (session_id, role, content)
+            "INSERT INTO messages (session_id, role, content, reference, checklist, mode, need_human) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (session_id, role, content, reference, checklist, mode, 1 if need_human else 0)
         )
         conn.commit()
         return True, None
@@ -57,14 +69,20 @@ def add_message_db(session_id, role, content):
         conn.close()
 
 def get_messages_db(session_id):
+    """
+    获取会话的所有消息
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            "SELECT role, content, timestamp FROM messages WHERE session_id = %s ORDER BY timestamp ASC",
+            "SELECT message_id, role, content, timestamp, reference, checklist, mode, need_human FROM messages WHERE session_id = %s ORDER BY timestamp ASC",
             (session_id,)
         )
         messages = cursor.fetchall()
+        # 处理布尔值转换
+        for message in messages:
+            message['need_human'] = bool(message['need_human'])
         return messages, None
     except mysql.connector.Error as err:
         return None, str(err)
@@ -423,6 +441,140 @@ def rebuild_keywords_database():
         return True, f"Rebuilt keywords database with {len(all_keywords)} keywords"
     except mysql.connector.Error as err:
         return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ==================== 新增的消息管理相关函数 ====================
+
+def update_message_reference(message_id, reference):
+    """
+    更新消息的参考资料
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE messages SET reference = %s WHERE message_id = %s",
+            (reference, message_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0, None
+    except mysql.connector.Error as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_message_checklist(message_id, checklist):
+    """
+    更新消息的检查清单
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE messages SET checklist = %s WHERE message_id = %s",
+            (checklist, message_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0, None
+    except mysql.connector.Error as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_message_need_human(message_id, need_human=True):
+    """
+    标记消息是否需要人工介入
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE messages SET need_human = %s WHERE message_id = %s",
+            (1 if need_human else 0, message_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0, None
+    except mysql.connector.Error as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_messages_by_mode(mode, limit=100):
+    """
+    根据模式获取消息
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT m.*, ch.user_id FROM messages m "
+            "JOIN chat_history ch ON m.session_id = ch.session_id "
+            "WHERE m.mode = %s ORDER BY m.timestamp DESC LIMIT %s",
+            (mode, limit)
+        )
+        messages = cursor.fetchall()
+        # 处理布尔值转换
+        for message in messages:
+            message['need_human'] = bool(message['need_human'])
+        return messages, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_messages_need_human():
+    """
+    获取所有需要人工介入的消息
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT m.*, ch.user_id, ui.first_name, ui.last_name, ui.email "
+            "FROM messages m "
+            "JOIN chat_history ch ON m.session_id = ch.session_id "
+            "JOIN user_info ui ON ch.user_id = ui.user_id "
+            "WHERE m.need_human = 1 ORDER BY m.timestamp DESC"
+        )
+        messages = cursor.fetchall()
+        # 处理布尔值转换
+        for message in messages:
+            message['need_human'] = bool(message['need_human'])
+        return messages, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_message_stats_by_mode():
+    """
+    获取各种模式的消息统计
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT mode, COUNT(*) as count, "
+            "SUM(CASE WHEN need_human = 1 THEN 1 ELSE 0 END) as need_human_count "
+            "FROM messages GROUP BY mode"
+        )
+        stats = cursor.fetchall()
+        return stats, None
+    except mysql.connector.Error as err:
+        return None, str(err)
     finally:
         cursor.close()
         conn.close()

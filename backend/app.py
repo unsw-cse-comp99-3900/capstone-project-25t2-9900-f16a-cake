@@ -717,7 +717,6 @@ def delete_pdf(document_id):
     return jsonify({'success': True, 'message': 'PDF and related RAG files deleted successfully'})
 
 
-# AI chat 的 general 模式
 @app.route('/api/aichat/general', methods=['POST'])
 def aichat_general():
     data = request.get_json() or {}
@@ -725,8 +724,10 @@ def aichat_general():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
+    
     # 保存用户消息到数据库
-    database.add_message_db(session_id, 'user', question)
+    database.add_message_db(session_id, 'user', question, mode='general')
+    
     payload = {
         "model": MODEL,
         "messages": [
@@ -767,19 +768,28 @@ def aichat_general():
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
+    final_answer = ""
+    final_reference = {}
+    need_human = False
+    
     if data_json is not None:
         final_answer = data_json.get("answer", "")
-        model_ref = data_json.get("reference", {})
-        if model_ref:  # 如果模型返回了引用，就用模型的
-            final_reference = model_ref
+        final_reference = data_json.get("reference", {})
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need_human = True
 
     ai_reply = final_answer
+    reference_str = json.dumps(final_reference) if final_reference else None
 
-    # 保存 AI 回复到数据库
-    database.add_message_db(session_id, 'ai', ai_reply)
+    # 保存 AI 回复到数据库，包含参考资料和模式信息
+    database.add_message_db(session_id, 'ai', ai_reply, 
+                           reference=reference_str, 
+                           mode='general',
+                           need_human=need_human)
+    
     return jsonify({"answer": ai_reply})
 
 
@@ -791,12 +801,19 @@ def aichat_rag():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
-    database.add_message_db(session_id, 'user', question)
+    
+    # 保存用户消息到数据库
+    database.add_message_db(session_id, 'user', question, mode='rag')
 
     result = rag_search(question)
 
     # 如果 rag_search 返回 {}，表示没有需要的结果
     if not result:
+        # 没有找到相关资料时，标记为需要人工介入
+        database.add_message_db(session_id, 'ai', 
+                               "ops, I couldn't find anything, Need I turn to real human?",
+                               mode='rag',
+                               need_human=True)
         return jsonify({
             "answer": "ops, I couldn't find anything, Need I turn to real human?",
             "reference": {}
@@ -846,17 +863,34 @@ def aichat_rag():
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
+    final_answer = ""
+    final_reference = reference  # 默认使用RAG的引用
+    need_human = False
+
     if data_json is not None:
-        ai_reply = data_json.get("answer", "")
+        final_answer = data_json.get("answer", "")
+        model_ref = data_json.get("reference", {})
+        if model_ref:  # 如果模型返回了引用，就用模型的
+            final_reference = model_ref
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
-        ai_reply = content
+        final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need_human = True
+    
+    ai_reply = final_answer
+    reference_str = json.dumps(final_reference) if final_reference else None
     print(reference)
 
-    database.add_message_db(session_id, 'ai', ai_reply)
+    # 保存 AI 回复到数据库，包含参考资料
+    database.add_message_db(session_id, 'ai', ai_reply,
+                           reference=reference_str,
+                           mode='rag',
+                           need_human=need_human)
+    
     return jsonify({
         "answer": ai_reply,
-        "reference": reference
+        "reference": final_reference
     })
 
 from typing import Dict, Any, List
@@ -908,8 +942,12 @@ def aichat_checklist():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
-    database.add_message_db(session_id, 'user', question)
+    
+    # 保存用户消息到数据库
+    database.add_message_db(session_id, 'user', question, mode='checklist')
+    
     knowledge, reference = rag_search(question)
+    
     payload = {
         "model": MODEL,
         "messages": [
@@ -954,6 +992,7 @@ def aichat_checklist():
 
     final_answer = ""
     final_reference = reference  # 默认使用RAG的引用
+    need_human = False
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
@@ -963,18 +1002,27 @@ def aichat_checklist():
     else:
         # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
         final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need_human = True
 
-    # time.sleep(random.uniform(0.5, 1.5))
-    # checklist = [
-    # ]
-    # ai_reply = final_answer
     # 3. 调用解析函数
     result = parse_checklist_to_items(final_answer)
 
     # 4. 拆包到 ai_reply 和 checklist
     ai_reply = result["answer"]
     checklist = result["checklist"]
-    database.add_message_db(session_id, 'ai', ai_reply)
+    
+    # 将checklist转换为JSON字符串存储
+    checklist_str = json.dumps(checklist) if checklist else None
+    reference_str = json.dumps(final_reference) if final_reference else None
+    
+    # 保存 AI 回复到数据库，包含checklist
+    database.add_message_db(session_id, 'ai', ai_reply,
+                           reference=reference_str,
+                           checklist=checklist_str,
+                           mode='checklist',
+                           need_human=need_human)
+    
     return jsonify({"answer": ai_reply, "checklist": checklist})
 
 
@@ -1154,8 +1202,9 @@ def aichat_general_mock():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
+    
     # 保存用户消息到数据库
-    database.add_message_db(session_id, 'user', question)
+    database.add_message_db(session_id, 'user', question, mode='general')
 
     ai_reply = """---
 __Advertisement :)__
@@ -1405,8 +1454,162 @@ It converts "HTML", but keep intact partial entries like "xxxHTMLyyy" and so on.
 """
 
     # 保存 AI 回复到数据库
-    database.add_message_db(session_id, 'ai', ai_reply)
+    database.add_message_db(session_id, 'ai', ai_reply, mode='general')
     return jsonify({"answer": ai_reply})
+
+
+# ==================== 新增的消息管理API ====================
+
+@app.route('/api/admin/messages/need-human', methods=['GET'])
+def get_messages_need_human_api():
+    """获取所有需要人工介入的消息"""
+    # 这里可以添加管理员权限验证
+    messages, error = database.get_messages_need_human()
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    return jsonify({
+        'success': True, 
+        'messages': messages,
+        'count': len(messages)
+    })
+
+
+@app.route('/api/admin/messages/stats', methods=['GET'])
+def get_message_stats_api():
+    """获取消息统计信息"""
+    stats, error = database.get_message_stats_by_mode()
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    return jsonify({
+        'success': True,
+        'stats': stats
+    })
+
+
+@app.route('/api/admin/messages/by-mode/<mode>', methods=['GET'])
+def get_messages_by_mode_api(mode):
+    """根据模式获取消息"""
+    if mode not in ['general', 'rag', 'checklist', 'human_ticket']:
+        return jsonify({'success': False, 'error': 'Invalid mode'}), 400
+    
+    limit = request.args.get('limit', 100, type=int)
+    messages, error = database.get_messages_by_mode(mode, limit)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    return jsonify({
+        'success': True,
+        'messages': messages,
+        'count': len(messages)
+    })
+
+
+@app.route('/api/admin/message/<int:message_id>/mark-human', methods=['POST'])
+def mark_message_human_api(message_id):
+    """标记消息需要人工介入"""
+    data = request.get_json() or {}
+    need_human = data.get('need_human', True)
+    
+    success, error = database.mark_message_need_human(message_id, need_human)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    if not success:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'message': f'Message {"marked as" if need_human else "unmarked from"} needing human intervention'
+    })
+
+
+@app.route('/api/admin/message/<int:message_id>/update-reference', methods=['POST'])
+def update_message_reference_api(message_id):
+    """更新消息的参考资料"""
+    data = request.get_json() or {}
+    reference = data.get('reference', '')
+    
+    success, error = database.update_message_reference(message_id, reference)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    if not success:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'message': 'Message reference updated successfully'
+    })
+
+
+@app.route('/api/admin/message/<int:message_id>/update-checklist', methods=['POST'])
+def update_message_checklist_api(message_id):
+    """更新消息的检查清单"""
+    data = request.get_json() or {}
+    checklist = data.get('checklist', [])
+    
+    # 将checklist转换为JSON字符串
+    checklist_str = json.dumps(checklist) if checklist else None
+    
+    success, error = database.update_message_checklist(message_id, checklist_str)
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    if not success:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'message': 'Message checklist updated successfully'
+    })
+
+
+@app.route('/api/message/<int:message_id>/details', methods=['GET'])
+def get_message_details_api(message_id):
+    """获取单个消息的详细信息"""
+    conn = database.get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT m.*, ch.user_id, ch.title as session_title, "
+            "ui.first_name, ui.last_name, ui.email "
+            "FROM messages m "
+            "JOIN chat_history ch ON m.session_id = ch.session_id "
+            "JOIN user_info ui ON ch.user_id = ui.user_id "
+            "WHERE m.message_id = %s",
+            (message_id,)
+        )
+        message = cursor.fetchone()
+        
+        if not message:
+            return jsonify({'success': False, 'error': 'Message not found'}), 404
+        
+        # 处理布尔值转换和JSON解析
+        message['need_human'] = bool(message['need_human'])
+        if message['checklist']:
+            try:
+                message['checklist'] = json.loads(message['checklist'])
+            except json.JSONDecodeError:
+                message['checklist'] = None
+        
+        if message['reference']:
+            try:
+                message['reference'] = json.loads(message['reference'])
+            except json.JSONDecodeError:
+                pass  # 保持原始字符串
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+        
+    except Exception as err:
+        return jsonify({'success': False, 'error': str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 
 if __name__ == '__main__':

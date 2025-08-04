@@ -113,8 +113,14 @@ CREATE TABLE `messages` (
   `role` enum('user','ai') COLLATE utf8mb4_unicode_ci NOT NULL,
   `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  `reference` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '消息关联的文献、参考资料或外部链接',
+  `checklist` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '本消息关联的待办事项、检查项(JSON格式)',
+  `mode` enum('general','rag','checklist','human_ticket') COLLATE utf8mb4_unicode_ci DEFAULT 'general' COMMENT '消息所属模式或处理流程',
+  `need_human` tinyint(1) DEFAULT '0' COMMENT '是否需要人工介入/审核(0=不需要,1=需要)',
   PRIMARY KEY (`message_id`),
   KEY `session_id` (`session_id`),
+  KEY `mode` (`mode`),
+  KEY `need_human` (`need_human`),
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `chat_history` (`session_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
