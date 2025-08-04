@@ -6,7 +6,6 @@ import FileManagement from "../components/FileManagement";
 
 function AdminLanding() {
   const fileInputRef = useRef();
-  const fileManagementRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
   const [userEngagementData, setUserEngagementData] = useState([]);
@@ -45,11 +44,7 @@ function AdminLanding() {
       });
       const data = await res.json();
       if (data.success) {
-        setUploadMsg("Upload successful: " + data.pdf);
-        // 刷新PDF列表
-        if (fileManagementRef.current && fileManagementRef.current.fetchPdfs) {
-          fileManagementRef.current.fetchPdfs();
-        }
+        setUploadMsg("Upload successful: " + data.filename);
       } else {
         setUploadMsg("Upload failed: " + (data.message || "Unknown error"));
       }
@@ -131,7 +126,7 @@ function AdminLanding() {
             
             {/* 文件管理区域 */}
             <Box sx={{ flex: 1, overflow: 'hidden' }}>
-              <FileManagement ref={fileManagementRef} />
+              <FileManagement />
             </Box>
           </Paper>
         </Stack>
