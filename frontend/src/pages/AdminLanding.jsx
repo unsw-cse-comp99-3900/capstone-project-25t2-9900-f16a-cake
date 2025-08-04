@@ -3,10 +3,10 @@ import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormContr
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Auth } from "../utils/Auth";
 import FileManagement from "../components/FileManagement";
+import UploadDialog from "../components/UploadDialog";
 
 function AdminLanding() {
-  const fileInputRef = useRef();
-  const [uploading, setUploading] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
   const [userEngagementData, setUserEngagementData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,30 +30,13 @@ function AdminLanding() {
     fetchUserEngagement();
   }, []);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    setUploadMsg("");
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUploadMsg("Upload successful: " + data.filename);
-      } else {
-        setUploadMsg("Upload failed: " + (data.message || "Unknown error"));
-      }
-    } catch {
-      setUploadMsg("Upload failed: Network error");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  const handleUploadSuccess = (data) => {
+    setUploadMsg("Upload successful: " + data.title);
+    // 可以在这里刷新文件列表
+  };
+
+  const handleOpenUploadDialog = () => {
+    setUploadDialogOpen(true);
   };
 
   return (
@@ -87,8 +70,7 @@ function AdminLanding() {
             <Box sx={{ mb: 3 }}>
               <Button 
                 variant="contained" 
-                component="label" 
-                disabled={uploading} 
+                onClick={handleOpenUploadDialog}
                 sx={{ 
                   py: 1.5, 
                   px: 2, 
@@ -96,14 +78,7 @@ function AdminLanding() {
                   mb: 2
                 }}
               >
-                {uploading ? "Uploading..." : "Upload File"}
-                <input
-                  type="file"
-                  hidden
-                  accept="application/pdf"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                />
+                Upload File
               </Button>
               
               <Typography variant="body2" sx={{ 
@@ -259,6 +234,13 @@ function AdminLanding() {
           </Paper>
         </Stack>
       </Stack>
+      
+      {/* Upload Dialog */}
+      <UploadDialog
+        open={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onUpload={handleUploadSuccess}
+      />
     </Box>
   );
 }

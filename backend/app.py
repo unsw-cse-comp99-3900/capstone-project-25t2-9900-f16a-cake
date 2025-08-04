@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from flask_mail import Mail, Message
 import database  # database.py
-from search import extract_keywords, multi_hot_encode, calculate_similarity, DATABASE
+from search import extract_keywords, multi_hot_encode, calculate_similarity
 import requests
 # v 生成 token 的库 v
 import jwt
@@ -94,6 +94,13 @@ def login():
         db_role = "admin" if user.get("is_admin") == 1 else "staff"
         if db_role != role:
             return jsonify({"success": False, "message": "Invalid role"}), 400
+        
+        # 记录用户登录（排除admin用户）
+        if db_role != "admin":
+            ip_address = request.remote_addr
+            user_agent = request.headers.get('User-Agent')
+            database.record_user_login(username, ip_address, user_agent)
+        
         user_obj = {
             "id": user["user_id"],
             "username": user["user_id"],
@@ -163,17 +170,28 @@ def search_api():
     data = request.get_json()
     query = data.get("query", "").strip()
 
+    # 从数据库获取文档
+    documents, error = database.get_pdf_documents_for_search()
+    if error:
+        return jsonify({"success": False, "error": error}), 500
+
     extracted = extract_keywords(query)
     query_encoded = multi_hot_encode(extracted)
 
     results = []
-    for item in DATABASE:
-        score = calculate_similarity(query_encoded, item["keywords_encoded"], query, item["title"])
+    for doc in documents:
+        # 解析JSON格式的keywords_encoded
+        try:
+            keywords_encoded = json.loads(doc["keywords_encoded"])
+        except:
+            continue
+            
+        score = calculate_similarity(query_encoded, keywords_encoded, query, doc["title"])
         results.append({
-            "title": item["title"],
-            "pdf_path": item.get("pdf_path", ""),
+            "title": doc["title"],
+            "pdf_path": doc.get("pdf_path", ""),
             "score": score,
-            "year": item.get("year", "")
+            "year": doc.get("year", "")
         })
 
     filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
@@ -515,20 +533,37 @@ def upload_and_generate_rag():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': 'Only PDF files are allowed'}), 400
 
-    # 2. 保存 PDF
+    # 2. 获取表单数据
+    title = request.form.get('title', '').strip()
+    keywords = request.form.get('keywords', '').strip()
+    year = request.form.get('year', '').strip()
+    
+    if not title:
+        return jsonify({'success': False, 'message': 'Title is required'}), 400
+    if not keywords:
+        return jsonify({'success': False, 'message': 'Keywords are required'}), 400
+
+    # 3. 保存 PDF
     filename = secure_filename(file.filename)
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(pdf_path)
+    file_size = os.path.getsize(pdf_path)
 
-    # 3. 解析 PDF，生成问答对
+    # 4. 生成关键词编码
+    from search import multi_hot_encode
+    keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+    keywords_encoded = multi_hot_encode(keyword_list)
+    keywords_encoded_json = json.dumps(keywords_encoded)
+
+    # 5. 解析 PDF，生成问答对
     docs = build_docs_from_pdf(
         pdf_path=pdf_path,
-        title=filename,
+        title=title,
         url=None,
         last_edited=None
     )
 
-    # 4. 准备 texts 并生成 embeddings
+    # 6. 准备 texts 并生成 embeddings
     texts = [d['question'] + ' ' + d['answer'] for d in docs]
     if not texts:
         return jsonify({
@@ -545,12 +580,12 @@ def upload_and_generate_rag():
     if emb_array.ndim == 1:
         emb_array = np.vstack(emb_array)
 
-    # 5. 构建 FAISS 索引
+    # 7. 构建 FAISS 索引
     dim = emb_array.shape[1]
     index = faiss.IndexFlatL2(dim)
     index.add(emb_array)
 
-    # 6. 写入磁盘
+    # 8. 写入磁盘
     base = os.path.splitext(filename)[0]
     index_file = os.path.join(RAG_FOLDER, f"{base}.index")
     faiss.write_index(index, index_file)
@@ -564,11 +599,35 @@ def upload_and_generate_rag():
     with open(ids_file, 'wb') as f:
         pickle.dump(ids, f)
 
-    # 7. 返回结果
+    # 9. 保存到数据库
+    uploader_id = None  # 可以从token中获取，暂时设为None
+    success, error = database.save_pdf_document(
+        title, keywords, keywords_encoded_json, filename, year, uploader_id, file_size
+    )
+    
+    if not success:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to save document metadata: {error}'
+        }), 500
+
+    # 10. 更新关键词数据库并重新编码所有文档
+    keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+    success, msg = database.add_keywords_to_db(keyword_list)
+    if not success:
+        print(f"Warning: Failed to add keywords to database: {msg}")
+    
+    # 重新编码所有文档
+    success, msg = database.update_all_documents_encoding()
+    if not success:
+        print(f"Warning: Failed to update document encodings: {msg}")
+
+    # 11. 返回结果
     return jsonify({
         'success': True,
         'message': 'Upload succeeded, new RAG files have been generated',
         'pdf': filename,
+        'title': title,
         'index_path': index_file,
         'docs_path': docs_file,
         'entries': len(docs)
@@ -579,34 +638,83 @@ def upload_and_generate_rag():
 # 获取所有pdf文件
 @app.route('/api/admin/getpdfs', methods=['GET'])
 def list_pdfs():
-    pdf_dir = app.config['UPLOAD_FOLDER']
+    documents, error = database.get_all_pdf_documents()
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
     pdfs = []
-    for fname in os.listdir(pdf_dir):
-        if fname.lower().endswith('.pdf'):
-            fpath = os.path.join(pdf_dir, fname)
-            stat = os.stat(fpath)
-            pdfs.append({
-                'filename': fname,
-                'size': stat.st_size,
-                'upload_time': datetime.fromtimestamp(stat.st_ctime).isoformat()
-            })
+    for doc in documents:
+        pdfs.append({
+            'id': doc['id'],
+            'filename': doc['pdf_path'],
+            'title': doc['title'],
+            'keywords': doc['keywords'],
+            'year': doc['year'],
+            'size': doc['file_size'],
+            'upload_time': doc['upload_time'].isoformat() if doc['upload_time'] else None
+        })
     return jsonify({'success': True, 'pdfs': pdfs})
 
 
 # 删除指定pdf文件
-@app.route('/api/admin/deletepdf/<filename>', methods=['DELETE'])
-def delete_pdf(filename):
-    if not filename or not filename.lower().endswith('.pdf'):
-        return jsonify({'success': False, 'error': 'Invalid filename'}), 400
+@app.route('/api/admin/deletepdf/<int:document_id>', methods=['DELETE'])
+def delete_pdf(document_id):
+    # 1. 从数据库获取文档信息
+    documents, error = database.get_all_pdf_documents()
+    if error:
+        return jsonify({'success': False, 'error': error}), 500
+    
+    target_doc = None
+    for doc in documents:
+        if doc['id'] == document_id:
+            target_doc = doc
+            break
+    
+    if not target_doc:
+        return jsonify({'success': False, 'error': 'Document not found'}), 404
+    
+    # 2. 删除物理PDF文件
     pdf_dir = app.config['UPLOAD_FOLDER']
-    file_path = os.path.join(pdf_dir, filename)
-    if not os.path.isfile(file_path):
-        return jsonify({'success': False, 'error': 'File not found'}), 404
-    try:
-        os.remove(file_path)
-        return jsonify({'success': True, 'message': 'PDF deleted successfully'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    file_path = os.path.join(pdf_dir, target_doc['pdf_path'])
+    if os.path.isfile(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'Failed to delete PDF file: {str(e)}'}), 500
+    
+    # 3. 删除相关的RAG文件
+    base = os.path.splitext(target_doc['pdf_path'])[0]
+    rag_files = [
+        os.path.join(RAG_FOLDER, f"{base}.index"),
+        os.path.join(RAG_FOLDER, f"{base}_docs.json"),
+        os.path.join(RAG_FOLDER, f"{base}_ids.pkl")
+    ]
+    
+    for rag_file in rag_files:
+        if os.path.isfile(rag_file):
+            try:
+                os.remove(rag_file)
+                print(f"Deleted RAG file: {rag_file}")
+            except Exception as e:
+                print(f"Warning: Failed to delete RAG file {rag_file}: {str(e)}")
+    
+    # 4. 删除数据库记录
+    success, error = database.delete_pdf_document(document_id)
+    if not success:
+        return jsonify({'success': False, 'error': f'Failed to delete database record: {error}'}), 500
+    
+    # 5. 更新关键词数据库并重新编码所有文档
+    # 重新构建关键词数据库（从剩余文档中提取）
+    success, msg = database.rebuild_keywords_database()
+    if not success:
+        print(f"Warning: Failed to rebuild keywords database: {msg}")
+    
+    # 重新编码所有文档
+    success, msg = database.update_all_documents_encoding()
+    if not success:
+        print(f"Warning: Failed to update document encodings: {msg}")
+    
+    return jsonify({'success': True, 'message': 'PDF and related RAG files deleted successfully'})
 
 
 # AI chat 的 general 模式
@@ -899,20 +1007,17 @@ def delete_session():
 
 @app.route('/api/user-engagement', methods=['GET'])
 def get_user_engagement():
-    # Mock data for user engagement over the last 7 days
-    mock_data = [
-        {"date": "2024-01-15", "active_users": 12},
-        {"date": "2024-01-16", "active_users": 18},
-        {"date": "2024-01-17", "active_users": 15},
-        {"date": "2024-01-18", "active_users": 22},
-        {"date": "2024-01-19", "active_users": 19},
-        {"date": "2024-01-20", "active_users": 25},
-        {"date": "2024-01-21", "active_users": 21}
-    ]
+    # 获取真实的用户登录统计数据
+    stats, error = database.get_daily_login_stats(7)
+    if error:
+        return jsonify({
+            "success": False,
+            "message": f"Failed to get user engagement data: {error}"
+        }), 500
     
     return jsonify({
         "success": True,
-        "data": mock_data
+        "data": stats
     })
 
 

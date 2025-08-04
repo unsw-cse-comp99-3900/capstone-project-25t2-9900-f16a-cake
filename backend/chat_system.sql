@@ -129,6 +129,83 @@ LOCK TABLES `messages` WRITE;
 UNLOCK TABLES;
 
 
+--
+-- Table structure for table `user_login_logs`
+--
+
+DROP TABLE IF EXISTS `user_login_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user_login_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `login_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `login_time` (`login_time`),
+  CONSTRAINT `user_login_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user_info` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `user_login_logs`
+--
+
+LOCK TABLES `user_login_logs` WRITE;
+/*!40000 ALTER TABLE `user_login_logs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `user_login_logs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+--
+-- Table structure for table `pdf_documents`
+--
+
+DROP TABLE IF EXISTS `pdf_documents`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `pdf_documents` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `keywords` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `keywords_encoded` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pdf_path` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `year` varchar(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `upload_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `file_size` bigint DEFAULT NULL,
+  `uploader_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `uploader_id` (`uploader_id`),
+  CONSTRAINT `pdf_documents_ibfk_1` FOREIGN KEY (`uploader_id`) REFERENCES `user_info` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pdf_documents`
+--
+
+LOCK TABLES `pdf_documents` WRITE;
+/*!40000 ALTER TABLE `pdf_documents` DISABLE KEYS */;
+/*!40000 ALTER TABLE `pdf_documents` ENABLE KEYS */;
+UNLOCK TABLES;
+
+-- 创建关键词表
+CREATE TABLE `all_keywords` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `keyword` (`keyword`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 插入初始关键词（从现有文档中提取）
+INSERT INTO `all_keywords` (`keyword`) VALUES 
+('home'), ('directory'), ('homedir'), ('files'), ('fileserver'), ('sftp'), ('upload'), ('download'),
+('account'), ('group'), ('class'), ('expiring'), ('expiry'),
+('world');
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

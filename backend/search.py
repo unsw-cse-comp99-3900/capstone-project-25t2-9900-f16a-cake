@@ -1,45 +1,21 @@
 import re
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+import database
 
-ALL_KEYWORDS = [
-    "home", "directory", "homedir", "files", "fileserver", "sftp", "upload", "download", 
-    "account", "group", "class", "expiring", "expiry", "disabled", "permitted"
-]
-
-DATABASE = [
-    {
-        "id": 1,
-        "title": "Accessing Your Files",
-        "keywords": ["home", "directory", "homedir", "files", "fileserver", "sftp", "upload", "download"],
-        "keywords_encoded": [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-        "pdf_path": "Accessing Your Files - CSE taggi.pdf",
-        "year": "2023"
-    },
-    {
-        "id": 2,
-        "title": "Account Classes and Groups",
-        "keywords": ["account", "group", "class", "expiring", "expiry"],
-        "keywords_encoded": [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0],
-        "pdf_path": "Account Classes and Groups - CSE taggi.pdf",
-        "year": "2022"
-    },
-    {
-        "id": 3,
-        "title": "Account Disabled",
-        "keywords": ["account", "disabled", "permitted"],
-        "keywords_encoded": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1],
-        "pdf_path": "Account Disabled - CSE taggi.pdf",
-        "year": "2023"
-    }
-]
-
-
+# 从数据库获取关键词列表
+def get_all_keywords():
+    """从数据库获取所有关键词"""
+    keywords, error = database.get_all_keywords_from_db()
+    if error:
+        return []
+    return keywords
 
 def extract_keywords(text):
     keywords = []
     text_lower = text.lower()
-    for keyword in ALL_KEYWORDS:
+    all_keywords = get_all_keywords()
+    for keyword in all_keywords:
         if keyword.lower() in text_lower:
             keywords.append(keyword)
     if not keywords:
@@ -48,12 +24,22 @@ def extract_keywords(text):
     return keywords
 
 def multi_hot_encode(keywords):
-    encoded = [0] * len(ALL_KEYWORDS)
+    all_keywords = get_all_keywords()
+    encoded = [0] * len(all_keywords)
     for keyword in keywords:
-        if keyword in ALL_KEYWORDS:
-            idx = ALL_KEYWORDS.index(keyword)
+        if keyword in all_keywords:
+            idx = all_keywords.index(keyword)
             encoded[idx] = 1
     return encoded
+
+def normalize_encoded_vector(encoded_vector, target_length):
+    """将编码向量标准化到目标长度"""
+    if len(encoded_vector) == target_length:
+        return encoded_vector
+    elif len(encoded_vector) > target_length:
+        return encoded_vector[:target_length]
+    else:
+        return encoded_vector + [0] * (target_length - len(encoded_vector))
 
 def jaccard_similarity(set1, set2):
     intersection = len(set1 & set2)
@@ -61,6 +47,11 @@ def jaccard_similarity(set1, set2):
     return intersection / union if union else 0
 
 def calculate_similarity(query_encoded, db_encoded, query_text, db_title):
+    # 确保两个编码向量长度一致
+    max_length = max(len(query_encoded), len(db_encoded))
+    query_encoded = normalize_encoded_vector(query_encoded, max_length)
+    db_encoded = normalize_encoded_vector(db_encoded, max_length)
+    
     # Keyword similarity
     q_set = {i for i, v in enumerate(query_encoded) if v}
     d_set = {i for i, v in enumerate(db_encoded) if v}

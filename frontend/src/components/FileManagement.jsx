@@ -31,11 +31,11 @@ function FileManagement() {
     fetchPdfs();
   }, []);
 
-  const handleDelete = async (filename) => {
+  const handleDelete = async (documentId) => {
     setDeleteLoading(true);
     setDeleteError("");
     try {
-      const res = await fetch(`/api/admin/deletepdf/${encodeURIComponent(filename)}`, {
+      const res = await fetch(`/api/admin/deletepdf/${documentId}`, {
         method: "DELETE"
       });
       const data = await res.json();
@@ -64,11 +64,19 @@ function FileManagement() {
       ) : (
         <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
           {pdfs.map(pdf => (
-            <Box key={pdf.filename} sx={{ display: 'flex', alignItems: 'center', mb: 1, borderBottom: '1px solid #eee', pb: 1 }}>
-              <Typography variant="body2" sx={{ flex: 1, fontSize: 12 }}>{pdf.filename}</Typography>
+            <Box key={pdf.id} sx={{ display: 'flex', alignItems: 'center', mb: 1, borderBottom: '1px solid #eee', pb: 1 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ fontSize: 12, fontWeight: 'bold' }}>{pdf.title}</Typography>
+                <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>{pdf.filename}</Typography>
+                {pdf.keywords && (
+                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', display: 'block' }}>
+                    Keywords: {pdf.keywords}
+                  </Typography>
+                )}
+              </Box>
               <Typography sx={{ width: 80, mr: 1 }} variant="caption">{(pdf.size/1024).toFixed(1)} KB</Typography>
               <Typography sx={{ width: 120, mr: 1 }} variant="caption">{new Date(pdf.upload_time).toLocaleDateString()}</Typography>
-              <Button variant="outlined" color="error" size="small" onClick={() => setDeleteTarget(pdf.filename)}>Delete</Button>
+              <Button variant="outlined" color="error" size="small" onClick={() => setDeleteTarget(pdf.id)}>Delete</Button>
             </Box>
           ))}
         </Box>
@@ -77,7 +85,7 @@ function FileManagement() {
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Confirm deletion</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure to delete <b>{deleteTarget}</b> ？This action cannot be recovered.</Typography>
+          <Typography>Are you sure to delete this document? This action cannot be recovered.</Typography>
           {deleteError && <Typography color="error">{deleteError}</Typography>}
         </DialogContent>
         <DialogActions>
