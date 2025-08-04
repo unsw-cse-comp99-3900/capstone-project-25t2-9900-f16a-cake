@@ -19,6 +19,7 @@ import {
   List as MUIList,
   ListItem as MUIListItem,
   ListItemText as MUIListItemText,
+  Stack,
 } from "@mui/material";
 import {
   Send as SendIcon,
@@ -167,6 +168,8 @@ const AIchat = () => {
         const data = await resp.json();
         let aiText = data.answer || (data.error ? `error: ${data.error}` : "AI not responding");
         let aiReference = undefined;
+        let needHuman = data.need_human || false;
+        
         // checklist 模式特殊处理
         if (mode === "checklist" && data.checklist) {
           aiText += "\n " + data.checklist.map((item, idx) => `${idx + 1}. ${item.item}`).join("\n");
@@ -175,12 +178,14 @@ const AIchat = () => {
         if (mode === "rag" && data.reference && Object.keys(data.reference).length > 0) {
           aiReference = data.reference;
         }
+        
         const aiResponse = {
           id: messages.length + 2,
           text: aiText,
           sender: "ai",
           timestamp: new Date(),
-          reference: aiReference
+          reference: aiReference,
+          needHuman: needHuman
         };
         setMessages((prev) => [...prev, aiResponse]);
       } catch {
@@ -334,6 +339,11 @@ const AIchat = () => {
     } else {
       alert(data.error || "Failed to update title");
     }
+  };
+
+  const handleHumanHelp = () => {
+    // 打开人工帮助页面
+    window.open('/human-help', '_blank');
   };
 
   const handleDeleteSession = async (session_id) => {
@@ -626,14 +636,52 @@ const AIchat = () => {
                       <Typography variant="body2">{message.text}</Typography>
                     )}
                     {/* rag 模式下显示 reference, 如果是 AI 发的, 并且有 reference 字段, 显示 reference */}
-                    {message.sender === "ai" && message.reference && (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="caption" sx={{ color: 'grey.700', fontWeight: 500 }}>Sources:</Typography>
-                        {Object.entries(message.reference).map(([title, url]) => (
-                          <Box key={title} sx={{ fontSize: 12, color: 'grey.700', wordBreak: 'break-all' }}>
-                            <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>
-                          </Box>
-                        ))}
+                    {message.sender === "ai" && message.reference && Object.keys(message.reference).length > 0 && !message.needHuman && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e9ecef' }}>
+                        <Typography variant="caption" sx={{ color: 'grey.700', fontWeight: 600, display: 'block', mb: 1 }}>
+                          Related Documents:
+                        </Typography>
+                        <Stack spacing={1}>
+                          {Object.entries(message.reference).map(([title, url]) => (
+                            <Box key={title} sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center',
+                              p: 1,
+                              bgcolor: 'white',
+                              borderRadius: 1,
+                              border: '1px solid #dee2e6',
+                              '&:hover': { bgcolor: '#f8f9fa' }
+                            }}>
+                              <Typography variant="body2" sx={{ 
+                                color: '#1976d2', 
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                '&:hover': { color: '#1565c0' }
+                              }} onClick={() => window.open(url, '_blank')}>
+                                {title}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
+                    
+                    {/* 需要人工帮助时显示帮助按钮 */}
+                    {message.sender === "ai" && message.needHuman && (
+                      <Box sx={{ mt: 1, p: 1 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => handleHumanHelp()}
+                          sx={{ 
+                            bgcolor: '#FFD600', 
+                            color: 'black',
+                            '&:hover': { bgcolor: '#FFE44D' }
+                          }}
+                        >
+                          Ask for Human Help
+                        </Button>
                       </Box>
                     )}
                     <Typography

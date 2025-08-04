@@ -17,6 +17,7 @@ import AdminLanding from "./pages/AdminLanding";
 import RequireAdmin from "./components/RequireAdmin";
 import RequireStaff from "./components/RequireStaff";
 import Feedback from "./pages/Feedback";
+import HumanHelp from "./pages/HumanHelp";
 
 function AppContent() {
   const location = useLocation();
@@ -82,6 +83,7 @@ function AppContent() {
               </RequireStaff>
             </RequireAuth>
           } />
+          <Route path="/human-help" element={<HumanHelp />} />
         </Routes>
       </Box>
       

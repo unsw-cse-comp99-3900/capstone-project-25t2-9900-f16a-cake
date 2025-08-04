@@ -1146,18 +1146,9 @@ Timestamp: {feedback_data['timestamp']}
             "message": f"Server error: {str(e)}"
         }), 500
 
+# mock ai chat api for frontend development
 
-@app.route('/api/aichat/mock/general', methods=['POST'])
-def aichat_general_mock():
-    data = request.get_json() or {}
-    question = data.get('question', '').strip()
-    session_id = data.get('session_id')
-    if not question or not session_id:
-        return jsonify({"error": "question and session_id cannot be empty"}), 400
-    # 保存用户消息到数据库
-    database.add_message_db(session_id, 'user', question)
-
-    ai_reply = """---
+mockmd =     ai_reply = """---
 __Advertisement :)__
 
 - __[pica](https://nodeca.github.io/pica/demo/)__ - high quality and fast image
@@ -1404,10 +1395,83 @@ It converts "HTML", but keep intact partial entries like "xxxHTMLyyy" and so on.
 :::
 """
 
+@app.route('/api/aichat/mock/general', methods=['POST'])
+def aichat_general_mock():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    session_id = data.get('session_id')
+    if not question or not session_id:
+        return jsonify({"error": "question and session_id cannot be empty"}), 400
+    # 保存用户消息到数据库
+    database.add_message_db(session_id, 'user', question)
+
+    ai_reply = mockmd
+
     # 保存 AI 回复到数据库
     database.add_message_db(session_id, 'ai', ai_reply)
-    return jsonify({"answer": ai_reply})
+    return jsonify({
+        "answer": ai_reply,
+        "reference": [],
+        "checklist": [],
+        "mode": "general",
+        "need_human": False
+    })
 
+
+@app.route('/api/aichat/mock/rag', methods=['POST'])
+def aichat_rag_mock():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    session_id = data.get('session_id')
+    if not question or not session_id:
+        return jsonify({"error": "question and session_id cannot be empty"}), 400
+    database.add_message_db(session_id, 'user', question)
+
+    ai_reply = "There is no reference for this RAG question.  \n\nYou can press the button below to ask for human help."
+
+    database.add_message_db(session_id, 'ai', ai_reply)
+
+    need = False
+
+    if need:
+        return jsonify({
+            "answer": ai_reply,
+            "reference": [],
+            "checklist": [],
+            "mode": "rag",
+            "need_human": True
+        })
+    else:
+        return jsonify({
+            "answer": mockmd,
+            "reference": {
+                "Account Disabled - CSE taggi.pdf": "http://localhost:8000/pdfs/Account_Disabled_-_CSE_taggi.pdf",
+                "Account expiry - CSE taggi.pdf": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
+            },
+            "checklist": [],
+            "mode": "rag",
+            "need_human": False
+        })
+
+@app.route('/api/aichat/mock/checklist', methods=['POST'])
+def aichat_checklist_mock():
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    session_id = data.get('session_id')
+    if not question or not session_id:
+        return jsonify({"error": "question and session_id cannot be empty"}), 400
+    database.add_message_db(session_id, 'user', question)
+
+    ai_reply = "There is no reference for this checklist question.  \n\nYou can press the button below to ask for human help."
+
+    database.add_message_db(session_id, 'ai', ai_reply)
+    return jsonify({
+        "answer": ai_reply,
+        "reference": [],
+        "checklist": [],
+        "mode": "checklist",
+        "need_human": True
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
