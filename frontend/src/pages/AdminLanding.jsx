@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormControlLabel, Stack } from "@mui/material";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Auth } from "../utils/Auth";
@@ -10,6 +10,7 @@ function AdminLanding() {
   const [uploadMsg, setUploadMsg] = useState("");
   const [userEngagementData, setUserEngagementData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const fileManagementRef = useRef();
 
   // 获取用户活跃度数据
   useEffect(() => {
@@ -32,7 +33,10 @@ function AdminLanding() {
 
   const handleUploadSuccess = (data) => {
     setUploadMsg("Upload successful: " + data.title);
-    // 可以在这里刷新文件列表
+    // 刷新文件列表
+    if (fileManagementRef.current) {
+      fileManagementRef.current.refreshPdfs();
+    }
   };
 
   const handleOpenUploadDialog = () => {
@@ -101,7 +105,7 @@ function AdminLanding() {
             
             {/* 文件管理区域 */}
             <Box sx={{ flex: 1, overflow: 'hidden' }}>
-              <FileManagement />
+              <FileManagement ref={fileManagementRef} />
             </Box>
           </Paper>
         </Stack>

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': '160920wzx@jw', # 需要是自己数据库的密码
+    'password': '', # 需要是自己数据库的密码
     'database': 'chat_system'
 }
 
