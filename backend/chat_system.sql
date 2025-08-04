@@ -212,6 +212,42 @@ INSERT INTO `all_keywords` (`keyword`) VALUES
 ('account'), ('group'), ('class'), ('expiring'), ('expiry'),
 ('world');
 
+--
+-- Table structure for table `tickets`
+--
+
+DROP TABLE IF EXISTS `tickets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tickets` (
+  `ticket_id` int NOT NULL AUTO_INCREMENT,
+  `session_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `staff_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `staff_email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `request_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_finished` tinyint(1) DEFAULT '0',
+  `finished_time` datetime DEFAULT NULL,
+  `admin_notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '管理员处理备注',
+  PRIMARY KEY (`ticket_id`),
+  KEY `session_id` (`session_id`),
+  KEY `staff_id` (`staff_id`),
+  KEY `is_finished` (`is_finished`),
+  KEY `request_time` (`request_time`),
+  CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `chat_history` (`session_id`),
+  CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`staff_id`) REFERENCES `user_info` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='转人工请求工单表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `tickets`
+--
+
+LOCK TABLES `tickets` WRITE;
+/*!40000 ALTER TABLE `tickets` DISABLE KEYS */;
+/*!40000 ALTER TABLE `tickets` ENABLE KEYS */;
+UNLOCK TABLES;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

@@ -578,3 +578,247 @@ def get_message_stats_by_mode():
     finally:
         cursor.close()
         conn.close()
+
+
+# ==================== 转人工工单管理相关函数 ====================
+
+def save_ticket(session_id, staff_id, staff_email, content):
+    """
+    保存转人工请求工单
+    
+    Args:
+        session_id: 会话ID
+        staff_id: 员工ID
+        staff_email: 员工邮箱
+        content: 请求内容
+    
+    Returns:
+        tuple: (ticket_id, error) - 成功返回工单ID，失败返回错误信息
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO tickets (session_id, staff_id, staff_email, content) VALUES (%s, %s, %s, %s)",
+            (session_id, staff_id, staff_email, content)
+        )
+        conn.commit()
+        ticket_id = cursor.lastrowid
+        return ticket_id, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_unfinished_tickets(limit=100):
+    """
+    获取所有未处理的工单
+    
+    Args:
+        limit: 返回数量限制
+        
+    Returns:
+        tuple: (tickets_list, error)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT t.*, ui.first_name, ui.last_name, ui.department, ui.role,
+                   ch.title as session_title
+            FROM tickets t
+            JOIN user_info ui ON t.staff_id = ui.user_id
+            JOIN chat_history ch ON t.session_id = ch.session_id
+            WHERE t.is_finished = 0
+            ORDER BY t.request_time DESC
+            LIMIT %s
+            """,
+            (limit,)
+        )
+        tickets = cursor.fetchall()
+        
+        # 处理布尔值转换
+        for ticket in tickets:
+            ticket['is_finished'] = bool(ticket['is_finished'])
+            
+        return tickets, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_all_tickets(limit=500):
+    """
+    获取所有工单（包括已处理和未处理）
+    
+    Args:
+        limit: 返回数量限制
+        
+    Returns:
+        tuple: (tickets_list, error)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT t.*, ui.first_name, ui.last_name, ui.department, ui.role,
+                   ch.title as session_title
+            FROM tickets t
+            JOIN user_info ui ON t.staff_id = ui.user_id
+            JOIN chat_history ch ON t.session_id = ch.session_id
+            ORDER BY t.request_time DESC
+            LIMIT %s
+            """,
+            (limit,)
+        )
+        tickets = cursor.fetchall()
+        
+        # 处理布尔值转换
+        for ticket in tickets:
+            ticket['is_finished'] = bool(ticket['is_finished'])
+            
+        return tickets, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def finish_ticket(ticket_id, admin_notes=None):
+    """
+    完成工单处理
+    
+    Args:
+        ticket_id: 工单ID
+        admin_notes: 管理员处理备注（可选）
+        
+    Returns:
+        tuple: (success, error)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE tickets SET is_finished = 1, finished_time = NOW(), admin_notes = %s WHERE ticket_id = %s",
+            (admin_notes, ticket_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0, None
+    except mysql.connector.Error as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_ticket_by_id(ticket_id):
+    """
+    根据ID获取单个工单详情
+    
+    Args:
+        ticket_id: 工单ID
+        
+    Returns:
+        tuple: (ticket_info, error)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT t.*, ui.first_name, ui.last_name, ui.department, ui.role, ui.email,
+                   ch.title as session_title
+            FROM tickets t
+            JOIN user_info ui ON t.staff_id = ui.user_id
+            JOIN chat_history ch ON t.session_id = ch.session_id
+            WHERE t.ticket_id = %s
+            """,
+            (ticket_id,)
+        )
+        ticket = cursor.fetchone()
+        
+        if ticket:
+            # 处理布尔值转换
+            ticket['is_finished'] = bool(ticket['is_finished'])
+            
+        return ticket, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_tickets_stats():
+    """
+    获取工单统计信息
+    
+    Returns:
+        tuple: (stats, error)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT 
+                COUNT(*) as total_tickets,
+                SUM(CASE WHEN is_finished = 0 THEN 1 ELSE 0 END) as pending_tickets,
+                SUM(CASE WHEN is_finished = 1 THEN 1 ELSE 0 END) as finished_tickets,
+                COUNT(CASE WHEN request_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as recent_tickets
+            FROM tickets
+            """
+        )
+        stats = cursor.fetchone()
+        return stats, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_tickets_by_staff(staff_id, limit=50):
+    """
+    获取特定员工的工单列表
+    
+    Args:
+        staff_id: 员工ID
+        limit: 返回数量限制
+        
+    Returns:
+        tuple: (tickets_list, error)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT t.*, ch.title as session_title
+            FROM tickets t
+            JOIN chat_history ch ON t.session_id = ch.session_id
+            WHERE t.staff_id = %s
+            ORDER BY t.request_time DESC
+            LIMIT %s
+            """,
+            (staff_id, limit)
+        )
+        tickets = cursor.fetchall()
+        
+        # 处理布尔值转换
+        for ticket in tickets:
+            ticket['is_finished'] = bool(ticket['is_finished'])
+            
+        return tickets, None
+    except mysql.connector.Error as err:
+        return None, str(err)
+    finally:
+        cursor.close()
+        conn.close()

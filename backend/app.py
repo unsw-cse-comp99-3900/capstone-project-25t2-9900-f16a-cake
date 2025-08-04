@@ -1612,5 +1612,405 @@ def get_message_details_api(message_id):
         conn.close()
 
 
+# ==================== 转人工工单系统API ====================
+
+@app.route('/api/save_ticket', methods=['POST'])
+def save_ticket_api():
+    """保存转人工请求工单"""
+    # 从请求头获取token进行身份验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        staff_id = payload.get('username') or payload.get('id')
+        
+        if not staff_id:
+            return jsonify({
+                "success": False,
+                "message": "Invalid token: missing user ID"
+            }), 401
+        
+        # 从数据库获取用户详细信息
+        user = database.get_user(staff_id)
+        if not user:
+            return jsonify({
+                "success": False,
+                "message": "User not found"
+            }), 404
+        
+        data = request.get_json()
+        
+        # 验证必需字段
+        required_fields = ['session_id', 'content']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    "success": False,
+                    "message": f"Missing required field: {field}"
+                }), 400
+        
+        session_id = data.get('session_id')
+        content = data.get('content')
+        staff_email = user.get('email', '')
+        
+        # 保存工单到数据库
+        ticket_id, error = database.save_ticket(session_id, staff_id, staff_email, content)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to save ticket: {error}"
+            }), 500
+        
+        # 发送邮件通知管理员（可选）
+        try:
+            admins, err = database.get_all_admins()
+            if not err and admins:
+                admin_emails = [admin['email'] for admin in admins]
+                
+                subject = f"[HDingo] New Human Support Request - Ticket #{ticket_id}"
+                body = f"""
+New human support request received:
+
+Ticket ID: {ticket_id}
+From: {user.get('first_name', '')} {user.get('last_name', '')} ({staff_email})
+Department: {user.get('department', 'N/A')}
+Role: {user.get('role', 'N/A')}
+Session ID: {session_id}
+
+Request Content:
+{content}
+
+Please log in to the admin panel to review and process this request.
+
+---
+This email was sent automatically by HDingo system.
+Time: {datetime.now().isoformat()}
+                """.strip()
+                
+                msg = Message(
+                    subject=subject,
+                    recipients=admin_emails,
+                    body=body
+                )
+                mail.send(msg)
+                print(f"Notification email sent to {len(admin_emails)} admins for ticket #{ticket_id}")
+        except Exception as e:
+            print(f"Warning: Failed to send notification email for ticket #{ticket_id}: {str(e)}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Ticket created successfully",
+            "ticket_id": ticket_id
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/get_tickets', methods=['GET'])
+def get_tickets_api():
+    """获取工单列表"""
+    # 从请求头获取token进行管理员权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        
+        # 检查是否是管理员
+        if user_role != 'admin':
+            return jsonify({
+                "success": False,
+                "message": "Admin access required"
+            }), 403
+        
+        # 获取查询参数
+        show_all = request.args.get('all', 'false').lower() == 'true'
+        limit = request.args.get('limit', 100, type=int)
+        
+        if show_all:
+            tickets, error = database.get_all_tickets(limit)
+        else:
+            tickets, error = database.get_unfinished_tickets(limit)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get tickets: {error}"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "tickets": tickets,
+            "count": len(tickets)
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/finish_ticket', methods=['POST'])
+def finish_ticket_api():
+    """完成工单处理"""
+    # 从请求头获取token进行管理员权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        
+        # 检查是否是管理员
+        if user_role != 'admin':
+            return jsonify({
+                "success": False,
+                "message": "Admin access required"
+            }), 403
+        
+        data = request.get_json()
+        
+        # 验证必需字段
+        if not data.get('ticket_id'):
+            return jsonify({
+                "success": False,
+                "message": "Missing required field: ticket_id"
+            }), 400
+        
+        ticket_id = data.get('ticket_id')
+        admin_notes = data.get('admin_notes', '')
+        
+        # 更新工单状态
+        success, error = database.finish_ticket(ticket_id, admin_notes)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to finish ticket: {error}"
+            }), 500
+        
+        if not success:
+            return jsonify({
+                "success": False,
+                "message": "Ticket not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "message": "Ticket marked as finished successfully"
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/tickets/stats', methods=['GET'])
+def get_tickets_stats_api():
+    """获取工单统计信息"""
+    # 从请求头获取token进行管理员权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        
+        # 检查是否是管理员
+        if user_role != 'admin':
+            return jsonify({
+                "success": False,
+                "message": "Admin access required"
+            }), 403
+        
+        stats, error = database.get_tickets_stats()
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get tickets stats: {error}"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "stats": stats
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/ticket/<int:ticket_id>', methods=['GET'])
+def get_ticket_details_api(ticket_id):
+    """获取单个工单详情"""
+    # 从请求头获取token进行权限验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_role = payload.get('role')
+        user_id = payload.get('username') or payload.get('id')
+        
+        # 获取工单详情
+        ticket, error = database.get_ticket_by_id(ticket_id)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get ticket details: {error}"
+            }), 500
+        
+        if not ticket:
+            return jsonify({
+                "success": False,
+                "message": "Ticket not found"
+            }), 404
+        
+        # 权限检查：管理员可以查看所有工单，普通用户只能查看自己的工单
+        if user_role != 'admin' and ticket['staff_id'] != user_id:
+            return jsonify({
+                "success": False,
+                "message": "Access denied: You can only view your own tickets"
+            }), 403
+        
+        return jsonify({
+            "success": True,
+            "ticket": ticket
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
+@app.route('/api/my_tickets', methods=['GET'])
+def get_my_tickets_api():
+    """获取当前用户的工单列表"""
+    # 从请求头获取token进行身份验证
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            "success": False,
+            "message": "Authorization token required"
+        }), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # 解码token获取用户信息
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        staff_id = payload.get('username') or payload.get('id')
+        
+        if not staff_id:
+            return jsonify({
+                "success": False,
+                "message": "Invalid token: missing user ID"
+            }), 401
+        
+        # 获取查询参数
+        limit = request.args.get('limit', 50, type=int)
+        
+        tickets, error = database.get_tickets_by_staff(staff_id, limit)
+        
+        if error:
+            return jsonify({
+                "success": False,
+                "message": f"Failed to get tickets: {error}"
+            }), 500
+        
+        return jsonify({
+            "success": True,
+            "tickets": tickets,
+            "count": len(tickets)
+        })
+        
+    except jwt.InvalidTokenError:
+        return jsonify({
+            "success": False,
+            "message": "Invalid token"
+        }), 401
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
