@@ -2045,17 +2045,42 @@ def aichat_general_mock():
     # 保存用户消息到数据库
     database.add_message_db(session_id, 'user', question, mode='general')
 
-    ai_reply = mockmd
+    # ai 生成部分修改 这里 vvv
 
-    # 保存 AI 回复到数据库
-    database.add_message_db(session_id, 'ai', ai_reply, mode='general')
-    return jsonify({
-        "answer": ai_reply,
-        "reference": [],
-        "checklist": [],
-        "mode": "general",
-        "need_human": False
-    })
+    # 这个函数是 mock 的, 按照这里的逻辑修改上面/api/aichat/general 的逻辑, 把上下的代码复制到之前的函数里,
+    # 然后修改这个部分, 应该能直接和前端对上
+    
+    need = True
+
+    if need:
+        # 需要人工
+        ai_reply = "AI cant answer this question.  \n\nYou can press the button below to ask for human help."
+        # 回复存到数据库
+        database.add_message_db(session_id, 'ai', ai_reply, mode='general', need_human=True)
+        return jsonify({
+            "answer": ai_reply,
+            "reference": [],
+            "checklist": [],
+            "mode": "general",
+            "need_human": True
+        })
+    else:
+        # 不需要人工
+        ai_reply = mockmd
+        # 回复存到数据库
+        database.add_message_db(session_id, 'ai', ai_reply, mode='general')
+        # 返回给前端
+        return jsonify({
+            "answer": ai_reply,
+            "reference": [],
+            "checklist": [],
+            "mode": "general",
+            "need_human": False
+        })
+
+    # ai 生成部分修改 这里 ^^^
+
+    
 
 
 @app.route('/api/aichat/mock/rag', methods=['POST'])
@@ -2066,6 +2091,7 @@ def aichat_rag_mock():
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question, mode='rag')
+
     # rag 逻辑判断是否需要转人工
     need = False
 
@@ -2132,36 +2158,29 @@ def aichat_checklist_mock():
             # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
             "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
         }
+        
+        # ai 生成部分, 让 ai 生成的 checklist 存到这个变量(可能需要分割字符串等等处理之后再放到这里)
         ai_checklist = [
+            "Step 1: 登录到CSE文件服务器 (sftp.cse.unsw.edu.au)",
+            "Step 2: 使用您的CSE用户名和密码进行身份验证",
+            "Step 3: 导航到您的home directory (/home/your_username)",
+            "Step 4: 创建或选择要上传文件的目录",
+            "Step 5: 使用put命令上传文件到服务器",
+            "Step 6: 验证文件上传成功并检查文件权限"
+        ]
+        
+        # 直接转换为checklist items格式, 符合数据库的格式
+        ai_checklist_items = [
             {
-                "item": "Step 1: 登录到CSE文件服务器 (sftp.cse.unsw.edu.au)",
-                "done": False
-            },
-            {
-                "item": "Step 2: 使用您的CSE用户名和密码进行身份验证",
-                "done": False
-            },
-            {
-                "item": "Step 3: 导航到您的home directory (/home/your_username)",
-                "done": False
-            },
-            {
-                "item": "Step 4: 创建或选择要上传文件的目录",
-                "done": False
-            },
-            {
-                "item": "Step 5: 使用put命令上传文件到服务器",
-                "done": False
-            },
-            {
-                "item": "Step 6: 验证文件上传成功并检查文件权限",
+                "item": item,
                 "done": False
             }
+            for item in ai_checklist
         ]
+
         # 保存 AI 回复到数据库, 包含checklist和reference
-        # 需要将字典转换为JSON字符串
         reference_str = json.dumps(ai_reference) if ai_reference else None
-        checklist_str = json.dumps(ai_checklist) if ai_checklist else None
+        checklist_str = json.dumps(ai_checklist_items) if ai_checklist_items else None
         success, message_id, error = database.add_message_db(session_id, 'ai', ai_reply, 
                                                             reference=reference_str, 
                                                             checklist=checklist_str,
@@ -2171,10 +2190,11 @@ def aichat_checklist_mock():
         if not success:
             return jsonify({"error": f"Failed to save message: {error}"}), 500
         
+        # checklist 返回成功时还需要返回一个 message_id, 方便前端更新 checklist 状态
         return jsonify({
             "answer": ai_reply,
             "reference": ai_reference,
-            "checklist": ai_checklist,
+            "checklist": ai_checklist_items,
             "mode": "checklist",
             "need_human": False,
             "message_id": message_id
