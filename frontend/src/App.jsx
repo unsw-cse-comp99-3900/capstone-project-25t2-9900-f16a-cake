@@ -44,7 +44,7 @@ function AppContent() {
   }, [isLoggedIn, isStaff]);
 
   // 判断是否应该显示 AIchat
-  const shouldShowAIchat = isLoggedIn && !(isStaff && location.pathname === "/staff-landing" && layout === "new");
+  const shouldShowAIchat = isLoggedIn && !(isStaff && location.pathname === "/staff-landing" && layout === "new") && !(location.pathname === "/admin-landing");
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>

@@ -167,10 +167,10 @@ function UploadDialog({ open, onClose, onUpload }) {
             </Alert>
           )}
 
-          {/* Help Text */}
+          {/* Help Text
           <Typography variant="caption" color="text.secondary">
             This file will be used to generate RAG index so that AI bot can use it as knowledge base to answer staff's questions.
-          </Typography>
+          </Typography> */}
         </Box>
       </DialogContent>
       <DialogActions>
