@@ -12,6 +12,11 @@ function AdminLanding() {
   const [loading, setLoading] = useState(true);
   const fileManagementRef = useRef();
 
+  // 新增：未完成工单
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState("");
+
   // 获取用户活跃度数据
   useEffect(() => {
     const fetchUserEngagement = async () => {
@@ -29,6 +34,33 @@ function AdminLanding() {
     };
 
     fetchUserEngagement();
+  }, []);
+
+  // 获取未完成工单
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setTicketsLoading(true);
+      setTicketsError("");
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/get_tickets?all=false', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setTickets(data.tickets || []);
+        } else {
+          setTicketsError(data.message || 'Failed to fetch tickets');
+        }
+      } catch {
+        setTicketsError('Network error');
+      } finally {
+        setTicketsLoading(false);
+      }
+    };
+    fetchTickets();
   }, []);
 
   const handleUploadSuccess = (data) => {
@@ -226,14 +258,33 @@ function AdminLanding() {
             }}>
               Unanswered queries
             </Typography>
-            
             <Stack spacing={2} sx={{ flex: 1, overflow: 'auto' }}>
-              {[1,2,3,4].map(i => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', border: '1px solid #eee', borderRadius: 1, p: 1.5 }}>
-                  <Typography sx={{ flex: 1, fontSize: 14 }}>{`querie ${i}`}</Typography>
-                  <FormControlLabel control={<Checkbox />} label="Checkbox" />
-                </Box>
-              ))}
+              {ticketsLoading ? (
+                <Typography>Loading...</Typography>
+              ) : ticketsError ? (
+                <Typography color="error">{ticketsError}</Typography>
+              ) : tickets.length === 0 ? (
+                <Typography>No unanswered queries.</Typography>
+              ) : (
+                tickets.map(ticket => (
+                  <Box key={ticket.ticket_id} sx={{ display: 'flex', alignItems: 'flex-start', border: '1px solid #eee', borderRadius: 1, p: 1.5, background: '#fff' }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 'bold', fontSize: 15, mb: 0.5 }}>
+                        {ticket.first_name} {ticket.last_name}
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: '#666', mb: 0.5 }}>
+                        {ticket.department} | {ticket.role}
+                      </Typography>
+                      <Typography sx={{ fontSize: 14, color: '#222', mb: 0.5 }}>
+                        {ticket.content.length > 50 ? `${ticket.content.substring(0, 50)}...` : ticket.content}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12, color: '#999' }}>
+                        {ticket.request_time ? new Date(ticket.request_time).toLocaleString() : ''}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))
+              )}
             </Stack>
           </Paper>
         </Stack>
