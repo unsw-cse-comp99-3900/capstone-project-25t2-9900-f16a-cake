@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -11,9 +11,16 @@ import {
   Divider
 } from "@mui/material";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Auth } from "../utils/Auth";
 
 function HumanHelp() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 从 URL 参数或路由状态中获取 session_id
+  const searchParams = new URLSearchParams(location.search);
+  const sessionId = searchParams.get('session_id') || location.state?.session_id || 'human-help-' + Date.now();
+  
   const [formData, setFormData] = useState({
     description: ""
   });
@@ -33,17 +40,37 @@ function HumanHelp() {
     setError("");
 
     try {
-      // 这里暂时只是模拟提交，后续会对接后端
-      console.log("Submit human help request:", formData);
-      
-      // 模拟网络延迟
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 模拟成功响应
-      alert("Your help request has been submitted! We'll get back to you within 24 hours.");
-      navigate('/staff-landing');
-    } catch {
-      setError('Submission failed, please try again later');
+      const token = Auth.getToken();
+      if (!token) {
+        setError('Please log in to submit a help request');
+        return;
+      }
+
+      const response = await fetch('/api/save_ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          content: formData.description
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 设置localStorage标记，表示需要显示成功popup
+        localStorage.setItem('showHumanHelpSuccess', 'true');
+        // 跳转到staff-landing页面
+        navigate('/staff-landing');
+      } else {
+        setError(data.message || 'Failed to submit help request, please try again later');
+      }
+    } catch (error) {
+      console.error('Error submitting help request:', error);
+      setError('Network error, please try again later');
     } finally {
       setLoading(false);
     }
@@ -60,10 +87,10 @@ function HumanHelp() {
         {/* Back Button */}
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/staff-landing')}
           sx={{ mb: 3 }}
         >
-          Back
+          Back to Chat
         </Button>
 
         <Paper sx={{ p: { xs: 3, md: 4 } }}>

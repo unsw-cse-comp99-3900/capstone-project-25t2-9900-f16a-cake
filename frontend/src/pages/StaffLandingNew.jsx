@@ -20,7 +20,8 @@ import {
   DialogContentText,
   DialogActions,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Snackbar
 } from "@mui/material";
 import { 
   Send as SendIcon,
@@ -38,6 +39,9 @@ function StaffLandingNew() {
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
   const [sessionTitle, setSessionTitle] = useState("New Chat");
+  
+  // 成功提示状态
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   
   const [messages, setMessages] = useState([
     {
@@ -84,6 +88,24 @@ function StaffLandingNew() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 检查是否需要显示成功提示
+  useEffect(() => {
+    const shouldShowFeedbackSuccess = localStorage.getItem('showFeedbackSuccess');
+    const shouldShowHumanHelpSuccess = localStorage.getItem('showHumanHelpSuccess');
+    
+    console.log('Checking success popups:', { shouldShowFeedbackSuccess, shouldShowHumanHelpSuccess });
+    
+    if (shouldShowFeedbackSuccess === 'true') {
+      console.log('Showing feedback success popup');
+      setShowSuccessPopup(true);
+      localStorage.removeItem('showFeedbackSuccess');
+    } else if (shouldShowHumanHelpSuccess === 'true') {
+      console.log('Showing human help success popup');
+      setShowSuccessPopup(true);
+      localStorage.removeItem('showHumanHelpSuccess');
+    }
+  }, []);
 
   // 获取用户信息
   const fetchProfile = async () => {
@@ -429,8 +451,11 @@ function StaffLandingNew() {
 
   // 人工帮助
   const handleHumanHelp = () => {
-    // 打开人工帮助页面
-    navigate('/human-help');
+    // 打开人工帮助页面，传递当前的 sessionId
+    navigate('/human-help', { 
+      state: { session_id: sessionId },
+      replace: true 
+    });
   };
 
   // 处理checklist状态变化
@@ -1143,6 +1168,25 @@ function StaffLandingNew() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 成功提示 Snackbar */}
+      <Snackbar
+        open={showSuccessPopup}
+        autoHideDuration={5000}
+        onClose={() => setShowSuccessPopup(false)}
+        message="Your request has been submitted successfully! We'll get back to you soon."
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          zIndex: 9999,
+          '& .MuiSnackbarContent-root': {
+            backgroundColor: '#4caf50',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            padding: '12px 24px'
+          }
+        }}
+      />
     </Box>
   );
 }

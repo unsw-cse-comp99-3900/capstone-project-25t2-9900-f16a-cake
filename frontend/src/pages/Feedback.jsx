@@ -59,6 +59,7 @@ function Feedback() {
       if (data.success) {
         // 设置localStorage标记，表示需要显示成功popup
         localStorage.setItem('showFeedbackSuccess', 'true');
+        console.log('Feedback success - localStorage set:', localStorage.getItem('showFeedbackSuccess'));
         // 立即跳转到staff-landing页面
         navigate('/staff-landing');
       } else {
