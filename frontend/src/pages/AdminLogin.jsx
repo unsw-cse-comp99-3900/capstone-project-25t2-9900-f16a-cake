@@ -33,7 +33,7 @@ function AdminLogin() {
       onSSOLogin={handleSSOLogin}
       usernameLabel="Username"
       passwordLabel="Password"
-      loginButtonText={loading ? "登录中..." : "Login"}
+      loginButtonText={loading ? "Logging in..." : "Login"}
       ssoButtonText="Using UNSW SSO"
     />
   );

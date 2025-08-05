@@ -10,11 +10,15 @@ import {
   Typography,
   Alert
 } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import enLocale from 'date-fns/locale/en-US';
 
 function UploadDialog({ open, onClose, onUpload }) {
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
-  const [documentDate, setDocumentDate] = useState('');
+  const [documentDate, setDocumentDate] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -52,8 +56,10 @@ function UploadDialog({ open, onClose, onUpload }) {
     formData.append('file', selectedFile);
     formData.append('title', title.trim());
     formData.append('keywords', keywords.trim());
-    if (documentDate.trim()) {
-      formData.append('document_date', documentDate.trim());
+    if (documentDate) {
+      // 格式化为 yyyy-MM-dd
+      const formattedDate = documentDate instanceof Date ? documentDate.toISOString().slice(0, 10) : documentDate;
+      formData.append('document_date', formattedDate);
     }
 
     try {
@@ -71,6 +77,7 @@ function UploadDialog({ open, onClose, onUpload }) {
         setError(data.message || 'Upload failed');
       }
     } catch (err) {
+      console.error('Error uploading document:', err);
       setError('Network error occurred');
     } finally {
       setUploading(false);
@@ -80,7 +87,7 @@ function UploadDialog({ open, onClose, onUpload }) {
   const handleClose = () => {
     setTitle('');
     setKeywords('');
-    setDocumentDate('');
+    setDocumentDate(null);
     setSelectedFile(null);
     setError('');
     setUploading(false);
@@ -134,19 +141,24 @@ function UploadDialog({ open, onClose, onUpload }) {
             helperText="Enter keywords separated by commas"
           />
 
-          {/* Document Date Input */}
-          <TextField
-            label="Document Date (optional)"
-            fullWidth
-            value={documentDate}
-            onChange={(e) => setDocumentDate(e.target.value)}
-            placeholder="YYYY-MM-DD"
-            sx={{ mb: 2 }}
-            type="date"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
+          {/* Document Date Input (English DatePicker) */}
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enLocale}>
+            <DatePicker
+              label="Document Date (optional)"
+              value={documentDate}
+              onChange={(newValue) => setDocumentDate(newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                />
+              )}
+              inputFormat="yyyy-MM-dd"
+              disableFuture
+              clearable
+            />
+          </LocalizationProvider>
 
           {/* Error Display */}
           {error && (
