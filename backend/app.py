@@ -2046,11 +2046,58 @@ def aichat_general_mock():
     database.add_message_db(session_id, 'user', question, mode='general')
 
     # ai 生成部分修改 这里 vvv
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are AI assistance called 'HDingo's Al chat bot', an AI designed to help new faculty, staff, and "
+                    "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                    "Objectives:\n"
+                    "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                    "2. Cite the newest audited docs for consistency and authority.\n"
+                    "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                    "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n\n"
+                    "You must return ONLY valid JSON with two keys:\n"
+                    "  - \"answer\": string (the final answer) in markdown\n"
+                    "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                    "Do not include code fences. Do not include any additional keys."
+                )
+            },
+            {
+                "role": "user",
+                "content": f"Question: {question}\n\n"
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 4096,
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    # 这个函数是 mock 的, 按照这里的逻辑修改上面/api/aichat/general 的逻辑, 把上下的代码复制到之前的函数里,
-    # 然后修改这个部分, 应该能直接和前端对上
-    
-    need = True
+    resp = requests.post(API_URL, json=payload, headers=headers)
+    resp.raise_for_status()
+    result = resp.json()
+
+    # 4. 解析 LLM 回复
+    content = result['choices'][0]['message']['content'].strip()
+    data_json, err = try_load_json(content)
+
+    final_answer = ""
+    final_reference = {}
+    need= False
+
+    if data_json is not None:
+        final_answer = data_json.get("answer", "")
+        final_reference = data_json.get("reference", {})
+    else:
+        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        final_answer = content
+        # 如果解析失败，可能需要人工介入
+        need= True
 
     if need:
         # 需要人工
@@ -2066,7 +2113,7 @@ def aichat_general_mock():
         })
     else:
         # 不需要人工
-        ai_reply = mockmd
+        ai_reply = final_answer
         # 回复存到数据库
         database.add_message_db(session_id, 'ai', ai_reply, mode='general')
         # 返回给前端
@@ -2080,7 +2127,7 @@ def aichat_general_mock():
 
     # ai 生成部分修改 这里 ^^^
 
-    
+
 
 
 @app.route('/api/aichat/mock/rag', methods=['POST'])
@@ -2092,8 +2139,75 @@ def aichat_rag_mock():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question, mode='rag')
 
-    # rag 逻辑判断是否需要转人工
+#RAG 搜索
+    result = rag_search(question)
     need = False
+    # 如果 rag_search 返回 {}，表示没有需要的结果
+    if not result:
+        need = True
+        # 没有找到相关资料时，标记为需要人工介入
+        database.add_message_db(session_id, 'ai',
+                                "ops, I couldn't find anything, Need I turn to real human?",
+                                mode='rag',
+                                need_human=True)
+    else:
+        # 2. RAG 检索
+        knowledge, reference = result
+
+        # 3. 构造并请求 LLM
+        payload = {
+            "model": MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are AI assistance called 'HDingo's Al chat bot', an AI designed to help new faculty, staff, and "
+                        "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                        "Objectives:\n"
+                        "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                        "2. Cite the newest audited docs for consistency and authority.\n"
+                        "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                        "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n\n"
+                        "You must return ONLY valid JSON with two keys:\n"
+                        "  - \"answer\": string (the final answer)\n"
+                        "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                        "Do not include code fences. Do not include any additional keys."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"Question: {question}\n\nRelevant knowledge:\n{knowledge}"
+                }
+            ],
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        }
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        resp = requests.post(API_URL, json=payload, headers=headers)
+        resp.raise_for_status()
+        result = resp.json()
+
+        # 4. 解析 LLM 回复
+        content = result['choices'][0]['message']['content'].strip()
+        data_json, err = try_load_json(content)
+
+        final_reference = reference  # 默认使用RAG的引用
+
+
+        if data_json is not None:
+            final_answer = data_json.get("answer", "")
+            model_ref = data_json.get("reference", {})
+            if model_ref:  # 如果模型返回了引用，就用模型的
+                final_reference = model_ref
+        else:
+            # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+            final_answer = content
+            # 如果解析失败，可能需要人工介入
+            need = True
 
     if need:
         # 需要人工
@@ -2109,12 +2223,14 @@ def aichat_rag_mock():
         })
     else:
         # 不需要人工, reference 要存到数据库
-        ai_reply = "I can find the answer in the following documents."
-        ai_reference = {
-            # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
-            "Account_Disabled_-_CSE_taggi": "http://localhost:8000/pdfs/Account_Disabled_-_CSE_taggi.pdf",
-            # "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
-        }
+        ai_reply = final_answer
+        ai_reference = final_reference
+        # ai_reply = "I can find the answer in the following documents."
+        # ai_reference = {
+        #     # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
+        #     "Account_Disabled_-_CSE_taggi": "http://localhost:8000/pdfs/Account_Disabled_-_CSE_taggi.pdf",
+        #     # "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
+        # }
         # 保存 AI 回复到数据库, 还有 reference 也要存到数据库
         # 需要将字典转换为JSON字符串
         reference_str = json.dumps(ai_reference) if ai_reference else None
@@ -2126,6 +2242,69 @@ def aichat_rag_mock():
             "mode": "rag",
             "need_human": False
         })
+import re
+from typing import Any, Dict, List
+
+import re
+from typing import Any, Dict, List
+
+def checklist_to_items(text: str) -> Dict[str, Any]:
+    """
+    将形如
+      "Here's a checklist ...: step1. … step2. …"
+    或者
+      "Here's a checklist ...:\n1. …\n2. …\n..."
+    的文本解析为：
+    {
+      "answer": "...",
+      "ai_checklist": [
+         "Step 1: …",
+         "Step 2: …",
+         ...
+      ]
+    }
+    同时会去除输入中的 Markdown 格式符号。
+    """
+    # 1. 提取 answer（第一个冒号之前的内容）
+    prefix, sep, rest = text.partition(':')
+    answer = prefix.strip()
+    body = rest if sep else text  # 如果没有冒号，就全部作为 body
+
+    # 2. 首先尝试使用 stepX. 分块
+    step_chunks = re.split(r'(?=(?:step\d+)\.)', body, flags=re.IGNORECASE)
+    items: List[str] = []
+
+    for chunk in step_chunks:
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        m = re.match(r'step(\d+)\.\s*(.*)', chunk, flags=re.IGNORECASE | re.DOTALL)
+        if not m:
+            continue
+        idx = int(m.group(1))
+        desc = m.group(2).strip()
+        desc = re.sub(r'[`*_~]', '', desc)
+        items.append(f"Step {idx}: {desc}")
+
+    # 3. 如果没有 stepX.，再按数字列表（1. 2. 3.）解析
+    if not items:
+        lines = body.splitlines()
+        idx_counter = 0
+        for line in lines:
+            line = line.strip()
+            m = re.match(r'(\d+)\.\s*(.*)', line)
+            if not m:
+                continue
+            idx_counter += 1
+            desc = m.group(2).strip()
+            desc = re.sub(r'[`*_~]', '', desc)
+            items.append(f"Step {idx_counter}: {desc}")
+
+    return {
+        "answer": answer,
+        "ai_checklist": items
+    }
+
 
 @app.route('/api/aichat/mock/checklist', methods=['POST'])
 def aichat_checklist_mock():
@@ -2136,9 +2315,90 @@ def aichat_checklist_mock():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question)
 
-    # rag 逻辑判断是否需要转人工
-    need = False
+    result = rag_search(question)
 
+    need = False
+    # 如果 rag_search 返回 {}，表示没有需要的结果
+    if not result:
+        need = True
+        # 没有找到相关资料时，标记为需要人工介入
+        database.add_message_db(session_id, 'ai',
+                                "ops, I couldn't find anything, Need I turn to real human?",
+                                mode='rag',
+                                need_human=True)
+    else:
+        # 2. RAG 检索
+        knowledge, reference = result
+
+        payload = {
+            "model": MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are AI assistance called 'HDingo's AI chat bot', an AI designed to help new faculty, staff, and "
+                        "students in the School of Computer Science and Engineering (CSE) complete their onboarding tasks.\n"
+                        "Objectives:\n"
+                        "1. Answer questions quickly and accurately about onboarding processes, policies, resources, and systems.\n"
+                        "2. Cite the newest audited docs for consistency and authority.\n"
+                        "3. If unclear/out of scope, guide user to submit an IT ticket or contact dept.\n"
+                        "4. Style: professional, concise, friendly, easy to understand, and *in English*.\n"
+                        "5. When answering procedural or instructional questions, provide a checklist starting with numbered steps "
+                        "like 'step1.', 'step2.', 'step3.', etc., each describing a clear and actionable task.\n\n"
+                        "You must return ONLY valid JSON with two keys:\n"
+                        "  - \"answer\": string (the final answer)\n"
+                        "  - \"reference\": object (mapping title -> url of cited docs)\n"
+                        "Do not include code fences. Do not include any additional keys."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"give me a checklist about Question: {question}\n\n Relevant knowledge:\n{knowledge}"
+                }
+            ],
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        }
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        resp = requests.post(API_URL, json=payload, headers=headers)
+        resp.raise_for_status()
+        result = resp.json()
+
+        # 4. 解析 LLM 回复
+        content = result['choices'][0]['message']['content'].strip()
+        data_json, err = try_load_json(content)
+
+        final_reference = reference  # 默认使用RAG的引用
+
+        if data_json is not None:
+            final_answer = data_json.get("answer", "")
+            model_ref = data_json.get("reference", {})
+            if model_ref:  # 如果模型返回了引用，就用模型的
+                final_reference = model_ref
+        else:
+            # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+            final_answer = content
+            # 如果解析失败，可能需要人工介入
+            need= True
+        # print(final_answer)
+        # 3. 调用解析函数
+        result = checklist_to_items(final_answer)
+        # print(result)
+        # 4. 拆包到 ai_reply 和 checklist
+        ai_reply = result["answer"]
+        ai_checklist = result["ai_checklist"]
+        """-----输出结果一直返回500---"""
+        """--------这里是AI的结果参考--------"""
+        print("AI 回复：", ai_reply)
+        for item in ai_checklist:
+            print("-", item)
+        ai_reference=final_reference
+        print(ai_reference)
+        """--------这里是AI的结果参考--------"""
     if need:
         # 需要人工
         ai_reply = "There is no reference for this Checklist question.  \n\nYou can press the button below to ask for human help."
@@ -2152,23 +2412,23 @@ def aichat_checklist_mock():
             "need_human": True
         })
     else:
-        # 不需要人工, checklist 要存到数据库
-        ai_reply = "Here's a checklist to access your CSE files from your own computer:"
-        ai_reference = {
-            # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
-            "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
-        }
-        
-        # ai 生成部分, 让 ai 生成的 checklist 存到这个变量(可能需要分割字符串等等处理之后再放到这里)
-        ai_checklist = [
-            "Step 1: 登录到CSE文件服务器 (sftp.cse.unsw.edu.au)",
-            "Step 2: 使用您的CSE用户名和密码进行身份验证",
-            "Step 3: 导航到您的home directory (/home/your_username)",
-            "Step 4: 创建或选择要上传文件的目录",
-            "Step 5: 使用put命令上传文件到服务器",
-            "Step 6: 验证文件上传成功并检查文件权限"
-        ]
-        
+        # # 不需要人工, checklist 要存到数据库
+        # ai_reply = "Here's a checklist to access your CSE files from your own computer:"
+        # ai_reference = {
+        #     # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
+        #     "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
+        # }
+        #
+        # # ai 生成部分, 让 ai 生成的 checklist 存到这个变量(可能需要分割字符串等等处理之后再放到这里)
+        # ai_checklist = [
+        #     "Step 1: 登录到CSE文件服务器 (sftp.cse.unsw.edu.au)",
+        #     "Step 2: 使用您的CSE用户名和密码进行身份验证",
+        #     "Step 3: 导航到您的home directory (/home/your_username)",
+        #     "Step 4: 创建或选择要上传文件的目录",
+        #     "Step 5: 使用put命令上传文件到服务器",
+        #     "Step 6: 验证文件上传成功并检查文件权限"
+        # ]
+        #
         # 直接转换为checklist items格式, 符合数据库的格式
         ai_checklist_items = [
             {
