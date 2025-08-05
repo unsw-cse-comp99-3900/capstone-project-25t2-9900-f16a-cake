@@ -1423,42 +1423,7 @@ def save_ticket_api():
                 "message": f"Failed to save ticket: {error}"
             }), 500
         
-        # 发送邮件通知管理员（可选）
-        try:
-            admins, err = database.get_all_admins()
-            if not err and admins:
-                admin_emails = [admin['email'] for admin in admins]
-                
-                subject = f"[HDingo] New Human Support Request - Ticket #{ticket_id}"
-                body = f"""
-New human support request received:
-
-Ticket ID: {ticket_id}
-From: {user.get('first_name', '')} {user.get('last_name', '')} ({staff_email})
-Department: {user.get('department', 'N/A')}
-Role: {user.get('role', 'N/A')}
-Session ID: {session_id}
-
-Request Content:
-{content}
-
-Please log in to the admin panel to review and process this request.
-
----
-This email was sent automatically by HDingo system.
-Time: {datetime.now().isoformat()}
-                """.strip()
-                
-                msg = Message(
-                    subject=subject,
-                    recipients=admin_emails,
-                    body=body
-                )
-                mail.send(msg)
-                print(f"Notification email sent to {len(admin_emails)} admins for ticket #{ticket_id}")
-        except Exception as e:
-            print(f"Warning: Failed to send notification email for ticket #{ticket_id}: {str(e)}")
-        
+        # 不再发送邮件，直接返回成功
         return jsonify({
             "success": True,
             "message": "Ticket created successfully",
@@ -2145,11 +2110,11 @@ def aichat_rag_mock():
     # 如果 rag_search 返回 {}，表示没有需要的结果
     if not result:
         need = True
-        # 没有找到相关资料时，标记为需要人工介入
-        database.add_message_db(session_id, 'ai',
-                                "ops, I couldn't find anything, Need I turn to real human?",
-                                mode='rag',
-                                need_human=True)
+        # # 没有找到相关资料时，标记为需要人工介入
+        # database.add_message_db(session_id, 'ai',
+        #                         "ops, I couldn't find anything, Need I turn to real human?",
+        #                         mode='rag',
+        #                         need_human=True)
     else:
         # 2. RAG 检索
         knowledge, reference = result
@@ -2321,11 +2286,11 @@ def aichat_checklist_mock():
     # 如果 rag_search 返回 {}，表示没有需要的结果
     if not result:
         need = True
-        # 没有找到相关资料时，标记为需要人工介入
-        database.add_message_db(session_id, 'ai',
-                                "ops, I couldn't find anything, Need I turn to real human?",
-                                mode='rag',
-                                need_human=True)
+        # # 没有找到相关资料时，标记为需要人工介入
+        # database.add_message_db(session_id, 'ai',
+        #                         "ops, I couldn't find anything, Need I turn to real human?",
+        #                         mode='rag',
+        #                         need_human=True)
     else:
         # 2. RAG 检索
         knowledge, reference = result
@@ -2439,7 +2404,8 @@ def aichat_checklist_mock():
         ]
 
         # 保存 AI 回复到数据库, 包含checklist和reference
-        reference_str = json.dumps(ai_reference) if ai_reference else None
+        # reference_str = json.dumps(ai_reference) if ai_reference else None
+        reference_str = json.dumps(final_reference) if final_reference else None
         checklist_str = json.dumps(ai_checklist_items) if ai_checklist_items else None
         success, message_id, error = database.add_message_db(session_id, 'ai', ai_reply, 
                                                             reference=reference_str, 
@@ -2453,7 +2419,8 @@ def aichat_checklist_mock():
         # checklist 返回成功时还需要返回一个 message_id, 方便前端更新 checklist 状态
         return jsonify({
             "answer": ai_reply,
-            "reference": ai_reference,
+            # "reference": ai_reference,
+            "reference": final_reference,
             "checklist": ai_checklist_items,
             "mode": "checklist",
             "need_human": False,
@@ -2489,6 +2456,71 @@ def update_checklist_item_api(message_id):
             'success': False,
             'error': error
         }), 400
+
+@app.route('/api/reply_ticket', methods=['POST'])
+def reply_ticket_api():
+    data = request.get_json()
+    ticket_id = data.get('ticket_id')
+    admin_notes = data.get('admin_notes')
+    if not ticket_id or not admin_notes:
+        return jsonify({"success": False, "message": "Missing ticket_id or admin_notes"}), 400
+
+    # 获取管理员信息
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Authorization token required"}), 401
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        admin_id = payload.get('username') or payload.get('id')
+        admin_user = database.get_user(admin_id)
+        admin_name = f"{admin_user.get('first_name', '')} {admin_user.get('last_name', '')}" if admin_user else admin_id
+    except Exception as e:
+        admin_name = "(unknown admin)"
+
+    # 1. 查找 ticket
+    ticket, error = database.get_ticket_by_id(ticket_id)
+    if error or not ticket:
+        return jsonify({"success": False, "message": "Ticket not found"}), 404
+
+    # 2. 发送邮件给用户
+    subject = f"[HDingo Support] Your ticket #{ticket_id} has been answered"
+    body = f"""
+Dear {ticket['first_name']} {ticket['last_name']}:
+
+Your human support request has been answered by our admin team. Please see the reply below:
+
+---
+{admin_notes}
+---
+
+Replied by: {admin_name}
+
+If you have further questions, feel free to reply or submit a new ticket.
+
+This email was sent automatically by HDingo system.
+Ticket content:
+{ticket['content']}
+
+Request time: {ticket['request_time']}
+""".strip()
+    try:
+        msg = Message(
+            subject=subject,
+            recipients=[ticket['staff_email']],
+            body=body
+        )
+        mail.send(msg)
+    except Exception as e:
+        print(f"Error sending reply email to user: {str(e)}")
+        return jsonify({"success": False, "message": "Failed to send email to user"}), 500
+
+    # 3. 更新 ticket 状态为已处理
+    success, error = database.finish_ticket(ticket_id, admin_notes)
+    if not success:
+        return jsonify({"success": False, "message": "Failed to update ticket status"}), 500
+
+    return jsonify({"success": True, "message": "Reply sent and ticket updated"})
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

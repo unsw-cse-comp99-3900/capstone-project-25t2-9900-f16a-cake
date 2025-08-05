@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Box, 
   Typography, 
@@ -19,7 +20,8 @@ import {
   DialogContentText,
   DialogActions,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Snackbar
 } from "@mui/material";
 import { 
   Send as SendIcon,
@@ -31,11 +33,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 function StaffLandingNew() {
+  const navigate = useNavigate();
   const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
   
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
   const [sessionTitle, setSessionTitle] = useState("New Chat");
+  
+
   
   const [messages, setMessages] = useState([
     {
@@ -82,6 +87,11 @@ function StaffLandingNew() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 检查是否需要显示成功提示
+  useEffect(() => {
+    // 移除 human help 成功提示逻辑，因为现在直接在 HumanHelp 页面处理
+  }, []);
 
   // 获取用户信息
   const fetchProfile = async () => {
@@ -427,8 +437,11 @@ function StaffLandingNew() {
 
   // 人工帮助
   const handleHumanHelp = () => {
-    // 打开人工帮助页面
-    window.open('/human-help', '_blank');
+    // 打开人工帮助页面，传递当前的 sessionId
+    navigate('/human-help', { 
+      state: { session_id: sessionId },
+      replace: true 
+    });
   };
 
   // 处理checklist状态变化
@@ -1141,6 +1154,8 @@ function StaffLandingNew() {
           </Button>
         </DialogActions>
       </Dialog>
+
+
     </Box>
   );
 }

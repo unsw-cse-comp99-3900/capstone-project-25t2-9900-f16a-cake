@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -35,6 +36,7 @@ import remarkGfm from 'remark-gfm';
 const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
 
 const AIchat = ({ showFab = true }) => {
+  const navigate = useNavigate();
   // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
   const [sessionTitle, setSessionTitle] = useState("New Chat");
@@ -346,8 +348,11 @@ const AIchat = ({ showFab = true }) => {
   };
 
   const handleHumanHelp = () => {
-    // 打开人工帮助页面
-    window.open('/human-help', '_blank');
+    // 打开人工帮助页面，传递当前的 sessionId
+    navigate('/human-help', { 
+      state: { session_id: sessionId },
+      replace: true 
+    });
   };
 
   // 显示删除确认弹窗

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -14,7 +14,10 @@ import {
   MenuItem,
   Rating,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Dialog,
+  DialogContent,
+  CircularProgress
 } from "@mui/material";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Auth } from "../utils/Auth";
@@ -30,6 +33,10 @@ function Feedback() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // 成功弹窗状态
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -37,6 +44,19 @@ function Feedback() {
       [field]: value
     }));
   };
+
+  // 倒计时效果
+  useEffect(() => {
+    let timer;
+    if (showSuccessDialog && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    } else if (showSuccessDialog && countdown === 0) {
+      navigate('/staff-landing');
+    }
+    return () => clearTimeout(timer);
+  }, [showSuccessDialog, countdown, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,10 +77,8 @@ function Feedback() {
       const data = await response.json();
 
       if (data.success) {
-        // 设置localStorage标记，表示需要显示成功popup
-        localStorage.setItem('showFeedbackSuccess', 'true');
-        // 立即跳转到staff-landing页面
-        navigate('/staff-landing');
+        setShowSuccessDialog(true);
+        setCountdown(5);
       } else {
         setError(data.message || 'submit failed, please try again later');
       }
@@ -69,6 +87,10 @@ function Feedback() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImmediateRedirect = () => {
+    navigate('/staff-landing');
   };
 
   return (
@@ -111,8 +133,6 @@ function Feedback() {
             Help us improve HDingo by sharing your feedback, suggestions, or reporting issues. 
             Your input is valuable to us!
           </Typography>
-
-
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -204,7 +224,56 @@ function Feedback() {
           </form>
         </Paper>
       </Box>
-      
+
+      {/* 成功提交弹窗 */}
+      <Dialog
+        open={showSuccessDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            background: '#ffffff',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+          }
+        }}
+      >
+        <DialogContent sx={{ textAlign: 'center', py: 4 }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h2" sx={{ color: '#4CAF50', fontWeight: 'bold', mb: 2, fontSize: '3rem' }}>
+              {countdown}
+            </Typography>
+            <Typography variant="h4" sx={{ color: '#4CAF50', fontWeight: 'bold', mb: 1 }}>
+              Successfully Submitted!
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#4CAF50', mb: 3, fontSize: '1.1rem' }}>
+              Your feedback sended to our team, Thank you!
+            </Typography>
+          </Box>
+          
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleImmediateRedirect}
+            sx={{
+              bgcolor: '#FFD600',
+              color: '#ffffff',
+              fontWeight: 'bold',
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              borderRadius: 2,
+              textTransform: 'none',
+              '&:hover': {
+                bgcolor: '#FFE44D'
+              }
+            }}
+          >
+            Return to Homepage Now
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
