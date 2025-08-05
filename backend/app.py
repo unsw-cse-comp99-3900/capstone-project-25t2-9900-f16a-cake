@@ -2196,13 +2196,13 @@ def aichat_rag_mock():
         data_json, err = try_load_json(content)
 
         final_reference = reference  # 默认使用RAG的引用
-
+        print(final_reference)
 
         if data_json is not None:
             final_answer = data_json.get("answer", "")
-            model_ref = data_json.get("reference", {})
-            if model_ref:  # 如果模型返回了引用，就用模型的
-                final_reference = model_ref
+            # model_ref = data_json.get("reference", {})
+            # if model_ref:  # 如果模型返回了引用，就用模型的
+            #     final_reference = model_ref
         else:
             # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
             final_answer = content
@@ -2376,9 +2376,9 @@ def aichat_checklist_mock():
 
         if data_json is not None:
             final_answer = data_json.get("answer", "")
-            model_ref = data_json.get("reference", {})
-            if model_ref:  # 如果模型返回了引用，就用模型的
-                final_reference = model_ref
+            # model_ref = data_json.get("reference", {})
+            # if model_ref:  # 如果模型返回了引用，就用模型的
+            #     final_reference = model_ref
         else:
             # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
             final_answer = content
@@ -2393,11 +2393,11 @@ def aichat_checklist_mock():
         ai_checklist = result["ai_checklist"]
         """-----输出结果一直返回500---"""
         """--------这里是AI的结果参考--------"""
-        print("AI 回复：", ai_reply)
-        for item in ai_checklist:
-            print("-", item)
-        ai_reference=final_reference
-        print(ai_reference)
+        # print("AI 回复：", ai_reply)
+        # for item in ai_checklist:
+        #     print("-", item)
+        # ai_reference=final_reference
+        # print(ai_reference)
         """--------这里是AI的结果参考--------"""
     if need:
         # 需要人工
