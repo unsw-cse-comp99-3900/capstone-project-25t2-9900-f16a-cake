@@ -178,7 +178,9 @@ CREATE TABLE `pdf_documents` (
   `keywords` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `keywords_encoded` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `pdf_path` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `year` varchar(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  -- 猜测: 在 search 功能的更新时, ziyi 在本地更新了数据库结构但是没有写到 .sql 里, 我猜测着改成 document_date 看一下能不能用
+  -- `year` varchar(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `document_date` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `upload_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `file_size` bigint DEFAULT NULL,
   `uploader_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

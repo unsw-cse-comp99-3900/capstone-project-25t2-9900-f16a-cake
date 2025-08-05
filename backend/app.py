@@ -676,7 +676,9 @@ def list_pdfs():
             'filename': doc['pdf_path'],
             'title': doc['title'],
             'keywords': doc['keywords'],
-            'document_date': doc['document_date'].isoformat() if doc['document_date'] else None,
+            # 猜测: 根据现在对 .sql 的猜测修改, 这里得改成这样符合 document_date 的格式
+            # document_date': doc['document_date'].isoformat() if doc['document_date'] else None,
+            'document_date': doc['document_date'] if doc['document_date'] else None,
             'size': doc['file_size'],
             'upload_time': doc['upload_time'].isoformat() if doc['upload_time'] else None
         })
