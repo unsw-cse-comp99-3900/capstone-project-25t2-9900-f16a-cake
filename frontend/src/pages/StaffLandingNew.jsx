@@ -40,8 +40,7 @@ function StaffLandingNew() {
   const [sessionId, setSessionId] = useState(null);
   const [sessionTitle, setSessionTitle] = useState("New Chat");
   
-  // 成功提示状态
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
   
   const [messages, setMessages] = useState([
     {
@@ -91,15 +90,7 @@ function StaffLandingNew() {
 
   // 检查是否需要显示成功提示
   useEffect(() => {
-    const shouldShowHumanHelpSuccess = localStorage.getItem('showHumanHelpSuccess');
-    
-    console.log('Checking success popups:', { shouldShowHumanHelpSuccess });
-    
-    if (shouldShowHumanHelpSuccess === 'true') {
-      console.log('Showing human help success popup');
-      setShowSuccessPopup(true);
-      localStorage.removeItem('showHumanHelpSuccess');
-    }
+    // 移除 human help 成功提示逻辑，因为现在直接在 HumanHelp 页面处理
   }, []);
 
   // 获取用户信息
@@ -1164,24 +1155,7 @@ function StaffLandingNew() {
         </DialogActions>
       </Dialog>
 
-      {/* 成功提示 Snackbar */}
-      <Snackbar
-        open={showSuccessPopup}
-        autoHideDuration={5000}
-        onClose={() => setShowSuccessPopup(false)}
-        message="Your human help request has been submitted successfully! We'll get back to you soon."
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{
-          zIndex: 9999,
-          '& .MuiSnackbarContent-root': {
-            backgroundColor: '#4caf50',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1rem',
-            padding: '12px 24px'
-          }
-        }}
-      />
+
     </Box>
   );
 }
