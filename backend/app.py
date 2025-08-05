@@ -2093,7 +2093,7 @@ def aichat_rag_mock():
     database.add_message_db(session_id, 'user', question, mode='rag')
 
     # rag 逻辑判断是否需要转人工
-    need = False
+    need = True
 
     if need:
         # 需要人工

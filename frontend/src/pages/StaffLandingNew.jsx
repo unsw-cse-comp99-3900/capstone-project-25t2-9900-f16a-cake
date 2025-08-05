@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Box, 
   Typography, 
@@ -31,6 +32,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 function StaffLandingNew() {
+  const navigate = useNavigate();
   const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
   
   // sessionId 由后端生成
@@ -428,7 +430,7 @@ function StaffLandingNew() {
   // 人工帮助
   const handleHumanHelp = () => {
     // 打开人工帮助页面
-    window.open('/human-help', '_blank');
+    navigate('/human-help');
   };
 
   // 处理checklist状态变化
