@@ -10,11 +10,11 @@ function StaffLandingOld() {
     setRole(storedRole || "");
     document.title = "Homepage";
     
-    // 检查是否需要显示成功popup
-    const shouldShowSuccess = localStorage.getItem('showFeedbackSuccess');
+    // 检查是否需要显示成功popup（仅针对 human help）
+    const shouldShowSuccess = localStorage.getItem('showHumanHelpSuccess');
     if (shouldShowSuccess === 'true') {
       setShowSuccessPopup(true);
-      localStorage.removeItem('showFeedbackSuccess'); // 清除标记
+      localStorage.removeItem('showHumanHelpSuccess'); // 清除标记
     }
   }, []);
 
@@ -64,7 +64,7 @@ function StaffLandingOld() {
         open={showSuccessPopup}
         autoHideDuration={5000}
         onClose={() => setShowSuccessPopup(false)}
-        message="Thank you for your feedback! It has been sent to our admin team."
+        message="Your human help request has been submitted successfully! We'll get back to you soon."
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{
           '& .MuiSnackbarContent-root': {

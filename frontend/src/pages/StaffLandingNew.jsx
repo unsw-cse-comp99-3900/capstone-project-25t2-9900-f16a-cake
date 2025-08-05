@@ -91,16 +91,11 @@ function StaffLandingNew() {
 
   // 检查是否需要显示成功提示
   useEffect(() => {
-    const shouldShowFeedbackSuccess = localStorage.getItem('showFeedbackSuccess');
     const shouldShowHumanHelpSuccess = localStorage.getItem('showHumanHelpSuccess');
     
-    console.log('Checking success popups:', { shouldShowFeedbackSuccess, shouldShowHumanHelpSuccess });
+    console.log('Checking success popups:', { shouldShowHumanHelpSuccess });
     
-    if (shouldShowFeedbackSuccess === 'true') {
-      console.log('Showing feedback success popup');
-      setShowSuccessPopup(true);
-      localStorage.removeItem('showFeedbackSuccess');
-    } else if (shouldShowHumanHelpSuccess === 'true') {
+    if (shouldShowHumanHelpSuccess === 'true') {
       console.log('Showing human help success popup');
       setShowSuccessPopup(true);
       localStorage.removeItem('showHumanHelpSuccess');
@@ -1174,7 +1169,7 @@ function StaffLandingNew() {
         open={showSuccessPopup}
         autoHideDuration={5000}
         onClose={() => setShowSuccessPopup(false)}
-        message="Your request has been submitted successfully! We'll get back to you soon."
+        message="Your human help request has been submitted successfully! We'll get back to you soon."
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{
           zIndex: 9999,
