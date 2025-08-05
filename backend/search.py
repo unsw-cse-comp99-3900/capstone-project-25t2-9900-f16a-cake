@@ -15,12 +15,25 @@ def extract_keywords(text):
     keywords = []
     text_lower = text.lower()
     all_keywords = get_all_keywords()
+    
+    # 首先尝试匹配数据库中的关键词
     for keyword in all_keywords:
         if keyword.lower() in text_lower:
             keywords.append(keyword)
+    
+    # 如果没有找到匹配的关键词，尝试部分匹配
     if not keywords:
         words = re.findall(r'\b\w+\b', text.lower())
-        keywords = words[:5]
+        for word in words:
+            for keyword in all_keywords:
+                if word in keyword.lower() or keyword.lower() in word:
+                    if keyword not in keywords:
+                        keywords.append(keyword)
+        
+        # 如果仍然没有匹配，返回输入的词汇但限制数量
+        if not keywords:
+            keywords = words[:3]  # 减少到3个词以提高精确度
+    
     return keywords
 
 def multi_hot_encode(keywords):
@@ -55,6 +68,18 @@ def calculate_similarity(query_encoded, db_encoded, query_text, db_title):
     # Keyword similarity
     q_set = {i for i, v in enumerate(query_encoded) if v}
     d_set = {i for i, v in enumerate(db_encoded) if v}
+    
+    # 如果没有公共关键词，直接返回0
+    if not (q_set & d_set):
+        # 检查标题是否有匹配词汇
+        q_words = set(re.findall(r'\b\w+\b', query_text.lower()))
+        d_words = set(re.findall(r'\b\w+\b', db_title.lower()))
+        common_words = q_words & d_words
+        
+        # 如果标题也没有匹配词汇，返回0
+        if not common_words:
+            return 0.0
+    
     jaccard = jaccard_similarity(q_set, d_set)
     cosine = cosine_similarity([query_encoded], [db_encoded])[0][0] if any(query_encoded) and any(db_encoded) else 0
     keyword_sim = 0.7 * jaccard + 0.3 * cosine
@@ -67,4 +92,6 @@ def calculate_similarity(query_encoded, db_encoded, query_text, db_title):
 
     # Combined score with higher keyword weight
     final_score = 0.75 * keyword_sim + 0.25 * title_sim
-    return final_score
+    
+    # 确保最小阈值
+    return final_score if final_score > 0.05 else 0.0

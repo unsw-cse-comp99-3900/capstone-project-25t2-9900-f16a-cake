@@ -9,6 +9,21 @@ const FileManagement = forwardRef((props, ref) => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
+  // 日期格式化函数：将日期格式化为 DD/MM/YYYY
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() 返回 0-11
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
+  };
+
   const fetchPdfs = async () => {
     setLoading(true);
     setError("");
@@ -80,7 +95,7 @@ const FileManagement = forwardRef((props, ref) => {
                 )}
               </Box>
               <Typography sx={{ width: 80, mr: 1 }} variant="caption">{(pdf.size/1024).toFixed(1)} KB</Typography>
-              <Typography sx={{ width: 120, mr: 1 }} variant="caption">{new Date(pdf.upload_time).toLocaleDateString()}</Typography>
+              <Typography sx={{ width: 120, mr: 1 }} variant="caption">{formatDate(pdf.upload_time)}</Typography>
               <Button variant="outlined" color="error" size="small" onClick={() => setDeleteTarget(pdf.id)}>Delete</Button>
             </Box>
           ))}

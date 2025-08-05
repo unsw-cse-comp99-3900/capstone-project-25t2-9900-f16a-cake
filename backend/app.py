@@ -204,14 +204,24 @@ def search_api():
             continue
             
         score = calculate_similarity(query_encoded, keywords_encoded, query, doc["title"])
+        # 处理document_date格式
+        document_date = doc.get("document_date", "")
+        if document_date and hasattr(document_date, 'isoformat'):
+            # 如果是datetime对象，转换为ISO格式字符串
+            document_date = document_date.isoformat()
+        elif document_date:
+            # 如果是字符串，保持原样
+            document_date = str(document_date)
+        
         results.append({
             "title": doc["title"],
             "pdf_path": doc.get("pdf_path", ""),
             "score": score,
-            "year": doc.get("year", "")
+            "document_date": document_date
         })
 
-    filtered = sorted([r for r in results if r["score"] >= 0], key=lambda x: x["score"], reverse=True)[:5]
+    # 设置更高的阈值，只返回真正有匹配度的结果
+    filtered = sorted([r for r in results if r["score"] > 0.1], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
 
@@ -553,7 +563,7 @@ def upload_and_generate_rag():
     # 2. 获取表单数据
     title = request.form.get('title', '').strip()
     keywords = request.form.get('keywords', '').strip()
-    year = request.form.get('year', '').strip()
+    document_date = request.form.get('document_date', '').strip()
     
     if not title:
         return jsonify({'success': False, 'message': 'Title is required'}), 400
@@ -619,7 +629,7 @@ def upload_and_generate_rag():
     # 9. 保存到数据库
     uploader_id = None  # 可以从token中获取，暂时设为None
     success, error = database.save_pdf_document(
-        title, keywords, keywords_encoded_json, filename, year, uploader_id, file_size
+        title, keywords, keywords_encoded_json, filename, document_date, uploader_id, file_size
     )
     
     if not success:
@@ -666,7 +676,9 @@ def list_pdfs():
             'filename': doc['pdf_path'],
             'title': doc['title'],
             'keywords': doc['keywords'],
-            'year': doc['year'],
+            # 猜测: 根据现在对 .sql 的猜测修改, 这里得改成这样符合 document_date 的格式
+            # document_date': doc['document_date'].isoformat() if doc['document_date'] else None,
+            'document_date': doc['document_date'] if doc['document_date'] else None,
             'size': doc['file_size'],
             'upload_time': doc['upload_time'].isoformat() if doc['upload_time'] else None
         })
