@@ -1423,42 +1423,7 @@ def save_ticket_api():
                 "message": f"Failed to save ticket: {error}"
             }), 500
         
-        # 发送邮件通知管理员（可选）
-        try:
-            admins, err = database.get_all_admins()
-            if not err and admins:
-                admin_emails = [admin['email'] for admin in admins]
-                
-                subject = f"[HDingo] New Human Support Request - Ticket #{ticket_id}"
-                body = f"""
-New human support request received:
-
-Ticket ID: {ticket_id}
-From: {user.get('first_name', '')} {user.get('last_name', '')} ({staff_email})
-Department: {user.get('department', 'N/A')}
-Role: {user.get('role', 'N/A')}
-Session ID: {session_id}
-
-Request Content:
-{content}
-
-Please log in to the admin panel to review and process this request.
-
----
-This email was sent automatically by HDingo system.
-Time: {datetime.now().isoformat()}
-                """.strip()
-                
-                msg = Message(
-                    subject=subject,
-                    recipients=admin_emails,
-                    body=body
-                )
-                mail.send(msg)
-                print(f"Notification email sent to {len(admin_emails)} admins for ticket #{ticket_id}")
-        except Exception as e:
-            print(f"Warning: Failed to send notification email for ticket #{ticket_id}: {str(e)}")
-        
+        # 不再发送邮件，直接返回成功
         return jsonify({
             "success": True,
             "message": "Ticket created successfully",
@@ -2261,7 +2226,7 @@ def reply_ticket_api():
     body = f"""
 Dear {ticket['first_name']} {ticket['last_name']}:
 
-Your support request has been answered by our admin team. Please see the reply below:
+Your human support request has been answered by our admin team. Please see the reply below:
 
 ---
 {admin_notes}
