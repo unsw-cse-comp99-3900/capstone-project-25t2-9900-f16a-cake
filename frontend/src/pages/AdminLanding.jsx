@@ -42,29 +42,30 @@ function AdminLanding() {
   }, []);
 
   // 获取未完成工单
-  useEffect(() => {
-    const fetchTickets = async () => {
-      setTicketsLoading(true);
-      setTicketsError("");
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/get_tickets?all=false', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const data = await response.json();
-        if (data.success) {
-          setTickets(data.tickets || []);
-        } else {
-          setTicketsError(data.message || 'Failed to fetch tickets');
+  const fetchTickets = async () => {
+    setTicketsLoading(true);
+    setTicketsError("");
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/get_tickets?all=false', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch {
-        setTicketsError('Network error');
-      } finally {
-        setTicketsLoading(false);
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTickets(data.tickets || []);
+      } else {
+        setTicketsError(data.message || 'Failed to fetch tickets');
       }
-    };
+    } catch {
+      setTicketsError('Network error');
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTickets();
   }, []);
 
@@ -92,6 +93,42 @@ function AdminLanding() {
     setTicketDialogOpen(false);
     setSelectedTicket(null);
     setAdminReply("");
+  };
+
+  // 新增：发送回复处理函数
+  const handleSendReply = async () => {
+    if (!selectedTicket || !adminReply.trim()) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/reply_ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ticket_id: selectedTicket.ticket_id,
+          admin_notes: adminReply
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // 关闭弹窗
+        handleCloseTicketDialog();
+        // 重新获取未处理工单列表
+        fetchTickets();
+      } else {
+        alert(data.message || 'Failed to send reply');
+      }
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      alert('Network error, please try again');
+    }
   };
 
   return (
@@ -413,6 +450,7 @@ function AdminLanding() {
                       bgcolor: '#FFE44D'
                     }
                   }}
+                  onClick={handleSendReply}
                 >
                   Send Reply
                 </Button>
