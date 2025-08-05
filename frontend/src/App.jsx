@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import TopBar from "./components/TopBar";
@@ -24,6 +24,27 @@ function AppContent() {
   const showTopBar = ["/", "/staff-login", "/admin-login"].includes(location.pathname);
   const isLoggedIn = !!localStorage.getItem("role");
   const isStaff = localStorage.getItem("role") === "staff";
+  const [layout, setLayout] = useState("old");
+
+  // 获取布局配置
+  useEffect(() => {
+    const fetchLayoutConfig = async () => {
+      try {
+        const response = await fetch('/api/readconfig');
+        const config = await response.json();
+        setLayout(config.layout);
+      } catch (error) {
+        console.error('Failed to fetch layout config:', error);
+      }
+    };
+
+    if (isLoggedIn && isStaff) {
+      fetchLayoutConfig();
+    }
+  }, [isLoggedIn, isStaff]);
+
+  // 判断是否应该显示 AIchat
+  const shouldShowAIchat = isLoggedIn && !(isStaff && location.pathname === "/staff-landing" && layout === "new");
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -92,7 +113,7 @@ function AppContent() {
       {/* // ai chat 是否只在 staff 端显示? 还是所有端都显示? */}
       {/* // 为了测试方便, 目前在所有端都显示 */}
       {/* {isStaff && <AIchat />} */}
-      {isLoggedIn && <AIchat />}
+      {shouldShowAIchat && <AIchat />}
     </Box>
   );
 }
