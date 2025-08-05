@@ -257,14 +257,14 @@ def get_daily_login_stats(days=7):
         conn.close()
 
 
-def save_pdf_document(title, keywords, keywords_encoded, pdf_path, year, uploader_id, file_size):
+def save_pdf_document(title, keywords, keywords_encoded, pdf_path, document_date, uploader_id, file_size):
     """保存PDF文档元数据到数据库"""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO pdf_documents (title, keywords, keywords_encoded, pdf_path, year, uploader_id, file_size) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-            (title, keywords, keywords_encoded, pdf_path, year, uploader_id, file_size)
+            "INSERT INTO pdf_documents (title, keywords, keywords_encoded, pdf_path, document_date, uploader_id, file_size) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (title, keywords, keywords_encoded, pdf_path, document_date, uploader_id, file_size)
         )
         conn.commit()
         return True, None
@@ -295,7 +295,7 @@ def get_pdf_documents_for_search():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT id, title, keywords, keywords_encoded, pdf_path, year FROM pdf_documents")
+        cursor.execute("SELECT id, title, keywords, keywords_encoded, pdf_path, document_date FROM pdf_documents")
         documents = cursor.fetchall()
         return documents, None
     except mysql.connector.Error as err:

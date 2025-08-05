@@ -14,7 +14,7 @@ import {
 function UploadDialog({ open, onClose, onUpload }) {
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
-  const [year, setYear] = useState('');
+  const [documentDate, setDocumentDate] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -52,8 +52,8 @@ function UploadDialog({ open, onClose, onUpload }) {
     formData.append('file', selectedFile);
     formData.append('title', title.trim());
     formData.append('keywords', keywords.trim());
-    if (year.trim()) {
-      formData.append('year', year.trim());
+    if (documentDate.trim()) {
+      formData.append('document_date', documentDate.trim());
     }
 
     try {
@@ -80,7 +80,7 @@ function UploadDialog({ open, onClose, onUpload }) {
   const handleClose = () => {
     setTitle('');
     setKeywords('');
-    setYear('');
+    setDocumentDate('');
     setSelectedFile(null);
     setError('');
     setUploading(false);
@@ -134,16 +134,18 @@ function UploadDialog({ open, onClose, onUpload }) {
             helperText="Enter keywords separated by commas"
           />
 
-          {/* Year Input */}
+          {/* Document Date Input */}
           <TextField
-            label="Year (optional)"
+            label="Document Date (optional)"
             fullWidth
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            placeholder="e.g., 2023"
+            value={documentDate}
+            onChange={(e) => setDocumentDate(e.target.value)}
+            placeholder="YYYY-MM-DD"
             sx={{ mb: 2 }}
-            type="number"
-            inputProps={{ min: 1900, max: new Date().getFullYear() }}
+            type="date"
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
 
           {/* Error Display */}
