@@ -3,19 +3,13 @@ import { Box, Typography, Paper, Snackbar } from "@mui/material";
 
 function StaffLandingOld() {
   const [role, setRole] = useState("");
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     setRole(storedRole || "");
     document.title = "Homepage";
     
-    // 检查是否需要显示成功popup
-    const shouldShowSuccess = localStorage.getItem('showFeedbackSuccess');
-    if (shouldShowSuccess === 'true') {
-      setShowSuccessPopup(true);
-      localStorage.removeItem('showFeedbackSuccess'); // 清除标记
-    }
+    // 移除 human help 成功提示逻辑，因为现在直接在 HumanHelp 页面处理
   }, []);
 
   // 根据不同角色显示不同内容
@@ -59,21 +53,7 @@ function StaffLandingOld() {
         </Paper>
       </Box>
       
-      {/* 成功提示Popup */}
-      <Snackbar
-        open={showSuccessPopup}
-        autoHideDuration={5000}
-        onClose={() => setShowSuccessPopup(false)}
-        message="Thank you for your feedback! It has been sent to our admin team."
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{
-          '& .MuiSnackbarContent-root': {
-            backgroundColor: '#4caf50',
-            color: 'white',
-            fontWeight: 'bold'
-          }
-        }}
-      />
+
     </Box>
   );
 }

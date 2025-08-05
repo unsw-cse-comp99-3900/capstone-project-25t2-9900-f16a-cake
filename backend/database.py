@@ -162,9 +162,11 @@ def delete_session(session_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # 先删除 messages 表中该 session 的所有消息
+        # 先删除 tickets 表中该 session 的所有工单
+        cursor.execute("DELETE FROM tickets WHERE session_id = %s", (session_id,))
+        # 再删除 messages 表中该 session 的所有消息
         cursor.execute("DELETE FROM messages WHERE session_id = %s", (session_id,))
-        # 再删除 chat_history 表中的 session
+        # 最后删除 chat_history 表中的 session
         cursor.execute("DELETE FROM chat_history WHERE session_id = %s", (session_id,))
         conn.commit()
         return True, None

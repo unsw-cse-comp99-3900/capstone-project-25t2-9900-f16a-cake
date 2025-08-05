@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormControlLabel, Stack } from "@mui/material";
+import { Box, Button, Typography, Paper, Divider, TextField, Checkbox, FormControlLabel, Stack, Dialog, DialogContent, DialogTitle } from "@mui/material";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Auth } from "../utils/Auth";
 import FileManagement from "../components/FileManagement";
@@ -11,6 +11,16 @@ function AdminLanding() {
   const [userEngagementData, setUserEngagementData] = useState([]);
   const [loading, setLoading] = useState(true);
   const fileManagementRef = useRef();
+
+  // 新增：未完成工单
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState("");
+
+  // 新增：ticket 详情弹窗
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [adminReply, setAdminReply] = useState("");
 
   // 获取用户活跃度数据
   useEffect(() => {
@@ -31,6 +41,34 @@ function AdminLanding() {
     fetchUserEngagement();
   }, []);
 
+  // 获取未完成工单
+  const fetchTickets = async () => {
+    setTicketsLoading(true);
+    setTicketsError("");
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/get_tickets?all=false', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTickets(data.tickets || []);
+      } else {
+        setTicketsError(data.message || 'Failed to fetch tickets');
+      }
+    } catch {
+      setTicketsError('Network error');
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
   const handleUploadSuccess = (data) => {
     setUploadMsg("Upload successful: " + data.title);
     // 刷新文件列表
@@ -41,6 +79,56 @@ function AdminLanding() {
 
   const handleOpenUploadDialog = () => {
     setUploadDialogOpen(true);
+  };
+
+  // 新增：打开 ticket 详情弹窗
+  const handleOpenTicketDialog = (ticket) => {
+    setSelectedTicket(ticket);
+    setAdminReply("");
+    setTicketDialogOpen(true);
+  };
+
+  // 新增：关闭 ticket 详情弹窗
+  const handleCloseTicketDialog = () => {
+    setTicketDialogOpen(false);
+    setSelectedTicket(null);
+    setAdminReply("");
+  };
+
+  // 新增：发送回复处理函数
+  const handleSendReply = async () => {
+    if (!selectedTicket || !adminReply.trim()) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/reply_ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ticket_id: selectedTicket.ticket_id,
+          admin_notes: adminReply
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // 关闭弹窗
+        handleCloseTicketDialog();
+        // 重新获取未处理工单列表
+        fetchTickets();
+      } else {
+        alert(data.message || 'Failed to send reply');
+      }
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      alert('Network error, please try again');
+    }
   };
 
   return (
@@ -226,14 +314,49 @@ function AdminLanding() {
             }}>
               Unanswered queries
             </Typography>
-            
             <Stack spacing={2} sx={{ flex: 1, overflow: 'auto' }}>
-              {[1,2,3,4].map(i => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', border: '1px solid #eee', borderRadius: 1, p: 1.5 }}>
-                  <Typography sx={{ flex: 1, fontSize: 14 }}>{`querie ${i}`}</Typography>
-                  <FormControlLabel control={<Checkbox />} label="Checkbox" />
-                </Box>
-              ))}
+              {ticketsLoading ? (
+                <Typography>Loading...</Typography>
+              ) : ticketsError ? (
+                <Typography color="error">{ticketsError}</Typography>
+              ) : tickets.length === 0 ? (
+                <Typography>No unanswered queries.</Typography>
+              ) : (
+                tickets.map(ticket => (
+                  <Box 
+                    key={ticket.ticket_id} 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      border: '1px solid #eee', 
+                      borderRadius: 1, 
+                      p: 1.5, 
+                      background: '#fff',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        background: '#f8f9fa',
+                        borderColor: '#FFD600'
+                      }
+                    }}
+                    onClick={() => handleOpenTicketDialog(ticket)}
+                  >
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 'bold', fontSize: 15, mb: 0.5 }}>
+                        {ticket.first_name} {ticket.last_name}
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: '#666', mb: 0.5 }}>
+                        {ticket.department} | {ticket.role}
+                      </Typography>
+                      <Typography sx={{ fontSize: 14, color: '#222', mb: 0.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {ticket.content}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12, color: '#999' }}>
+                        {ticket.request_time ? new Date(ticket.request_time).toLocaleString() : ''}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))
+              )}
             </Stack>
           </Paper>
         </Stack>
@@ -245,6 +368,97 @@ function AdminLanding() {
         onClose={() => setUploadDialogOpen(false)}
         onUpload={handleUploadSuccess}
       />
+
+      {/* Ticket 详情弹窗 */}
+      <Dialog
+        open={ticketDialogOpen}
+        onClose={handleCloseTicketDialog}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minHeight: 600,
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          borderBottom: '2px solid #FFD600', 
+          pb: 2,
+          fontWeight: 'bold'
+        }}>
+          Ticket #{selectedTicket?.ticket_id} - {selectedTicket?.first_name} {selectedTicket?.last_name} ({selectedTicket?.role})
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', gap: 3, height: 500 }}>
+            {/* 左侧：Content */}
+            <Box sx={{ flex: 1, pr: 2, borderRight: '1px solid #eee' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                Question/Issue
+              </Typography>
+              
+              <Typography variant="body1" sx={{ 
+                background: '#f8f9fa', 
+                p: 2, 
+                borderRadius: 1,
+                border: '1px solid #e9ecef',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: 450,
+                overflow: 'auto'
+              }}>
+                {selectedTicket?.content}
+              </Typography>
+            </Box>
+
+            {/* 右侧：Admin 回复 */}
+            <Box sx={{ flex: 1, pl: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
+                Admin Reply
+              </Typography>
+              
+              <TextField
+                multiline
+                rows={16}
+                fullWidth
+                value={adminReply}
+                onChange={(e) => setAdminReply(e.target.value)}
+                placeholder="Enter your reply to the staff member..."
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2
+                  }
+                }}
+              />
+              
+              <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  onClick={handleCloseTicketDialog}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  sx={{
+                    bgcolor: '#FFD600',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      bgcolor: '#FFE44D'
+                    }
+                  }}
+                  onClick={handleSendReply}
+                >
+                  Send Reply
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
