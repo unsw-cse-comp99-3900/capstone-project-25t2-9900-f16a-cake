@@ -1,0 +1,172 @@
+[
+  {
+    "id": "qa_e4b5a9c4",
+    "question": "So why is my account expiring or changing?",
+    "answer": "Coursework Students Not enrolled in any CSE courses, but still in a CSE program For Students Generally Taking program leave Not officially enrolled but still finishing a thesis, or collaborating on follow-up publications. Otherwise For Staff What to do before your account expires Redirect your email Back up your data Clear out your scratch space Allocated computers And lastly …",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006764"
+    }
+  },
+  {
+    "id": "qa_aa54eb19",
+    "question": "An email said my account is expiring",
+    "answer": "As you are reading this, you probably received an email about your CSE computer account expiring. The email would look like this: Dear Your Name, Your CSE account (z3210987) will shortly be expiring. Please be sure to read the following FAQ item and any references further below before replying to this email: … This email is not about your UNSW computer account, just your access to School of Computer Science and Engineering (CSE) computers. If you are a student or employee of CSE then you will get such an email when you are going to finish here.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006772"
+    }
+  },
+  {
+    "id": "qa_6094496d",
+    "question": "An email said my account memberships are changing",
+    "answer": "The email would look like this: Dear 'z3210987', Please do not reply to this message before reading the references below. You will soon be expiring from: https://taggi.cse.unsw.edu.au/FAQ/Account_expiry/ 1/4 2025/8/1 17:00 Account expiry - CSE taggi Something : 1 Mar 2020 … Every CSE account is a member of at least one account class, and each of these class memberships has an expiry date. If only miscellaneous classes (such as quota classes, course membership, etc.) are expiring, then your account will remain active. If your main account class is expiring, then your account will be deactivated. A month before you expire from an account class, we will send you an email message to let you know what's going to change. This gives you a chance to get your access extended (if it shouldn't be expiring), or to prepare for any access changes that might result. The rest of the warning message will tell you what classes you will continue to belong to (if any). Read the email carefully to see what is actually happening.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006774"
+    }
+  },
+  {
+    "id": "qa_7565bf20",
+    "question": "3: So why is my account expiring or changing?",
+    "answer": "",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006775"
+    }
+  },
+  {
+    "id": "qa_0fba51a8",
+    "question": "Coursework Students",
+    "answer": "CSE accounts for Coursework students will change memberships every term as they finish some courses and start others. Student classes for courses you're enrolled in only get activated a few days before term starts. If you're enrolled for a CSE course next term, your account should stay active, even if the relevant classes aren't active yet. Your CSE account will be deactivated when you are no longer studying CSE courses in the current term. (Unless you are in a CSE study Program. See below.) You may be studying other courses at UNSW, but you will not need your CSE account for those. Your CSE account will be reactivated if you study another CSE course.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006776"
+    }
+  },
+  {
+    "id": "qa_22f8de9a",
+    "question": "Not enrolled in any CSE courses, but still in a CSE program",
+    "answer": "If you are a student who is not enrolled in any CSE courses, but you are still enrolled in a CSE program, then your account should automatically stay active. If it hasn't been extended, make sure that you have registered a CSE plan with this program (see Account Classes and Groups). If you do have a plan registered and your account is still expiring, contact Student Services.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006777"
+    }
+  },
+  {
+    "id": "qa_90d69993",
+    "question": "For Students Generally",
+    "answer": "",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006778"
+    }
+  },
+  {
+    "id": "qa_1159f3e6",
+    "question": "Taking program leave",
+    "answer": "By default, your account won't stay active while you're on program leave. If you need it to, tell Teaching Support why you need it, and if they approve your request, they'll pass it on to CSG. These requests are usually only granted if: You're mostly finished with your degree, and You want to work on your thesis or projects while you're away. Even if your account does expire while you're away, your files won't be lost. When you return and your account is reactivated, everything will still be in your CSE home directory.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006779"
+    }
+  },
+  {
+    "id": "qa_b2622c7d",
+    "question": "Not officially enrolled but still finishing a thesis, or collaborating on follow-up",
+    "answer": "publications. If you are finishing work on your thesis, ask your supervisor to request an extension for you from CSG. This is very straightforward and usually granted straight away, but we need to know how long to extend it for. https://taggi.cse.unsw.edu.au/FAQ/Account_expiry/ 2/4 2025/8/1 17:00 Account expiry - CSE taggi",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006780"
+    }
+  },
+  {
+    "id": "qa_a00b435d",
+    "question": "Otherwise",
+    "answer": "If you're no longer involved with CSE, then your account will expire. In very rare cases, an academic or the Head of School can request that your CSE account stay active. They will need a good reason to do this.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006781"
+    }
+  },
+  {
+    "id": "qa_81c72f2a",
+    "question": "For Staff",
+    "answer": "If you want to keep your account a CSE for collaboration, you'll need to ask another academic to request a courtesy account for you.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006782"
+    }
+  },
+  {
+    "id": "qa_b3b73ca2",
+    "question": "What to do before your account expires",
+    "answer": "",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006783"
+    }
+  },
+  {
+    "id": "qa_d4659897",
+    "question": "Redirect your email",
+    "answer": "You can redirect your CSE email address to another address if you want. Currently we guarantee this forwarding for 6 months, although this may change in the future. However we strongly encourage you to set up an alumni account, and ask people to mail you there instead.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006784"
+    }
+  },
+  {
+    "id": "qa_316bd7e2",
+    "question": "Back up your data",
+    "answer": "The files in your home directory are backed up to tape and can be restored if you ever return. However, you should take your own copy of any files that you want to keep, as it can be hard to prove your identity and get them to you once you've left.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006785"
+    }
+  },
+  {
+    "id": "qa_f7fdc6e3",
+    "question": "Clear out your scratch space",
+    "answer": "If you have been allocated scratch space, please clear it out yourself, or email System Support to confirm that it's OK for us to delete it. (If you don't know what this is, then you don't need to do anything about it.)",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006786"
+    }
+  },
+  {
+    "id": "qa_48cd8831",
+    "question": "Allocated computers",
+    "answer": "In some cases, you can apply to take your computer with you when you go. If you think you're elegible, contact System Support and ask to have it transferred to you. If you're not eligible, or you don't want to keep the computer, you must contact System Support to let us know when you're finished with it. Once we collect the computer, we will securely erase the hard drive, so you must notify us by email that you have taken copies of your data.",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006787"
+    }
+  },
+  {
+    "id": "qa_a1a1fa98",
+    "question": "And lastly …",
+    "answer": "If you have been allocated a desk, please ensure it is cleared of any personal items, and is as clean and tidy as possible for the next person to use. Last edited by robertd 31/10/2024 https://taggi.cse.unsw.edu.au/FAQ/Account_expiry/ 3/4 2025/8/1 17:00 Account expiry - CSE taggi https://taggi.cse.unsw.edu.au/FAQ/Account_expiry/ 4/4",
+    "source": {
+      "title": "2",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Account_expiry_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-06T04:34:11.006789"
+    }
+  }
+]

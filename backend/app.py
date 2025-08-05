@@ -2110,11 +2110,11 @@ def aichat_rag_mock():
     # 如果 rag_search 返回 {}，表示没有需要的结果
     if not result:
         need = True
-        # 没有找到相关资料时，标记为需要人工介入
-        database.add_message_db(session_id, 'ai',
-                                "ops, I couldn't find anything, Need I turn to real human?",
-                                mode='rag',
-                                need_human=True)
+        # # 没有找到相关资料时，标记为需要人工介入
+        # database.add_message_db(session_id, 'ai',
+        #                         "ops, I couldn't find anything, Need I turn to real human?",
+        #                         mode='rag',
+        #                         need_human=True)
     else:
         # 2. RAG 检索
         knowledge, reference = result
@@ -2286,11 +2286,11 @@ def aichat_checklist_mock():
     # 如果 rag_search 返回 {}，表示没有需要的结果
     if not result:
         need = True
-        # 没有找到相关资料时，标记为需要人工介入
-        database.add_message_db(session_id, 'ai',
-                                "ops, I couldn't find anything, Need I turn to real human?",
-                                mode='rag',
-                                need_human=True)
+        # # 没有找到相关资料时，标记为需要人工介入
+        # database.add_message_db(session_id, 'ai',
+        #                         "ops, I couldn't find anything, Need I turn to real human?",
+        #                         mode='rag',
+        #                         need_human=True)
     else:
         # 2. RAG 检索
         knowledge, reference = result
@@ -2404,7 +2404,8 @@ def aichat_checklist_mock():
         ]
 
         # 保存 AI 回复到数据库, 包含checklist和reference
-        reference_str = json.dumps(ai_reference) if ai_reference else None
+        # reference_str = json.dumps(ai_reference) if ai_reference else None
+        reference_str = json.dumps(final_reference) if final_reference else None
         checklist_str = json.dumps(ai_checklist_items) if ai_checklist_items else None
         success, message_id, error = database.add_message_db(session_id, 'ai', ai_reply, 
                                                             reference=reference_str, 
@@ -2418,7 +2419,8 @@ def aichat_checklist_mock():
         # checklist 返回成功时还需要返回一个 message_id, 方便前端更新 checklist 状态
         return jsonify({
             "answer": ai_reply,
-            "reference": ai_reference,
+            # "reference": ai_reference,
+            "reference": final_reference,
             "checklist": ai_checklist_items,
             "mode": "checklist",
             "need_human": False,
