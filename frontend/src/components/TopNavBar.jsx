@@ -109,6 +109,27 @@ function TopNavBar() {
     }
   }, [role]);
 
+  // 根据当前页面更新浏览器标签栏标题
+  useEffect(() => {
+    if (role === "admin") {
+      document.title = "Admin Dashboard";
+    } else if (role === "staff") {
+      if (isProfilePage) {
+        document.title = "My Profile";
+      } else if (isSearchPage) {
+        document.title = "Search";
+      } else if (isFeedbackPage) {
+        document.title = "Feedback";
+      } else if (isHumanHelpPage) {
+        document.title = "Human Help";
+      } else if (isLandingPage) {
+        document.title = "Homepage";
+      } else {
+        document.title = "HDingo";
+      }
+    }
+  }, [role, isProfilePage, isSearchPage, isFeedbackPage, isHumanHelpPage, isLandingPage]);
+
   return (
     <AppBar
       position="fixed"
