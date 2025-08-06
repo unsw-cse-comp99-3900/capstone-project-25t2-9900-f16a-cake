@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Auth } from "../utils/Auth";
+import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
 
 /**
  * 通用登录Hook
  * @param {Object} options
  * @param {string} options.api 登录API路径，如"/api/staff-login"
- * @param {string} options.ssoApi SSO登录API路径，如"/api/sso-login"
  * @param {string} options.successRedirect 登录成功后跳转路径
  * @param {string} options.role 角色（staff/admin），会一并发送给后端
  * @param {function} [options.onSuccess] 登录成功后的回调
  * @param {function} [options.onError] 登录失败/异常的回调
  * @returns {Object}
  */
-function useLogin({ api, ssoApi, successRedirect, role, onSuccess, onError }) {
+function useLogin({ api, successRedirect, role, onSuccess, onError }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ssoDialogOpen, setSsoDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   // 普通登录
@@ -65,26 +66,13 @@ function useLogin({ api, ssoApi, successRedirect, role, onSuccess, onError }) {
   };
 
   // SSO登录
-  const handleSSOLogin = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(ssoApi);
-      const data = await res.json();
-      if (data.success) {
-        Auth.save(data.token, data); // 保存token和用户信息
-        if (data.role) localStorage.setItem("role", data.role);
-        if (onSuccess) onSuccess(data);
-        if (successRedirect) navigate(successRedirect);
-      } else {
-        if (onError) onError("SSO 登录失败！");
-        else alert("SSO 登录失败！");
-      }
-    } catch {
-      if (onError) onError("网络或服务器异常，请稍后再试！");
-      else alert("网络或服务器异常，请稍后再试！");
-    } finally {
-      setLoading(false);
-    }
+  const handleSSOLogin = () => {
+    setSsoDialogOpen(true);
+  };
+
+  // 关闭SSO对话框
+  const handleCloseSsoDialog = () => {
+    setSsoDialogOpen(false);
   };
 
   return {
@@ -95,6 +83,8 @@ function useLogin({ api, ssoApi, successRedirect, role, onSuccess, onError }) {
     handleSubmit,
     handleSSOLogin,
     loading,
+    ssoDialogOpen,
+    handleCloseSsoDialog,
   };
 }
 

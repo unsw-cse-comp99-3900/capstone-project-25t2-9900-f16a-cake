@@ -70,9 +70,16 @@ function LoginForm({
         <Divider sx={{ my: 2 }}>or</Divider>
         <Button
           variant="outlined"
-          color="secondary"
           fullWidth
           onClick={onSSOLogin}
+          sx={{
+            borderColor: '#FFD600',
+            color: '#FFD600',
+            '&:hover': {
+              borderColor: '#FFE44D',
+              backgroundColor: 'rgba(255, 214, 0, 0.1)'
+            }
+          }}
         >
           {ssoButtonText}
         </Button>
