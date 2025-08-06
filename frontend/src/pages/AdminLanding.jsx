@@ -21,6 +21,25 @@ function AdminLanding() {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminReply, setAdminReply] = useState("");
+  
+  // 新增：回复loading状态和成功弹窗
+  const [replyLoading, setReplyLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+
+  // 倒计时效果
+  useEffect(() => {
+    let timer;
+    if (showSuccessDialog && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    } else if (showSuccessDialog && countdown === 0) {
+      setShowSuccessDialog(false);
+      setCountdown(5);
+    }
+    return () => clearTimeout(timer);
+  }, [showSuccessDialog, countdown]);
 
   // 获取用户活跃度数据
   useEffect(() => {
@@ -97,10 +116,11 @@ function AdminLanding() {
 
   // 新增：发送回复处理函数
   const handleSendReply = async () => {
-    if (!selectedTicket || !adminReply.trim()) {
+    if (!selectedTicket || !adminReply.trim() || replyLoading) {
       return;
     }
 
+    setReplyLoading(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/reply_ticket', {
@@ -118,6 +138,9 @@ function AdminLanding() {
       const data = await response.json();
       
       if (data.success) {
+        // 显示成功弹窗
+        setShowSuccessDialog(true);
+        setCountdown(5);
         // 关闭弹窗
         handleCloseTicketDialog();
         // 重新获取未处理工单列表
@@ -128,7 +151,14 @@ function AdminLanding() {
     } catch (error) {
       console.error('Error sending reply:', error);
       alert('Network error, please try again');
+    } finally {
+      setReplyLoading(false);
     }
+  };
+
+  const handleImmediateClose = () => {
+    setShowSuccessDialog(false);
+    setCountdown(5);
   };
 
   return (
@@ -312,7 +342,7 @@ function AdminLanding() {
               borderBottom: '2px solid #FFD600',
               pb: 1
             }}>
-              Unanswered queries
+              Unanswered Tickets
             </Typography>
             <Stack spacing={2} sx={{ flex: 1, overflow: 'auto' }}>
               {ticketsLoading ? (
@@ -442,21 +472,76 @@ function AdminLanding() {
                 </Button>
                 <Button
                   variant="contained"
+                  disabled={replyLoading || !adminReply.trim()}
                   sx={{
                     bgcolor: '#FFD600',
                     color: '#000',
                     fontWeight: 'bold',
                     '&:hover': {
                       bgcolor: '#FFE44D'
+                    },
+                    '&:disabled': {
+                      bgcolor: '#d1d5db',
+                      color: '#9ca3af'
                     }
                   }}
                   onClick={handleSendReply}
                 >
-                  Send Reply
+                  {replyLoading ? 'Sending...' : 'Send Reply'}
                 </Button>
               </Box>
             </Box>
           </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* 成功回复弹窗 */}
+      <Dialog
+        open={showSuccessDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            background: '#ffffff',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+          }
+        }}
+      >
+        <DialogContent sx={{ textAlign: 'center', py: 4 }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h2" sx={{ color: '#4CAF50', fontWeight: 'bold', mb: 2, fontSize: '3rem' }}>
+              {countdown}
+            </Typography>
+            <Typography variant="h4" sx={{ color: '#4CAF50', fontWeight: 'bold', mb: 1 }}>
+              Reply Sent Successfully!
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#4CAF50', mb: 3, fontSize: '1.1rem' }}>
+              Your reply has been sent to the staff member.
+            </Typography>
+          </Box>
+          
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleImmediateClose}
+            sx={{
+              bgcolor: '#FFD600',
+              color: '#ffffff',
+              fontWeight: 'bold',
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              borderRadius: 2,
+              textTransform: 'none',
+              '&:hover': {
+                bgcolor: '#FFE44D'
+              }
+            }}
+          >
+            Close Now
+          </Button>
         </DialogContent>
       </Dialog>
     </Box>
