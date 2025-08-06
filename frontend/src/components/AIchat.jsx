@@ -90,6 +90,34 @@ const AIchat = ({ showFab = true }) => {
 
   const handleSendMessage = async () => {
     if (inputMessage.trim()) {  // 如果输入消息不为空
+      // 如果没有sessionId，先创建一个新的session
+      let currentSessionId = sessionId;
+      if (!currentSessionId) {
+        const user_id = localStorage.getItem('user_id');
+        if (!user_id) {
+          alert('User not logged in.');
+          return;
+        }
+        try {
+          const resp = await fetch('/api/start_session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, title: 'New Chat' })
+          });
+          const data = await resp.json();
+          if (data.session_id) {
+            currentSessionId = data.session_id;
+            setSessionId(data.session_id);
+          } else {
+            alert('Failed to create chat session.');
+            return;
+          }
+        } catch {
+          alert('Failed to create chat session.');
+          return;
+        }
+      }
+
       // 构建新消息, 这里是 user 发送的消息
       const newMessage = {
         id: messages.length + 1,
@@ -105,18 +133,18 @@ const AIchat = ({ showFab = true }) => {
       if (sessionTitle === "New Chat" && messages.length === 1) {
         setSessionTitle(inputMessage);
         // 异步更新后端 title
-        if (sessionId) {
+        if (currentSessionId) {
           fetch("/api/update_session_title", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ session_id: sessionId, title: inputMessage })
+            body: JSON.stringify({ session_id: currentSessionId, title: inputMessage })
           }).then(async resp => {
             const data = await resp.json();
             if (!data.success) {
               alert(data.error || "Failed to update title");
             } else {
               // 更新 historySessions 里的 title
-              setHistorySessions(prev => prev.map(s => s.session_id === sessionId ? { ...s, title: inputMessage } : s));
+              setHistorySessions(prev => prev.map(s => s.session_id === currentSessionId ? { ...s, title: inputMessage } : s));
             }
           });
         }
@@ -161,6 +189,18 @@ const AIchat = ({ showFab = true }) => {
       }
       // ==========^^^^ 这一部分感觉没必要, 因为没有登录的用户在前端无法访问到 ^^^^==========
 
+      // 确保sessionId存在
+      if (!currentSessionId) {
+        const errorResponse = {
+          id: messages.length + 2,
+          text: "Error: Session not created. Please try again.",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorResponse]);
+        return;
+      }
+
       // 真实请求后端 AI
       try {
         const resp = await fetch(apiUrl, {
@@ -168,7 +208,7 @@ const AIchat = ({ showFab = true }) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             question: inputMessage,
-            session_id: sessionId,
+            session_id: currentSessionId,
           }),
         });
         const data = await resp.json();
@@ -216,23 +256,7 @@ const AIchat = ({ showFab = true }) => {
   // 只有首次且 sessionId 为空时才新建 session
   const handleOpenChat = async () => {
     if (!isOpen) {
-      if (!sessionId) {
-        const user_id = localStorage.getItem('user_id');
-        if (!user_id) {
-          alert('User not logged in.');
-          return;
-        }
-        const resp = await fetch('/api/start_session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id, title: 'New Chat' })
-        });
-        const data = await resp.json();
-        if (data.session_id) {
-          setSessionId(data.session_id);
-          setSessionTitle('New Chat');
-        } else alert('Failed to create chat session.');
-      }
+      // 移除立即创建会话的逻辑，改为只在用户发送消息时创建
       setIsOpen(true);
     } else {
       setIsOpen(false);
