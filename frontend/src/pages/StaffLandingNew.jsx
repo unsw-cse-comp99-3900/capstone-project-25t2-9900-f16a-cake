@@ -439,8 +439,7 @@ function StaffLandingNew() {
   const handleHumanHelp = () => {
     // 打开人工帮助页面，传递当前的 sessionId
     navigate('/human-help', { 
-      state: { session_id: sessionId },
-      replace: true 
+      state: { session_id: sessionId }
     });
   };
 

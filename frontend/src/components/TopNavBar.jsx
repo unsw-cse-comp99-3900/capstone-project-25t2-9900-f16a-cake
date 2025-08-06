@@ -73,6 +73,10 @@ function TopNavBar() {
   const isProfilePage = location.pathname === "/staff-profile";
   // 判断当前是否在 staff-landing 页面
   const isLandingPage = location.pathname === "/staff-landing";
+  // 判断当前是否在 feedback 页面
+  const isFeedbackPage = location.pathname === "/feedback";
+  // 判断当前是否在 human-help 页面
+  const isHumanHelpPage = location.pathname === "/human-help";
 
   // 获取用户信息
   const fetchProfile = async () => {
@@ -158,7 +162,7 @@ function TopNavBar() {
               component="div"
               sx={{ color: "#222", fontWeight: 600, mr: 2 }}
             >
-              {isProfilePage ? "My Profile" : isSearchPage ? "Search" : "Homepage"}
+              {isProfilePage ? "My Profile" : isSearchPage ? "Search" : isFeedbackPage ? "Feedback" : isHumanHelpPage ? "Human Help" : "Homepage"}
             </Typography>
             <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
             {/* 右侧头像和登出 */}
