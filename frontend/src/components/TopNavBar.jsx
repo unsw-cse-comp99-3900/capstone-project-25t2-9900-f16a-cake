@@ -10,6 +10,10 @@ function TopNavBar() {
   const [useNewLayout, setUseNewLayout] = useState(false);
   const [profile, setProfile] = useState(null);
   const role = localStorage.getItem("role");
+  
+  // 控制staff用户是否能看到布局切换按钮
+  const SHOW_LAYOUT_SWITCH_TO_STAFF = false;
+  // const SHOW_LAYOUT_SWITCH_TO_STAFF = true;
 
   // 点击 Log out 按钮时弹出 Dialog
   const handleLogoutClick = () => {
@@ -163,17 +167,20 @@ function TopNavBar() {
             {!isLandingPage && (
               <Button variant="outlined" sx={{ mr: 1 }} onClick={() => navigate('/staff-landing')}>Back Home</Button>
             )}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={useNewLayout}
-                  onChange={handleLayoutChange}
-                  color="primary"
-                />
-              }
-              label={useNewLayout ? "new layout" : "old layout"}
-              sx={{ mr: 2 }}
-            />
+            {/* 根据配置决定是否显示布局切换按钮 */}
+            {SHOW_LAYOUT_SWITCH_TO_STAFF && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={useNewLayout}
+                    onChange={handleLayoutChange}
+                    color="primary"
+                  />
+                }
+                label={useNewLayout ? "new layout" : "old layout"}
+                sx={{ mr: 2 }}
+              />
+            )}
             <IconButton onClick={() => navigate('/staff-profile')}>
               <Avatar sx={{ 
                 bgcolor: '#FFD600', 
