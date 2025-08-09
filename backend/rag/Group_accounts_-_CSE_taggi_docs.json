@@ -1,0 +1,32 @@
+[
+  {
+    "id": "qa_1323778b",
+    "question": "Group Accounts",
+    "answer": "Group accounts are special-purpose accounts that allow shared access to a common home directory for members of the group. System Support can create group accounts for research groups, projects, conference web pages, societies, etc. on request. Undergraduate assignments and projects that can reasonably be shared out of users' own home directories should use user- managed group instead.",
+    "source": {
+      "title": "Group accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Group_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:25:24.711648"
+    }
+  },
+  {
+    "id": "qa_c210b8c5",
+    "question": "Login vs NoLogin groups",
+    "answer": "Where possible, we prefer to make groups NoLogin, granting filesystem access only, without the ability to log into a shell as the group account user. This makes administration a lot simpler, and is significantly better from a security perspective. However, sometimes this just isn't suitable for the purpose of the group, so we can enable login access if required - talk to us about this if you need it.",
+    "source": {
+      "title": "Group accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Group_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:25:24.711664"
+    }
+  },
+  {
+    "id": "qa_d8669ba2",
+    "question": "Logging into group accounts",
+    "answer": "There are no passwords set on login group accounts except in very specific circumstances. Wherever possible, we require the use of SSH keys instead. Last edited by robertd 08/11/2021 https://taggi.cse.unsw.edu.au/FAQ/Group_accounts/ 1/1",
+    "source": {
+      "title": "Group accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Group_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:25:24.711666"
+    }
+  }
+]

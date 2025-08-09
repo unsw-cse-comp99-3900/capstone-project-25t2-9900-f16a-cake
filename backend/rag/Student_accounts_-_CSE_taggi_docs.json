@@ -1,0 +1,162 @@
+[
+  {
+    "id": "qa_7f17cc0e",
+    "question": "How are CSE student accounts created?",
+    "answer": "",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426399"
+    }
+  },
+  {
+    "id": "qa_f3a6ede4",
+    "question": "When are CSE student accounts created?",
+    "answer": "",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426415"
+    }
+  },
+  {
+    "id": "qa_d27421b7",
+    "question": "Is my CSE account the same as my UNSW account?",
+    "answer": "",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426418"
+    }
+  },
+  {
+    "id": "qa_3c4ca211",
+    "question": "What Types of Student Account are there?",
+    "answer": "Undergraduate and Masters by Coursework Higher-Degree Research (HDR) Practicum Exchange Taste of Research Student Casual Teaching Staff (Tutors) Other privileges",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426419"
+    }
+  },
+  {
+    "id": "qa_abe2d304",
+    "question": "When do CSE student accounts expire?",
+    "answer": "",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426421"
+    }
+  },
+  {
+    "id": "qa_5b1b9145",
+    "question": "1: How are CSE student accounts created?",
+    "answer": "Almost all student accounts are created and updated automatically from UNSW enrolment data from UNSW's New South Student (NSS) System. Downloads are obtained from NSS and processed daily to create and update all CSE student accounts. Your student account will contain your name, date of birth, student ID and enrollment details, all of which are taken from the NSS data. If you are enrolled in a degree that has a CSE program component, don't forget to register an appropriate CSE plan (starting with COMP, SENG, or BINF). Failure to do so is not catastrophic, but will result in an account being created that may expire before it should. If the details are wrong you need to go the Engineering Faculty Student Support or UNSW Student Central to fix your enrolment. If you've just received a CSE account, you can log into most CSE computers using your zID and zPass.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426423"
+    }
+  },
+  {
+    "id": "qa_428fa775",
+    "question": "1.1: When are CSE student accounts created?",
+    "answer": "The current setting (at May 2020) is to create CSE accounts for Coursework students two weeks before the start of the term they study a CSE course. Accounts for research students are created when they matriculate. However, the student's supervisor should also request CSE resources for the student using the New Person form.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426424"
+    }
+  },
+  {
+    "id": "qa_7dbd60a0",
+    "question": "2: Is my CSE account the same as my UNSW account?",
+    "answer": "Your CSE account is NOT the same as your UNSW account. The School of Computer Science and Engineering manages its own computer system, supporting its own file system and accounts, that are generally independent of the UNSW file system and accounts. Note: Your CSE account has its own password, home directory and disk quota. https://taggi.cse.unsw.edu.au/FAQ/Student_accounts/ 1/4 2025/8/7 21:39 Student accounts - CSE taggi Although your CSE account may have its own login name and password, you should still be able to use your UNSW zId and zPass when logging into the CSE lab computers, or when logging into CSE servers with SSH. Your personal and enrolment details are copied from NSS to your CSE account. The console command to show your account is acc. This displays some usage values for your quota, though these figures aren't updated instantly and should only be used as a guide. Your date of birth is not displayed.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426426"
+    }
+  },
+  {
+    "id": "qa_82b876eb",
+    "question": "3: What Types of Student Account are there?",
+    "answer": "",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426427"
+    }
+  },
+  {
+    "id": "qa_1f6397b1",
+    "question": "Undergraduate and Masters by Coursework",
+    "answer": "These are automatically created from NSS data and have the lowest levels of privilege and quotas.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426429"
+    }
+  },
+  {
+    "id": "qa_fed9a569",
+    "question": "Higher-Degree Research (HDR)",
+    "answer": "Masters-by-Research and Ph.D. with more privileges and higher quotas. HDR students typically need resources such as a desk and office access so the supervisor should enter their details into the New Person form. The computer accounts will be automatically created from NSS data. However, the student may start ahead of official enrolment so early account creation may be requested by the supervisor to System Support. This happens when the \"new person form\" is used. It is important to tell System Support the student ID and date of birth as soon as practical so the account can be set up with full information. Other situations arise where a HDR student does not have an official enrolment but is still working with a supervisor. System Support can extend their thesis account at CSE.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426431"
+    }
+  },
+  {
+    "id": "qa_c4a1761a",
+    "question": "Practicum Exchange",
+    "answer": "These have privileges intermediate between the above 2 categories. The student's supervisor should request an account and other resources for the student using the New Person form. Although we receive NSS enrolment data for REGZ9024 (Professional Practicum) students, there is currently no way to distinguish between those few that are associated with CSE, and the great many others who are associated with other schools within UNSW. For this reason, we do not automatically create accounts for all REGZ9024 students but wait for the supervisor to notify us. Then we make a special entry for the student in the unofficial enrolment file: unoff.comm. Other exchange student accounts must be requested by the Supervisor by using the New Person form. System Support will create an account in the class Exchange_Student: the role title will be extrapolated from the class (ie. Student Exchange).",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426432"
+    }
+  },
+  {
+    "id": "qa_46a08faa",
+    "question": "Taste of Research Student",
+    "answer": "The student's supervisor should request an account and other resources for the student using the New Person form. Taste of Research (ToR) Students (formerly called Summer Research Students) are rare these days and there is no designated title on the new person form. SS can extend undergraduate accounts between sessions where the students are working as casual research assistants for an academic. The account class applied is SummerResearch_Student. Often academics will employ students as short-term research assistants instead.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426434"
+    }
+  },
+  {
+    "id": "qa_19f24446",
+    "question": "Casual Teaching Staff (Tutors)",
+    "answer": "Students who are employed as tutors have extra resources and access rights added to their accounts. https://taggi.cse.unsw.edu.au/FAQ/Student_accounts/ 2/4 2025/8/7 21:39 Student accounts - CSE taggi Completing and returning your tutor employment paperwork will cause your details to be entered into the Teachadmin System. Your account will then be updated automatically the next night.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426436"
+    }
+  },
+  {
+    "id": "qa_04728ae5",
+    "question": "Other privileges",
+    "answer": "Elected student representative or society executives, have extra resources and access rights added to their accounts. The CSE Development Office will generally request such account changes.",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426437"
+    }
+  },
+  {
+    "id": "qa_3a167c87",
+    "question": "4: When do CSE student accounts expire?",
+    "answer": "A CSE account expires when it is no longer a current member of any User Data Base (UDB) class. The UDB classes that an account belongs to is displayed by the acc command under the headings: \"User Classes\", \"Group Classes\" or \"Miscellaneous Classes\". In general, users belong to UDB classes of the form \"Organisation_Reason\" which is the class formed as a cross-product of a member of the \"Organisation\" class, and a member of the \"Reason\" class. Most CSE students will belong to UDB classes composed of the Reason: \"Student\", and an Organisation class which is either a CSE course class or program class. eg: 'COMP1921_Student' or '3728_Student'. A student enrolled in a course or program for a particular term, is assigned to the corresponding UDB course or program student class, with a start and expiry membership date reflecting that term of enrolment, as follows: CSE Course: Starts two weeks before the start of the enrolled session; Expires 2 weeks after the start of the following session. This allows students to attend supplementary online exams (if required) CSE Program: Starts at the start of the session prior to the enrolled session; Expires at the HECS census date of the following session (generally 4 weeks after the start of following session). Non-CSE Program: (One of either \"UGrad_Student\" or \"PGrad_Student\") Starts two weeks before the enrolled session; Expires just before the start of the following session. The start and expiry dates are chosen so as to: 1. Cover the required teaching and examination periods required for the enrolled course or program; 2. Keep an account active if a student is enrolled in CSE courses in successive sessions; 3. Keep an account active if a student is enrolled in a CSE program for term T(n), but wishes to take a whole of term T(n+1) off (during which they need not be enrolled in any UNSW course or program), before reenrolling in a CSE program in term T(n+2). Note: Students who defer their CSE degree, and who are not officially enrolled in any CSE course or program for two or more terms, will have their accounts expire unless special action is taken before deferring. For more details, see: what to do when your account going to expire. A student who is enrolled in a CSE program (or in a program with a registered CSE plan), does not have to be enrolled in any CSE courses to have a CSE account. They can be enrolled in other courses with other school at UNSW, and their CSE account will be retained and kept active. Users are sent warning emails a month before their account expires. If you are not expecting your account to continue (because you are not expecting to be enrolled in a CSE course or program any longer) then you should take the opportunity to copy any files you wish to keep onto portable media, or to send them to an external email account to which you have access. You may also wish to setup a CSE or UNSW mail redirection, which will typically last 6 months or so (at least), and should look into creating a alumni mail account if a permanent redirection is desired. Once an account expires, all files and directories belonging to that account are copied onto archive tape, and eventually deleted from the file server hosting the account's home directory. If the user subsequently returns to CSE, the user may arrange with System Support to have their old home directory restored from tape if desired. Often, if the user's account was only recently expired, this will be performed automatically when the account is reactivated. https://taggi.cse.unsw.edu.au/FAQ/Student_accounts/ 3/4 2025/8/7 21:39 Student accounts - CSE taggi Last edited by robertd 06/05/2020 https://taggi.cse.unsw.edu.au/FAQ/Student_accounts/ 4/4",
+    "source": {
+      "title": "Student accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Student_accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:23:56.426439"
+    }
+  }
+]

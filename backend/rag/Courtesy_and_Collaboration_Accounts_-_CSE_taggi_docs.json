@@ -1,0 +1,42 @@
+[
+  {
+    "id": "qa_68c59804",
+    "question": "Courtesy and Collaboration Accounts",
+    "answer": "Courtesy accounts are for people who do not qualify for any other account type in the Accounts Overview. These are people who are not at CSE in an official role - eg: Employee, student or Visiting Academic. These are typically for people collaborating on teaching and/or research with CSE academics, or thesis students without official enrolments. They generally do not have a desk in the building and do not get computer equipment provided from school funds. We are not talking about: Practicum/Exchange Students: If you are hosting a student who is here on official Exchange, see Student Accounts. … Likewise for Taste-of-Research students. Visiting Academics: If you are hosting an official Academic Visitor (Conjoint, Fellow, Adjunct, ...), see Visitors. Excluding those, our Courtesy account types are…",
+    "source": {
+      "title": "Courtesy and Collaboration Accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Courtesy_and_Collaboration_Accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:26:10.841440"
+    }
+  },
+  {
+    "id": "qa_897fb19e",
+    "question": "CSE_Courtesy",
+    "answer": "Courtesy accounts are for people who are actively working with CSE academics (generally remotely) These accounts are created in the CSE_Courtesy class. CSE academics should request courtesy accounts for people by mailing System Support. If they previously had a CSE account, provide the name of the account. Otherwise, we'll need the person's full name, along with their zID, if they have one.",
+    "source": {
+      "title": "Courtesy and Collaboration Accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Courtesy_and_Collaboration_Accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:26:10.841454"
+    }
+  },
+  {
+    "id": "qa_4da10bfa",
+    "question": "CSE_GuestResearch",
+    "answer": "If your guest will be working (unofficially) in CSE offices, ask for a CSE_GuestResearch account instead. This is effectively a CSE_Courtesy account with extras: CSE email announcements Access to CSE staff printers Note that they'll need a working UNSW zID - if they don't have one already, please request one. A working zID is also needed for Swipe Card access and access to Uniwide. https://taggi.cse.unsw.edu.au/FAQ/Courtesy_and_Collaboration_Accounts/ 1/2 2025/8/7 21:42 Courtesy and Collaboration Accounts - CSE taggi",
+    "source": {
+      "title": "Courtesy and Collaboration Accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Courtesy_and_Collaboration_Accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:26:10.841456"
+    }
+  },
+  {
+    "id": "qa_4298da81",
+    "question": "CSE_Thesis",
+    "answer": "Thesis students that need an active account but do not currently have an official enrolment should get a CSE_Thesis account instead. In most cases, they fall in to three categories: Thesis students who need an account before the start of their enrolment period In this case, the supervisor should use the New Person form, being sure to include the student number If you receive a warning about expiring from CSE_Thesis soon after you arrive, it's probably just this bridging period coming to an end. Your formal enrolment should take over at the end of it - you don't need to do anything. Thesis students who are on leave but are still unofficially working with their supervisor Thesis students who require additional time to work on their thesis after their official enrolment period has elapsed In the last two cases, all that's needed is for the supervisor to send a quick mail to System Support. Any thesis student that has completed and submitted their thesis but are still collaborating with their supervisor should get a CSE_Courtesy account instead. Last edited by robertd 17/12/2019 https://taggi.cse.unsw.edu.au/FAQ/Courtesy_and_Collaboration_Accounts/ 2/2",
+    "source": {
+      "title": "Courtesy and Collaboration Accounts",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Courtesy_and_Collaboration_Accounts_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:26:10.841458"
+    }
+  }
+]

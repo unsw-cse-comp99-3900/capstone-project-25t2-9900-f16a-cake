@@ -1,0 +1,12 @@
+[
+  {
+    "id": "qa_c87c5e1e",
+    "question": "Licensed software at CSE",
+    "answer": "UNSW and CSE have licensing agreements with a number of vendors to make software available to staff and students. Microsoft OS and server The Microsoft Azure webstore is available to currently enrolled CSE students. Before software: you can claim a Microsoft license, you must first apply for access via the UNSW IT website Microsoft Office: Office ProPlus is available for free to current UNSW students. Office 365 University is available for AU$119 for 4 years. UNSW-owned mac users can install Office through the UNSW Self-service app. Adobe products (including Adobe Creative Cloud is available to UNSW staff on compatible UNSW-owned and Acrobat): personal computers. Download the client (Windows and appleOS only) and log in with your zID@ad.unsw.edu.au and zPass We can still install Acrobat Pro for Postgrad students, but only on UNSW-owned computers. (Note that most people only need the free Acrobat Reader for most tasks; MS Word can save to PDF natively.) VMWare: VMware Workstation and VMware Fusion are now free for everyone, either for personal or commercial use. To get it, create a free Broadcom account, then you can download the software. Symantec Antivirus: Symantec AntiVirus is available for free to UNSW students. Other licensed products: See the UNSW IT software pages for students and staff. Also see UNSW myAccess for remote access to a range of virtual applications. Other open-source software: The mirror has local respositories for Debian, Ubuntu, CPAN, CTAN and more. Last edited by robertd 01/04/2025 https://taggi.cse.unsw.edu.au/FAQ/Getting_Software/ 1/1",
+    "source": {
+      "title": "Getting Software",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Getting_Software_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:27:51.932396"
+    }
+  }
+]

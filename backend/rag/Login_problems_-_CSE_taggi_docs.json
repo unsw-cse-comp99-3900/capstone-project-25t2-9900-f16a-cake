@@ -1,0 +1,72 @@
+[
+  {
+    "id": "qa_91a2d6bc",
+    "question": "What error message do you get when you try to log in?",
+    "answer": "'Incorrect username or password' or 'Access denied' 'Account expired' 'Account disabled' 'Your session lasted less than 10 seconds...' 'You are not permitted network access to this machine'",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293933"
+    }
+  },
+  {
+    "id": "qa_257f36d6",
+    "question": "1: What error message do you get when you try to log in?",
+    "answer": "",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293947"
+    }
+  },
+  {
+    "id": "qa_8c54e54c",
+    "question": "'Incorrect username or password' or 'Access denied'",
+    "answer": "Check that you don't have Caps Lock on Check that you're using just your zID as the username, e.g. z1234567, not your email address Check that you're using your zPass as the password Go to UNSW Identity Management to unlock your zPass if it's locked. You can also reset your password there if you need to.",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293949"
+    }
+  },
+  {
+    "id": "qa_6f2aac9c",
+    "question": "'Account expired'",
+    "answer": "To have an account at CSE, you need to be enrolled in a CSE course, enrolled in a CSE program, or be employed by CSE. If you aren't in any of those categories, then you don't have access to our systems. If you are still enrolled or employed, but you're getting this message anyway, contact System Support and we can fix you up.",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293951"
+    }
+  },
+  {
+    "id": "qa_c2d8a3da",
+    "question": "'Account disabled'",
+    "answer": "Occasionally we need to disable accounts if: They are compromised/hacked, Software in them is misbehaving, or There has been a serious breach of the rules. If this happens to you, contact System Support to get the problem resolved.",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293953"
+    }
+  },
+  {
+    "id": "qa_c8c920a9",
+    "question": "'Your session lasted less than 10 seconds...'",
+    "answer": "https://taggi.cse.unsw.edu.au/FAQ/Login_problems/ 1/2 2025/8/7 21:40 Login problems - CSE taggi In this case your account is working but there's a problem with the programs that run when you log in. If you know what broke, you can use the 'failsafe terminal' option from the Sessions menu to fix it up. Otherwise, contact System Support and we'll give you a hand.",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293954"
+    }
+  },
+  {
+    "id": "qa_13b05bef",
+    "question": "'You are not permitted network access to this machine'",
+    "answer": "Pretty much what it says on the tin. Some servers and lab machines are restricted to specific users and classes. If you're not in the required class, you will not be allowed to log in. If you think you should have access to a restricted machine, but don't, ask your supervisor to request it on your behalf from System Support. Last edited by jbc 06/04/2020 https://taggi.cse.unsw.edu.au/FAQ/Login_problems/ 2/2",
+    "source": {
+      "title": "Login problems",
+      "url": "/Users/nydo/Desktop/COMP9900/capstone-project-25t2-9900-f16a-cake/backend/pdfs/Login_problems_-_CSE_taggi.pdf",
+      "last_edited": "2025-08-08T14:24:38.293956"
+    }
+  }
+]

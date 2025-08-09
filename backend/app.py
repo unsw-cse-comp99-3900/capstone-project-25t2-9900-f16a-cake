@@ -294,7 +294,7 @@ def list_pdf_names(pdfs_dir="pdfs"):
     return pdf_names
 
 
-def rag_search(question, top_k=10, score_threshold=0.85):
+def rag_search(question, top_k=10, score_threshold=1.0):
     # 1. 先拿到所有 PDF 的前缀名
     pdf_list = list_pdf_names()
 
