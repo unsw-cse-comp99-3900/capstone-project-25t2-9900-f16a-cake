@@ -176,9 +176,7 @@ def delete_session(session_id):
         cursor.close()
         conn.close()
 
-
 def get_all_admins():
-    """获取所有admin用户的邮箱"""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -496,18 +494,10 @@ def update_message_checklist(message_id, checklist):
 
 
 def update_checklist_item_status(message_id, item_index, checked):
-    """
-    更新单个checklist项目的状态
-    
-    Args:
-        message_id: 消息ID
-        item_index: checklist项目的索引
-        checked: 是否已勾选
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # 首先获取当前的checklist
+        # get current checklist
         cursor.execute(
             "SELECT checklist FROM messages WHERE message_id = %s",
             (message_id,)
@@ -520,20 +510,20 @@ def update_checklist_item_status(message_id, item_index, checked):
         if not checklist_str:
             return False, "No checklist found"
         
-        # 解析checklist JSON
+        # parse checklist JSON
         try:
             checklist = json.loads(checklist_str)
         except json.JSONDecodeError:
             return False, "Invalid checklist format"
         
-        # 检查索引是否有效
+        # check if index is valid
         if item_index < 0 or item_index >= len(checklist):
             return False, "Invalid item index"
         
-        # 更新指定项目的状态
+        # update the status of the specified item
         checklist[item_index]['done'] = checked
         
-        # 将更新后的checklist保存回数据库
+        # save the updated checklist back to database
         updated_checklist_str = json.dumps(checklist)
         cursor.execute(
             "UPDATE messages SET checklist = %s WHERE message_id = %s",

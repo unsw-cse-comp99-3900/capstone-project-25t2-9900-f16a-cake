@@ -19,8 +19,8 @@ function AdminLogin() {
     ssoDialogOpen,
     handleCloseSsoDialog
   } = useLogin({
-    api: "/api/login", // 这里请根据后端实际API调整
-    successRedirect: "/admin-landing", // 这里请根据实际跳转路径调整
+    api: "/api/login",
+    successRedirect: "/admin-landing",
     role: "admin"
   });
 
@@ -40,7 +40,7 @@ function AdminLogin() {
         ssoButtonText="Using UNSW SSO"
       />
       
-      {/* SSO登录提示对话框 */}
+      {/* SSO login dialog */}
       <Dialog 
         open={ssoDialogOpen} 
         onClose={handleCloseSsoDialog}

@@ -14,16 +14,16 @@ function StaffLogin() {
     setUsername,
     password,
     setPassword,
-    handleSubmit, // 普通登录
-    handleSSOLogin, // SSO登录
-    loading, // 是否正在登录
+    handleSubmit, // general login
+    handleSSOLogin, // sso login
+    loading, // loading state
     ssoDialogOpen,
     handleCloseSsoDialog
   } = useLogin({
     api: "/api/login",
     successRedirect: "/staff-landing",
     role: "staff"
-  }); // 还可以传入 onSuccess 和 onError 回调函数
+  });
 
   return (
     <>
@@ -41,7 +41,7 @@ function StaffLogin() {
         ssoButtonText="Using UNSW SSO"
       />
       
-      {/* SSO登录提示对话框 */}
+      {/* sso login dialog */}    
       <Dialog 
         open={ssoDialogOpen} 
         onClose={handleCloseSsoDialog}

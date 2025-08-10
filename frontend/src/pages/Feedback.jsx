@@ -13,11 +13,8 @@ import {
   Select,
   MenuItem,
   Rating,
-  FormControlLabel,
-  Checkbox,
   Dialog,
-  DialogContent,
-  CircularProgress
+  DialogContent
 } from "@mui/material";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Auth } from "../utils/Auth";
@@ -28,13 +25,10 @@ function Feedback() {
     category: "",
     subject: "",
     description: "",
-    rating: 0,
-    allowContact: false
+    rating: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  // 成功弹窗状态
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
@@ -45,7 +39,6 @@ function Feedback() {
     }));
   };
 
-  // 倒计时效果
   useEffect(() => {
     let timer;
     if (showSuccessDialog && countdown > 0) {
@@ -80,10 +73,11 @@ function Feedback() {
         setShowSuccessDialog(true);
         setCountdown(5);
       } else {
-        setError(data.message || 'submit failed, please try again later');
+        setError(data.message || 'Submission failed, please try again');
       }
-    } catch {
-      setError('Network error, please try again later');
+    } catch (err) {
+      console.log('Error submitting feedback:', err);
+      setError('Network issue, please check your connection and try again');
     } finally {
       setLoading(false);
     }
@@ -101,7 +95,7 @@ function Feedback() {
       px: { xs: 2, sm: 4, md: 6 }
     }}>
       <Box sx={{ maxWidth: 800, mx: 'auto', py: 4 }}>
-        {/* 返回按钮 */}
+        {/* Back button */}
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate(-1)}
@@ -113,22 +107,14 @@ function Feedback() {
         <Paper sx={{ p: { xs: 3, md: 4 } }}>
           <Typography 
             variant="h4" 
-            sx={{ 
-              mb: 1,
-              fontWeight: 'bold',
-              color: '#333'
-            }}
+            sx={{ mb: 1, fontWeight: 'bold', color: '#333' }}
           >
             Feedback & Suggestions
           </Typography>
           
           <Typography 
             variant="body1" 
-            sx={{ 
-              mb: 4, 
-              color: 'text.secondary',
-              lineHeight: 1.6
-            }}
+            sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.6 }}
           >
             Help us improve HDingo by sharing your feedback, suggestions, or reporting issues. 
             Your input is valuable to us!
@@ -143,7 +129,7 @@ function Feedback() {
           <form onSubmit={handleSubmit}>
             <Stack spacing={3}>
 
-              {/* 分类选择 */}
+              {/* Category selection */}
               <FormControl fullWidth required>
                 <InputLabel>Category</InputLabel>
                 <Select
@@ -159,7 +145,7 @@ function Feedback() {
                 </Select>
               </FormControl>
 
-              {/* 主题 */}
+              {/* Subject */}
               <TextField
                 label="Subject"
                 fullWidth
@@ -169,7 +155,7 @@ function Feedback() {
                 placeholder="Brief description of your feedback"
               />
 
-              {/* 评分 */}
+              {/* Rating */}
               <Box>
                 <Typography component="legend" sx={{ mb: 1 }}>
                   How would you rate your experience with HDingo?
@@ -183,7 +169,7 @@ function Feedback() {
                 />
               </Box>
 
-              {/* 详细描述 */}
+              {/* Detailed description */}
               <TextField
                 label="Detailed Description"
                 multiline
@@ -195,28 +181,13 @@ function Feedback() {
                 placeholder="Please provide detailed information about your feedback, suggestion, or issue..."
               />
 
-              {/* 联系许可 */}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.allowContact}
-                    onChange={(e) => handleInputChange('allowContact', e.target.checked)}
-                  />
-                }
-                label="I allow HDingo team to contact me regarding this feedback"
-              />
-
-              {/* 提交按钮 */}
+              {/* Submit button */}
               <Button
                 type="submit"
                 variant="contained"
                 size="large"
                 disabled={loading}
-                sx={{ 
-                  py: 1.5,
-                  fontSize: 16,
-                  fontWeight: 'bold'
-                }}
+                sx={{ py: 1.5, fontSize: 16, fontWeight: 'bold' }}
               >
                 {loading ? 'Submitting...' : 'Submit Feedback'}
               </Button>
@@ -225,7 +196,7 @@ function Feedback() {
         </Paper>
       </Box>
 
-      {/* 成功提交弹窗 */}
+      {/* Success submit dialog */}
       <Dialog
         open={showSuccessDialog}
         maxWidth="sm"
@@ -248,7 +219,7 @@ function Feedback() {
               Successfully Submitted!
             </Typography>
             <Typography variant="body1" sx={{ color: '#4CAF50', mb: 3, fontSize: '1.1rem' }}>
-              Your feedback sended to our team, Thank you!
+              Your feedback has been sent to our team. Thank you!
             </Typography>
           </Box>
           

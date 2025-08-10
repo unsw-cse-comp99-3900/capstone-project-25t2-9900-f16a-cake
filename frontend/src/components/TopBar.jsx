@@ -19,14 +19,14 @@ function TopBar() {
       sx={{
         backgroundColor: "#fff",
         boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
-        px: 0, // 去除左右 padding
+        px: 0,
       }}
     >
       <Toolbar sx={{ minHeight: 64, px: { xs: 2, sm: 3 } }}>
         {/* 左侧 Logo */}
         <Box
           component="img"
-          src="../../assets/unswlogo.png" // 这里换成你的 logo 路径
+          src="../../assets/unswlogo.png"
           alt="Logo"
           sx={{ height: 40, mr: 2 }}
         />
@@ -36,7 +36,6 @@ function TopBar() {
           component="div"
           sx={{ flexGrow: 1, color: "#222", fontWeight: 600 }}
         >
-          {/* CSE New Joiners Onboarding Hub - {message} */}
           CSE New Joiners Onboarding Hub
         </Typography>
       </Toolbar>

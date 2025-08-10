@@ -42,7 +42,6 @@ const FileManagement = forwardRef((props, ref) => {
     }
   };
 
-  // 暴露刷新函数给父组件
   useImperativeHandle(ref, () => ({
     refreshPdfs: fetchPdfs
   }));
@@ -101,7 +100,7 @@ const FileManagement = forwardRef((props, ref) => {
           ))}
         </Box>
       )}
-      {/* 删除确认弹窗 */}
+      
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Confirm deletion</DialogTitle>
         <DialogContent>

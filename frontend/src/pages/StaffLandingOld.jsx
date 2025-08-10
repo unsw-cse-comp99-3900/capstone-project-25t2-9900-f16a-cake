@@ -2,26 +2,24 @@ import React, { useEffect, useState } from "react";
 import { Box, Typography, Paper, Snackbar } from "@mui/material";
 
 function StaffLandingOld() {
-  const [role, setRole] = useState("");
+  const [subrole, setSubrole] = useState("");
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("role");
-    setRole(storedRole || "");
+    const storedRole = localStorage.getItem("subrole");
+    setSubrole(storedRole || "");
     document.title = "Homepage";
-    
-    // 移除 human help 成功提示逻辑，因为现在直接在 HumanHelp 页面处理
   }, []);
 
-  // 根据不同角色显示不同内容
+  // show different content based on role
   let greeting = "Welcome to the staff homepage!";
   let description = "This is the onboarding system for new staff.";
-  if (role === "phd") {
+  if (subrole === "PhD Student") {
     greeting = "Welcome, PhD!";
     description = "You can find the onboarding guide for new PhD staff here and chat with our AI bot for any questions!";
-  } else if (role === "tutor") {
+  } else if (subrole === "Tutor") {
     greeting = "Welcome, Tutor!";
     description = "You can find the onboarding guide for new tutors here and chat with our AI bot for any questions!";
-  } else if (role === "lecturer") {
+  } else if (subrole === "Lecturer") {
     greeting = "Welcome, Lecturer!";
     description = "You can find the onboarding guide for new lecturers here and chat with our AI bot for any questions!";
   }
@@ -43,7 +41,7 @@ function StaffLandingOld() {
         mt: "64px",
       }}
     >
-      {/* 主体内容 */}
+
       <Box sx={{ mb: 8 }}>
         <Paper sx={{ p: 3, minHeight: 300, maxWidth: 600 }}>
           <Typography variant="h6" gutterBottom>{greeting}</Typography>

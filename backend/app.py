@@ -51,12 +51,12 @@ list_pdf = []  # 公用pdf列表
 app = Flask(__name__)
 CORS(app)
 
-# 邮件配置 - Gmail
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # 使用Gmail SMTP
+# Gmail SMTP config
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'hdingo9900@gmail.com'  # 系统邮箱
-app.config['MAIL_PASSWORD'] = 'gflf gpux rqdi sbkh'     # 系统邮箱应用密码
+app.config['MAIL_USERNAME'] = 'hdingo9900@gmail.com'
+app.config['MAIL_PASSWORD'] = 'gflf gpux rqdi sbkh'
 app.config['MAIL_DEFAULT_SENDER'] = 'hdingo9900@gmail.com'
 
 mail = Mail(app)
@@ -149,7 +149,6 @@ def api_start_session():
     return jsonify({"session_id": session_id})
 
 
-# 这个 api 接口可以删除, 前端用不到, 但是 api_add_message 方法需要保留
 @app.route('/api/add_message', methods=['POST'])
 def api_add_message():
     data = request.json

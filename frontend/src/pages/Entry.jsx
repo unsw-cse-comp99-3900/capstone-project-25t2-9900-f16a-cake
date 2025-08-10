@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { Button, Box, Typography, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
-const NAVBAR_HEIGHT = 64; // TopBar高度
+const NAVBAR_HEIGHT = 64; // TopBar height
 
 function Entry() {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ function Entry() {
         overflow: "hidden",
       }}
     >
-      {/* 左侧登录容器 */}
+      {/* Left login container */}
       <Box
         sx={{
           width: { xs: "100%", md: "40%" },
@@ -100,13 +100,13 @@ function Entry() {
           </Button>
         </Paper>
       </Box>
-      {/* 右侧背景图容器 */}
+      {/* Right background image container */}
       <Box
         sx={{
           display: { xs: "none", md: "block" },
           width: "60%",
           height: "100%",
-          backgroundImage: "url(/cseimage.jpg)", // 建议放 public 目录，路径写 /cseimage.jpg
+          backgroundImage: "url(/cseimage.jpg)",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

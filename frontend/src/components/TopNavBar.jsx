@@ -67,15 +67,11 @@ function TopNavBar() {
     updateConfig(newLayout);
   };
 
-  // 判断当前是否在 search 页面
+  // 判断当前页面
   const isSearchPage = location.pathname === "/search";
-  // 判断当前是否在 profile 页面
   const isProfilePage = location.pathname === "/staff-profile";
-  // 判断当前是否在 staff-landing 页面
   const isLandingPage = location.pathname === "/staff-landing";
-  // 判断当前是否在 feedback 页面
   const isFeedbackPage = location.pathname === "/feedback";
-  // 判断当前是否在 human-help 页面
   const isHumanHelpPage = location.pathname === "/human-help";
 
   // 获取用户信息
@@ -149,7 +145,6 @@ function TopNavBar() {
           alt="Logo"
           sx={{ height: 40, mr: 2 }}
         />
-        {/* admin 端显示 Admin Dashboard  以及后续需要的 admin 专属按钮 */}
         {role === "admin" ? (
           <>
             <Typography
@@ -159,7 +154,6 @@ function TopNavBar() {
             >
               Admin Dashboard
             </Typography>
-            {/* 更多 admin 专属按钮 */}
             <Box sx={{ flexGrow: 1 }} />
             <FormControlLabel
               control={
@@ -175,9 +169,7 @@ function TopNavBar() {
             <Button variant="outlined" sx={{ ml: 1 }} onClick={handleLogoutClick}>Log out</Button>
           </>
         ) : (
-          // staff 端的导航栏
           <>
-            {/* 标题和中间按钮 */}
             <Typography
               variant="h6"
               component="div"

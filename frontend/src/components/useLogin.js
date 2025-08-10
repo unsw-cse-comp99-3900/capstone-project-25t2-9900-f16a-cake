@@ -33,11 +33,10 @@ function useLogin({ api, successRedirect, role, onSuccess, onError }) {
       let data;
       try {
         data = await res.json();
-        console.log("登录请求返回的数据：" , res.status, data)
       } catch {
         // json 解析失败
-        if (onError) onError("服务器异常，请稍后再试！");
-        else alert("服务器异常，请稍后再试！");
+        if (onError) onError("Server error, please try again later!");
+        else alert("Server error, please try again later!");
         setLoading(false);
         return;
       }
@@ -47,19 +46,18 @@ function useLogin({ api, successRedirect, role, onSuccess, onError }) {
         if (onSuccess) onSuccess(data);
         if (successRedirect) navigate(successRedirect);
       } else if (res.status === 401) {
-        if (onError) onError(data.message || "用户名或密码错误！");
-        else alert(data.message || "用户名或密码错误！");
+        if (onError) onError(data.message || "Username or password error!");
+        else alert(data.message || "Username or password error!");
       } else if (res.status === 400) {
-        if (onError) onError(data.message || "请求参数有误！");
-        else alert(data.message || "请求参数有误！");
+        if (onError) onError(data.message || "Request parameter error!");
+        else alert(data.message || "Request parameter error!");
       } else {
-        if (onError) onError(data.message || "登录失败！");
-        else alert(data.message || "登录失败！");
+        if (onError) onError(data.message || "Login failed!");
+        else alert(data.message || "Login failed!");
       }
     } catch {
-      // 网络或服务器异常, api 请求异常
-      if (onError) onError("网络或服务器异常，请稍后再试！");
-      else alert("网络或服务器异常，请稍后再试！");
+      if (onError) onError("Internal server error, please try again later!");
+      else alert("Internal server error, please try again later!");
     } finally {
       setLoading(false);
     }

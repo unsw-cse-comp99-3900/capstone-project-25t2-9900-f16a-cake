@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Auth } from "../utils/Auth"; // 保持您的 Auth 工具导入
+import { Auth } from "../utils/Auth";
 import {
   Box,
   Paper,
@@ -27,7 +27,6 @@ function StaffProfile() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // 您的数据获取和认证逻辑保持不变，因为它很健壮
   useEffect(() => {
     document.title = "My Profile";
 
@@ -35,7 +34,7 @@ function StaffProfile() {
       const token = Auth.getToken();
 
       if (!token) {
-        setError("您尚未登录，2秒后将跳转到登录页面...");
+        setError("Not logged in");
         setTimeout(() => navigate('/staff-login'), 2000);
         setLoading(false);
         return;
@@ -53,12 +52,12 @@ function StaffProfile() {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.message || '获取个人资料失败，请重新登录。');
+          throw new Error(data.message || 'Failed to get profile, please login again.');
         }
         setProfile(data.profile);
       } catch (err) {
         setError(err.message);
-        Auth.clear(); // 清理失效的 token
+        Auth.clear();
         setTimeout(() => navigate('/staff-login'), 2000);
       } finally {
         setLoading(false);
@@ -68,13 +67,10 @@ function StaffProfile() {
     fetchProfile();
   }, [navigate]);
 
-  // 采用新的渲染结构，将加载和错误状态置于主内容区
   return (
     <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 64px)', background: '#f7f7fa', pt: { xs: 4, md: 8 } }}>
-      {/* 左侧边栏 */}
       <Box sx={{ width: 280, background: '#f9fafb', borderRight: '1px solid #eee', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', pt: 0, pb: 4 }}>
         <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, borderBottom: '1px solid #eee', mb: 2 }}>
-          {/* 安全地渲染头像和姓名，即使 profile 为 null */}
           <Avatar sx={{ width: 56, height: 56, bgcolor: '#FFD600', color: '#222', fontSize: 24, mb: 1 }}>
             {profile ? profile.firstName[0] : "?"}
           </Avatar>
@@ -90,13 +86,12 @@ function StaffProfile() {
         <Box sx={{ flexGrow: 1 }} />
       </Box>
 
-      {/* 右侧主体内容 */}
       <Box sx={{ flex: 1, minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: { xs: 2, md: 4 } }}>
         {loading ? (
           <CircularProgress />
         ) : error ? (
           <Alert severity="error" sx={{ width: { xs: '90%', sm: 'auto' } }}>{error}</Alert>
-        ) : profile && ( // 确保 profile 不为 null 才渲染
+        ) : profile && (
           <Paper sx={{ width: '100%', maxWidth: 500, p: { xs: 2, sm: 3 }, borderRadius: 4, boxShadow: 6, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 320 }}>
             <Stack spacing={1.2} alignItems="center" sx={{ width: '100%' }}>
               <Avatar sx={{ width: 64, height: 64, bgcolor: '#FFD600', color: '#222', fontSize: 28 }}>

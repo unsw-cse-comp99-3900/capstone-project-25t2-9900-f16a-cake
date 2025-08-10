@@ -5,7 +5,6 @@ import StaffLandingNew from "./StaffLandingNew";
 function LandingPage() {
   const [layout, setLayout] = useState("old");
 
-  // 获取布局配置
   const fetchLayoutConfig = async () => {
     try {
       const response = await fetch('/api/readconfig');
@@ -21,7 +20,6 @@ function LandingPage() {
     fetchLayoutConfig();
   }, []);
 
-  // 根据布局配置渲染不同组件
   if (layout === "new") {
     return <StaffLandingNew />;
   } else {

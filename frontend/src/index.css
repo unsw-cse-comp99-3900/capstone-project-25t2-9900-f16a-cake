@@ -1,6 +1,5 @@
 /* reset all default styles */
 
-/* 1. 彻底重置所有元素的 margin、padding、box-sizing */
 *,
 *::before,
 *::after {
@@ -9,7 +8,6 @@
   padding: 0;
 }
 
-/* 2. 让 html, body 占满视口 */
 html, body {
   width: 100%;
   height: 100%;
@@ -20,7 +18,6 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 3. 移除图片、表单等元素的默认样式 */
 img, picture, video, canvas, svg {
   display: block;
   max-width: 100%;
@@ -36,18 +33,15 @@ input, button, textarea, select {
   appearance: none;
 }
 
-/* 4. 移除列表的默认样式 */
 ul, ol {
   list-style: none;
 }
 
-/* 5. 移除链接的下划线和默认颜色 */
 a {
   text-decoration: none;
   color: inherit;
 }
 
-/* 6. 让按钮有 pointer 手型 */
 button {
   cursor: pointer;
   background: none;
@@ -55,7 +49,6 @@ button {
   padding: 0;
 }
 
-/* 7. 让表格边框合并 */
 table {
   border-collapse: collapse;
   border-spacing: 0;

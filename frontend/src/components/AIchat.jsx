@@ -28,7 +28,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
-// <<-- 步骤 1: 引入 Auth 模块，请确保路径正确 -->>
+
 import { Auth } from "../utils/Auth";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm'; 
@@ -37,7 +37,6 @@ const GREETING_MESSAGE = "Hi! I'm HDingo's AI chat bot, how can I help you?";
 
 const AIchat = ({ showFab = true }) => {
   const navigate = useNavigate();
-  // sessionId 由后端生成
   const [sessionId, setSessionId] = useState(null);
   const [sessionTitle, setSessionTitle] = useState("New Chat");
 
@@ -48,7 +47,6 @@ const AIchat = ({ showFab = true }) => {
   const [sessionToDelete, setSessionToDelete] = useState(null);
   const [historySessions, setHistorySessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  // 用于保存所有历史消息
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -73,7 +71,7 @@ const AIchat = ({ showFab = true }) => {
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [editingHistoryTitle, setEditingHistoryTitle] = useState("");
 
-  // 自动滚动到底部
+  // auto scroll to bottom
   const messagesEndRef = useRef(null);
   useEffect(() => {
     if (isOpen && messagesEndRef.current) {
@@ -81,16 +79,12 @@ const AIchat = ({ showFab = true }) => {
     }
   }, [isOpen, messages]);
 
-
-
-  // 只有已登录用户才显示
   if (!localStorage.getItem("role")) {
     return null;
   }
 
   const handleSendMessage = async () => {
-    if (inputMessage.trim()) {  // 如果输入消息不为空
-      // 如果没有sessionId，先创建一个新的session
+    if (inputMessage.trim()) {
       let currentSessionId = sessionId;
       if (!currentSessionId) {
         const user_id = localStorage.getItem('user_id');
@@ -118,21 +112,19 @@ const AIchat = ({ showFab = true }) => {
         }
       }
 
-      // 构建新消息, 这里是 user 发送的消息
       const newMessage = {
         id: messages.length + 1,
         text: inputMessage,
         sender: "user",
         timestamp: new Date(),
       };
-      // 保存到历史信息 messages 中
-      setMessages([...messages, newMessage]);
-      setInputMessage("");  // 清空输入框
 
-      // 如果是新会话第一次发消息，自动用用户输入更新 title
+      setMessages([...messages, newMessage]);
+      setInputMessage("");
+
+      // if it's a new chat, update the title
       if (sessionTitle === "New Chat" && messages.length === 1) {
         setSessionTitle(inputMessage);
-        // 异步更新后端 title
         if (currentSessionId) {
           fetch("/api/update_session_title", {
             method: "POST",
@@ -143,14 +135,12 @@ const AIchat = ({ showFab = true }) => {
             if (!data.success) {
               alert(data.error || "Failed to update title");
             } else {
-              // 更新 historySessions 里的 title
               setHistorySessions(prev => prev.map(s => s.session_id === currentSessionId ? { ...s, title: inputMessage } : s));
             }
           });
         }
       }
 
-      // 根据模式选择不同的后端 API
       let useMock = true;
 
       let apiUrl = "/api/aichat/general";
@@ -172,11 +162,8 @@ const AIchat = ({ showFab = true }) => {
         }
       }
 
-      // ==========vvvv 这一部分感觉没必要, 因为没有登录的用户在前端无法访问到 vvvv==========
-      // <<-- 步骤 2: 从 Auth 模块获取 user_id -->>
       const userId = Auth.getUserId();
 
-      // 如果获取不到 userId，说明用户未正确登录，中断操作
       if (!userId) {
         const errorResponse = {
           id: messages.length + 2,
@@ -187,9 +174,7 @@ const AIchat = ({ showFab = true }) => {
         setMessages(prev => [...prev, errorResponse]);
         return;
       }
-      // ==========^^^^ 这一部分感觉没必要, 因为没有登录的用户在前端无法访问到 ^^^^==========
 
-      // 确保sessionId存在
       if (!currentSessionId) {
         const errorResponse = {
           id: messages.length + 2,
@@ -201,7 +186,6 @@ const AIchat = ({ showFab = true }) => {
         return;
       }
 
-      // 真实请求后端 AI
       try {
         const resp = await fetch(apiUrl, {
           method: "POST",
@@ -216,11 +200,11 @@ const AIchat = ({ showFab = true }) => {
         let aiReference = undefined;
         let needHuman = data.need_human || false;
         
-        // checklist 模式特殊处理
+        // checklist mode special handling
         if (mode === "checklist" && data.checklist) {
           aiText += "\n " + data.checklist.map((item, idx) => `${idx + 1}. ${item.item}`).join("\n");
         }
-        // rag 模式特殊处理，保存 reference 字段
+        // rag mode special handling
         if (mode === "rag" && data.reference && Object.keys(data.reference).length > 0) {
           aiReference = data.reference;
         }
@@ -253,17 +237,14 @@ const AIchat = ({ showFab = true }) => {
     }
   };
 
-  // 只有首次且 sessionId 为空时才新建 session
   const handleOpenChat = async () => {
     if (!isOpen) {
-      // 移除立即创建会话的逻辑，改为只在用户发送消息时创建
       setIsOpen(true);
     } else {
       setIsOpen(false);
     }
   };
 
-  // 新建会话
   const handleNewChat = async () => {
     const user_id = localStorage.getItem('user_id');
     if (!user_id) {
@@ -294,7 +275,6 @@ const AIchat = ({ showFab = true }) => {
     }
   };
 
-  // 拉取历史会话
   const fetchHistorySessions = async () => {
     setLoadingHistory(true);
     const user_id = localStorage.getItem('user_id');
@@ -305,20 +285,16 @@ const AIchat = ({ showFab = true }) => {
     setLoadingHistory(false);
   };
 
-  // 查看历史会话时拉取
   const handleOpenHistory = async () => {
     await fetchHistorySessions();
     setOpenHistory(true);
   };
 
-  // 切换到历史会话
   const handleSelectHistorySession = async (session_id) => {
     setOpenHistory(false);
     setSessionId(session_id);
-    // 拉取该会话的所有消息
     const resp = await fetch(`/api/get_messages/${session_id}`);
     const msgs = await resp.json();
-    // 转换为前端消息格式，并在最前面加问候语
     setMessages([
       {
         id: 0,
@@ -333,7 +309,6 @@ const AIchat = ({ showFab = true }) => {
         timestamp: new Date(m.timestamp),
       }))
     ]);
-    // 查找 title
     const found = historySessions.find(s => s.session_id === session_id);
     setSessionTitle(found ? (found.title || session_id) : session_id);
     setEditingTitle(false);
@@ -353,7 +328,6 @@ const AIchat = ({ showFab = true }) => {
   const handleSaveTitle = async () => {
     if (!sessionId) return;
     const newTitle = titleInput.trim() || "Untitled Session";
-    // 假设有后端接口 /api/update_session_title
     const resp = await fetch("/api/update_session_title", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -364,7 +338,6 @@ const AIchat = ({ showFab = true }) => {
       setSessionTitle(newTitle);
       setEditingTitle(false);
       setTitleInput("");
-      // 更新 historySessions 里的 title
       setHistorySessions(prev => prev.map(s => s.session_id === sessionId ? { ...s, title: newTitle } : s));
     } else {
       alert(data.error || "Failed to update title");
@@ -372,23 +345,19 @@ const AIchat = ({ showFab = true }) => {
   };
 
   const handleHumanHelp = () => {
-    // 打开人工帮助页面，传递当前的 sessionId
     navigate('/human-help', { 
       state: { session_id: sessionId }
     });
   };
 
-  // 显示删除确认弹窗
   const handleShowDeleteConfirm = (session_id) => {
     setSessionToDelete(session_id);
     setOpenDeleteConfirm(true);
   };
 
-  // 执行删除会话
   const handleConfirmDelete = async () => {
     if (!sessionToDelete) return;
     
-    // 先删除后端数据库里的 session
     const resp = await fetch("/api/delete_session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -396,20 +365,15 @@ const AIchat = ({ showFab = true }) => {
     });
     const data = await resp.json();
     if (data.success) {
-      // 如果当前会话被删，需要切换到其他会话或新建
       if (sessionId === sessionToDelete) {
-        // 获取删除后的会话列表
         const updatedSessions = historySessions.filter(s => s.session_id !== sessionToDelete);
         setHistorySessions(updatedSessions);
         
         if (updatedSessions.length > 0) {
-          // 如果有其他会话，自动切换到最新的，但不关闭历史会话弹窗
           const latestSession = updatedSessions[0];
-          // 直接设置会话ID和加载消息，而不调用handleSelectHistorySession
           setSessionId(latestSession.session_id);
           setSessionTitle(latestSession.title || latestSession.session_id);
           
-          // 加载该会话的消息
           const resp = await fetch(`/api/get_messages/${latestSession.session_id}`);
           const msgs = await resp.json();
           setMessages([
@@ -427,7 +391,6 @@ const AIchat = ({ showFab = true }) => {
             }))
           ]);
         } else {
-          // 如果没有会话了，自动新建一个
           const user_id = localStorage.getItem('user_id');
           if (user_id) {
             const resp = await fetch('/api/start_session', {
@@ -447,7 +410,7 @@ const AIchat = ({ showFab = true }) => {
                   timestamp: new Date(),
                 },
               ]);
-              // 刷新历史会话列表以包含新创建的会话
+
               fetchHistorySessions();
             } else {
               alert('Failed to create new chat.');
@@ -476,7 +439,6 @@ const AIchat = ({ showFab = true }) => {
           }
         }
       } else {
-        // 如果删除的不是当前会话，只需要更新列表
         setHistorySessions(prev => prev.filter(s => s.session_id !== sessionToDelete));
       }
     } else {
@@ -489,7 +451,6 @@ const AIchat = ({ showFab = true }) => {
 
   return (
     <>
-      {/* 悬浮聊天按钮 - 只在showFab为true时显示 */}
       {showFab && (
         <Fab
           color="primary"
@@ -516,7 +477,6 @@ const AIchat = ({ showFab = true }) => {
         </Fab>
       )}
 
-      {/* 聊天对话框 */}
       {isOpen && (
         <Box
           sx={{
@@ -535,7 +495,6 @@ const AIchat = ({ showFab = true }) => {
             border: "1px solid #e0e0e0",
           }}
         >
-          {/* 标题栏 */}
           <Box
             sx={{
               background: "#FFD600",
@@ -567,7 +526,6 @@ const AIchat = ({ showFab = true }) => {
               </IconButton>
             </Box>
           </Box>
-          {/* 模式切换按钮组和 Save Chat 按钮同一行 */}
           <Box sx={{ px: 2, py: 1, borderBottom: '1px solid #eee', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
               {otherModes.map(m => (
@@ -591,7 +549,6 @@ const AIchat = ({ showFab = true }) => {
               New Chat
             </Button>
           </Box>
-          {/* 会话标题展示 */}
           <Box sx={{ px: 2, py: 0.5, background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 1 }}>
             {editingTitle ? (
               <TextField
@@ -618,7 +575,6 @@ const AIchat = ({ showFab = true }) => {
             )}
           </Box>
 
-          {/* 消息列表 */}
           <Box
             sx={{
               flex: 1,
@@ -649,7 +605,6 @@ const AIchat = ({ showFab = true }) => {
                       boxShadow: 1,
                     }}
                   >
-                    {/* 使用ReactMarkdown渲染AI消息，用户消息保持纯文本 */}
                     {message.sender === "ai" ? (
                       <Box sx={{ 
                         '& h1, & h2, & h3, & h4, & h5, & h6': { 
@@ -713,7 +668,6 @@ const AIchat = ({ showFab = true }) => {
                     ) : (
                       <Typography variant="body2">{message.text}</Typography>
                     )}
-                    {/* rag 模式下显示 reference, 如果是 AI 发的, 并且有 reference 字段, 显示 reference */}
                     {message.sender === "ai" && message.reference && Object.keys(message.reference).length > 0 && !message.needHuman && (
                       <Box sx={{ mt: 2, p: 2, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e9ecef' }}>
                         <Typography variant="caption" sx={{ color: 'grey.700', fontWeight: 600, display: 'block', mb: 1 }}>
@@ -744,8 +698,7 @@ const AIchat = ({ showFab = true }) => {
                         </Stack>
                       </Box>
                     )}
-                    
-                    {/* 需要人工帮助时显示帮助按钮 */}
+                  
                     {message.sender === "ai" && message.needHuman && (
                       <Box sx={{ mt: 1, p: 1 }}>
                         <Button
@@ -776,14 +729,12 @@ const AIchat = ({ showFab = true }) => {
                   </Paper>
                 </ListItem>
               ))}
-              {/* 滚动锚点 */}
               <div ref={messagesEndRef} />
             </List>
           </Box>
 
           <Divider />
 
-          {/* 输入区域 */}
           <Box
             sx={{
               p: 2,
@@ -829,7 +780,6 @@ const AIchat = ({ showFab = true }) => {
         </Box>
       )}
 
-      {/* New Chat 确认弹窗 */}
       <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
         <DialogTitle>Start New Chat?</DialogTitle>
         <DialogContent>
@@ -852,7 +802,6 @@ const AIchat = ({ showFab = true }) => {
         </DialogActions>
       </Dialog>
 
-      {/* 历史会话弹窗 */}
       <Dialog 
         open={openHistory} 
         onClose={() => setOpenHistory(false)} 
@@ -957,7 +906,6 @@ const AIchat = ({ showFab = true }) => {
         </DialogActions>
       </Dialog>
 
-      {/* 删除确认弹窗 */}
       <Dialog 
         open={openDeleteConfirm} 
         onClose={() => setOpenDeleteConfirm(false)}

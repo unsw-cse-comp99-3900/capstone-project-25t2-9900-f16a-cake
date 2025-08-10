@@ -12,22 +12,22 @@ function AdminLanding() {
   const [loading, setLoading] = useState(true);
   const fileManagementRef = useRef();
 
-  // 新增：未完成工单
+  // Unfinished tickets
   const [tickets, setTickets] = useState([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [ticketsError, setTicketsError] = useState("");
 
-  // 新增：ticket 详情弹窗
+  // Ticket details dialog
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminReply, setAdminReply] = useState("");
   
-  // 新增：回复loading状态和成功弹窗
+  // Reply loading state and success dialog
   const [replyLoading, setReplyLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
-  // 倒计时效果
+  // Countdown
   useEffect(() => {
     let timer;
     if (showSuccessDialog && countdown > 0) {
@@ -41,7 +41,7 @@ function AdminLanding() {
     return () => clearTimeout(timer);
   }, [showSuccessDialog, countdown]);
 
-  // 获取用户活跃度数据
+  // Get user engagement data
   useEffect(() => {
     const fetchUserEngagement = async () => {
       try {
@@ -60,7 +60,7 @@ function AdminLanding() {
     fetchUserEngagement();
   }, []);
 
-  // 获取未完成工单
+  // Get unfinished tickets
   const fetchTickets = async () => {
     setTicketsLoading(true);
     setTicketsError("");
@@ -90,7 +90,7 @@ function AdminLanding() {
 
   const handleUploadSuccess = (data) => {
     setUploadMsg("Upload successful: " + data.title);
-    // 刷新文件列表
+    // Refresh file list
     if (fileManagementRef.current) {
       fileManagementRef.current.refreshPdfs();
     }
@@ -100,21 +100,21 @@ function AdminLanding() {
     setUploadDialogOpen(true);
   };
 
-  // 新增：打开 ticket 详情弹窗
+  // Open ticket details dialog
   const handleOpenTicketDialog = (ticket) => {
     setSelectedTicket(ticket);
     setAdminReply("");
     setTicketDialogOpen(true);
   };
 
-  // 新增：关闭 ticket 详情弹窗
+  // Close ticket details dialog
   const handleCloseTicketDialog = () => {
     setTicketDialogOpen(false);
     setSelectedTicket(null);
     setAdminReply("");
   };
 
-  // 新增：发送回复处理函数
+  // Send reply
   const handleSendReply = async () => {
     if (!selectedTicket || !adminReply.trim() || replyLoading) {
       return;
@@ -138,12 +138,12 @@ function AdminLanding() {
       const data = await response.json();
       
       if (data.success) {
-        // 显示成功弹窗
+        // Show success dialog
         setShowSuccessDialog(true);
         setCountdown(5);
-        // 关闭弹窗
+        // Close dialog
         handleCloseTicketDialog();
-        // 重新获取未处理工单列表
+        // Refresh unfinished tickets list
         fetchTickets();
       } else {
         alert(data.message || 'Failed to send reply');
@@ -163,9 +163,9 @@ function AdminLanding() {
 
   return (
     <Box sx={{ height: 'calc(100vh - 64px)', background: '#f7f7fa', mt: 8, px: { xs: 1, sm: 4, md: 8 } }}>
-      {/* 主体内容区域 */}
+      {/* Main content area */}
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} sx={{ height: '100%', minHeight: 400, alignItems: 'stretch', justifyContent: 'stretch' }}>
-        {/* 左侧区域：内容健康 */}
+        {/* Left area: Content health */}
         <Stack flex={1} sx={{ height: '100%', py: 2 }}>
           <Paper sx={{ 
             flex: 1, 
@@ -188,7 +188,7 @@ function AdminLanding() {
               Content health
             </Typography>
             
-            {/* 文件上传区域 */}
+            {/* File upload area */}
             <Box sx={{ mb: 3 }}>
               <Button 
                 variant="contained" 
@@ -221,16 +221,16 @@ function AdminLanding() {
             
             <Divider sx={{ mb: 2 }} />
             
-            {/* 文件管理区域 */}
+            {/* File management area */}
             <Box sx={{ flex: 1, overflow: 'hidden' }}>
               <FileManagement ref={fileManagementRef} />
             </Box>
           </Paper>
         </Stack>
         
-        {/* 右侧区域：用户活跃度 + 未答疑问 */}
+        {/* Right area: User engagement + Unanswered tickets */}
         <Stack flex={1} sx={{ height: '100%', py: 2 }}>
-          {/* 用户活跃度 */}
+          {/* User engagement */}
           <Paper sx={{ 
             p: 4, 
             mb: 3, 
@@ -323,7 +323,7 @@ function AdminLanding() {
             </Box>
           </Paper>
           
-          {/* 未答疑问 */}
+          {/* Unanswered tickets */}
           <Paper sx={{ 
             flex: 1, 
             p: 4, 
@@ -399,7 +399,7 @@ function AdminLanding() {
         onUpload={handleUploadSuccess}
       />
 
-      {/* Ticket 详情弹窗 */}
+      {/* Ticket details dialog */}
       <Dialog
         open={ticketDialogOpen}
         onClose={handleCloseTicketDialog}
@@ -422,7 +422,7 @@ function AdminLanding() {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', gap: 3, height: 500 }}>
-            {/* 左侧：Content */}
+            {/* Left: Content */}
             <Box sx={{ flex: 1, pr: 2, borderRight: '1px solid #eee' }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                 Question/Issue
@@ -442,7 +442,7 @@ function AdminLanding() {
               </Typography>
             </Box>
 
-            {/* 右侧：Admin 回复 */}
+            {/* Right: Admin reply */}
             <Box sx={{ flex: 1, pl: 2 }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#333' }}>
                 Admin Reply
@@ -495,7 +495,7 @@ function AdminLanding() {
         </DialogContent>
       </Dialog>
 
-      {/* 成功回复弹窗 */}
+      {/* Success reply dialog */}
       <Dialog
         open={showSuccessDialog}
         maxWidth="sm"

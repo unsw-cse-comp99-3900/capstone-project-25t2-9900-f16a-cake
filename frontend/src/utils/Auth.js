@@ -4,7 +4,6 @@ export const Auth = {
     localStorage.setItem("role", user.role);
     localStorage.setItem("subrole", user.subrole ?? "none");
     localStorage.setItem("username", user.username);
-    // <<<<<<<<<<<<<<<< 添加这一行 >>>>>>>>>>>>>>>>>
     localStorage.setItem("user_id", user.id); // 保存用户的唯一ID
   },
   clear: () => {
@@ -12,7 +11,6 @@ export const Auth = {
     localStorage.removeItem("role");
     localStorage.removeItem("subrole");
     localStorage.removeItem("username");
-    // <<<<<<<<<<<<<<<< 最好也在这里添加一行 >>>>>>>>>>>>>>>>>
     localStorage.removeItem("user_id");
     localStorage.removeItem("ai_session_id");
   },
@@ -20,7 +18,6 @@ export const Auth = {
   getRole: () => localStorage.getItem("role"),
   getSubrole: () => localStorage.getItem("subrole"),
   getUsername: () => localStorage.getItem("username"),
-  // <<<<<<<<<<<<<<<< 添加这个方法 >>>>>>>>>>>>>>>>>
   getUserId: () => localStorage.getItem("user_id"),
 };
 
