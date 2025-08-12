@@ -1,0 +1,277 @@
+{
+  "database": {
+    "host": "localhost",
+    "user": "root",
+    "password": "",
+    "database": "chat_system",
+    "port": 3306,
+    "connection_timeout": 10,
+    "pool_size": 10
+  },
+  "test_settings": {
+    "concurrent_users": 50,
+    "test_duration": 300,
+    "ramp_up_time": 60,
+    "think_time": 1.0,
+    "timeout": 30,
+    "max_retries": 3,
+    "monitoring_interval": 1.0
+  },
+  "endpoints": [
+    {
+      "path": "/",
+      "method": "GET",
+      "weight": 15,
+      "description": "欢迎页面"
+    },
+    {
+      "path": "/api/hello",
+      "method": "GET",
+      "weight": 20,
+      "description": "健康检查端点"
+    },
+    {
+      "path": "/api/login",
+      "method": "POST",
+      "weight": 25,
+      "description": "用户登录",
+      "test_data": {
+        "username": "phd1",
+        "password": "pass123",
+        "role": "staff"
+      }
+    },
+    {
+      "path": "/api/start_session",
+      "method": "POST",
+      "weight": 20,
+      "description": "开始新会话",
+      "test_data": {
+        "user_id": "phd1",
+        "title": "Performance Test Session"
+      }
+    },
+    {
+      "path": "/api/get_messages/test_session_id",
+      "method": "GET",
+      "weight": 25,
+      "description": "获取会话消息"
+    },
+    {
+      "path": "/api/get_sessions/test_user_id",
+      "method": "GET",
+      "weight": 20,
+      "description": "获取用户会话列表"
+    },
+    {
+      "path": "/api/profile",
+      "method": "GET",
+      "weight": 15,
+      "description": "获取用户资料（需要Bearer Token）",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    },
+    {
+      "path": "/api/update_session_title",
+      "method": "POST",
+      "weight": 10,
+      "description": "更新会话标题",
+      "test_data": {
+        "session_id": "test_session_id",
+        "title": "更新后的标题"
+      }
+    },
+    {
+      "path": "/api/delete_session",
+      "method": "POST",
+      "weight": 10,
+      "description": "删除会话",
+      "test_data": {
+        "session_id": "test_session_id"
+      }
+    },
+    {
+      "path": "/api/search",
+      "method": "POST",
+      "weight": 30,
+      "description": "搜索功能端点",
+      "test_data": {
+        "query": "测试搜索查询",
+        "mode": "general"
+      }
+    },
+    {
+      "path": "/api/admin/getpdfs",
+      "method": "GET",
+      "weight": 10,
+      "description": "管理员获取PDF列表",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    },
+    {
+      "path": "/api/aichat/general",
+      "method": "POST",
+      "weight": 35,
+      "description": "AI聊天通用模式",
+      "test_data": {
+        "question": "Hello, how are you?",
+        "session_id": "session_1"
+      }
+    },
+    {
+      "path": "/api/aichat/rag",
+      "method": "POST",
+      "weight": 30,
+      "description": "AI聊天RAG模式",
+      "test_data": {
+        "question": "Hello, please answer based on the document",
+        "session_id": "session_1"
+      }
+    },
+        {
+      "path": "/api/aichat/checklist",
+      "method": "POST",
+      "weight": 25,
+      "description": "AI聊天Checklist模式",
+      "skip": true,
+      "test_data": {
+        "question": "Hello, please generate a checklist",
+        "session_id": "session_1"
+      }
+    },
+    {
+      "path": "/api/user-engagement",
+      "method": "GET",
+      "weight": 15,
+      "description": "获取用户参与度统计"
+    },
+    {
+      "path": "/api/admin/messages/need-human",
+      "method": "GET",
+      "weight": 10,
+      "description": "管理员获取需要人工处理的消息",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    },
+    {
+      "path": "/api/admin/messages/stats",
+      "method": "GET",
+      "weight": 10,
+      "description": "管理员获取消息统计",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    },
+    {
+      "path": "/api/admin/messages/by-mode/general",
+      "method": "GET",
+      "weight": 10,
+      "description": "管理员按模式获取消息",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    },
+    {
+      "path": "/api/get_tickets",
+      "method": "GET",
+      "weight": 10,
+      "description": "管理员获取工单列表（需要Admin Token）",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    },
+    {
+      "path": "/api/tickets/stats",
+      "method": "GET",
+      "weight": 10,
+      "description": "管理员获取工单统计（需要Admin Token）",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluMSIsInVzZXJuYW1lIjoiYWRtaW4xIiwicm9sZSI6ImFkbWluIiwic3Vicm9sZSI6IkFkbWluIn0.OFei8I-Q_wVzxlqlc8r0RimQ0OYnJbxU_WVLvsE2RtI"
+      }
+    }
+  ],
+  "performance_thresholds": {
+    "excellent": {
+      "max_response_time": 0.1,
+      "min_throughput": 100,
+      "max_error_rate": 0.01,
+      "description": "优秀性能"
+    },
+    "good": {
+      "max_response_time": 0.5,
+      "min_throughput": 50,
+      "max_error_rate": 0.05,
+      "description": "良好性能"
+    },
+    "average": {
+      "max_response_time": 1.0,
+      "min_throughput": 20,
+      "max_error_rate": 0.1,
+      "description": "平均性能"
+    },
+    "poor": {
+      "max_response_time": 2.0,
+      "min_throughput": 10,
+      "max_error_rate": 0.2,
+      "description": "较差性能"
+    },
+    "very_poor": {
+      "max_response_time": 5.0,
+      "min_throughput": 5,
+      "max_error_rate": 0.5,
+      "description": "很差性能"
+    }
+  },
+  "load_test_scenarios": [
+    {
+      "name": "轻负载测试",
+      "concurrent_users": 10,
+      "duration": 60,
+      "description": "测试系统在轻负载下的性能"
+    },
+    {
+      "name": "中等负载测试",
+      "concurrent_users": 50,
+      "duration": 300,
+      "description": "测试系统在中等负载下的性能"
+    },
+    {
+      "name": "高负载测试",
+      "concurrent_users": 100,
+      "duration": 600,
+      "description": "测试系统在高负载下的性能"
+    },
+    {
+      "name": "压力测试",
+      "concurrent_users": 200,
+      "duration": 900,
+      "description": "测试系统的极限性能"
+    }
+  ],
+  "monitoring": {
+    "enabled": true,
+    "interval": 1.0,
+    "metrics": ["cpu", "memory", "response_time", "throughput", "error_rate"],
+    "log_level": "INFO",
+    "save_metrics": true,
+    "metrics_file": "performance_metrics.json"
+  },
+  "reporting": {
+    "generate_charts": true,
+    "chart_format": "png",
+    "chart_dpi": 300,
+    "save_detailed_results": true,
+    "output_directory": "performance_reports",
+    "include_system_info": true,
+    "include_performance_analysis": true
+  },
+  "system_info": {
+    "collect_os_info": true,
+    "collect_python_info": true,
+    "collect_database_info": true,
+    "collect_network_info": true
+  }
+}

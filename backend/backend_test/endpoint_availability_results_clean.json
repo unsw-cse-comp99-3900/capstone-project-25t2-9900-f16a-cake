@@ -1,0 +1,173 @@
+[
+  {
+    "endpoint": "/",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.066,
+    "success": true,
+    "description": "欢迎页面",
+    "error": null
+  },
+  {
+    "endpoint": "/api/hello",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.068,
+    "success": true,
+    "description": "健康检查端点",
+    "error": null
+  },
+  {
+    "endpoint": "/api/login",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 2.11,
+    "success": true,
+    "description": "用户登录",
+    "error": null
+  },
+  {
+    "endpoint": "/api/start_session",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 2.098,
+    "success": true,
+    "description": "开始新会话",
+    "error": null
+  },
+  {
+    "endpoint": "/api/get_messages/test_session_id",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.091,
+    "success": true,
+    "description": "获取会话消息",
+    "error": null
+  },
+  {
+    "endpoint": "/api/get_sessions/test_user_id",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.09,
+    "success": true,
+    "description": "获取用户会话列表",
+    "error": null
+  },
+  {
+    "endpoint": "/api/profile",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.082,
+    "success": true,
+    "description": "获取用户资料（需要Bearer Token）",
+    "error": null
+  },
+  {
+    "endpoint": "/api/update_session_title",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 2.107,
+    "success": true,
+    "description": "更新会话标题",
+    "error": null
+  },
+  {
+    "endpoint": "/api/delete_session",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 2.084,
+    "success": true,
+    "description": "删除会话",
+    "error": null
+  },
+  {
+    "endpoint": "/api/search",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 2.097,
+    "success": true,
+    "description": "搜索功能端点",
+    "error": null
+  },
+  {
+    "endpoint": "/api/admin/getpdfs",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.058,
+    "success": true,
+    "description": "管理员获取PDF列表",
+    "error": null
+  },
+  {
+    "endpoint": "/api/aichat/general",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 8.333,
+    "success": true,
+    "description": "AI聊天通用模式",
+    "error": null
+  },
+  {
+    "endpoint": "/api/aichat/rag",
+    "method": "POST",
+    "status_code": 200,
+    "response_time": 5.353,
+    "success": true,
+    "description": "AI聊天RAG模式",
+    "error": null
+  },
+  {
+    "endpoint": "/api/user-engagement",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.093,
+    "success": true,
+    "description": "获取用户参与度统计",
+    "error": null
+  },
+  {
+    "endpoint": "/api/admin/messages/need-human",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.09,
+    "success": true,
+    "description": "管理员获取需要人工处理的消息",
+    "error": null
+  },
+  {
+    "endpoint": "/api/admin/messages/stats",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.1,
+    "success": true,
+    "description": "管理员获取消息统计",
+    "error": null
+  },
+  {
+    "endpoint": "/api/admin/messages/by-mode/general",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.085,
+    "success": true,
+    "description": "管理员按模式获取消息",
+    "error": null
+  },
+  {
+    "endpoint": "/api/get_tickets",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.093,
+    "success": true,
+    "description": "管理员获取工单列表（需要Admin Token）",
+    "error": null
+  },
+  {
+    "endpoint": "/api/tickets/stats",
+    "method": "GET",
+    "status_code": 200,
+    "response_time": 2.086,
+    "success": true,
+    "description": "管理员获取工单统计（需要Admin Token）",
+    "error": null
+  }
+]
