@@ -113,10 +113,10 @@ CREATE TABLE `messages` (
   `role` enum('user','ai') COLLATE utf8mb4_unicode_ci NOT NULL,
   `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
-  `reference` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '消息关联的文献、参考资料或外部链接',
-  `checklist` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '本消息关联的待办事项、检查项(JSON格式)',
-  `mode` enum('general','rag','checklist','human_ticket') COLLATE utf8mb4_unicode_ci DEFAULT 'general' COMMENT '消息所属模式或处理流程',
-  `need_human` tinyint(1) DEFAULT '0' COMMENT '是否需要人工介入/审核(0=不需要,1=需要)',
+  `reference` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Message related literature, references or external links',
+  `checklist` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Todo items and checklists associated with this message (JSON format)',
+  `mode` enum('general','rag','checklist','human_ticket') COLLATE utf8mb4_unicode_ci DEFAULT 'general' COMMENT 'Message mode or processing workflow',
+  `need_human` tinyint(1) DEFAULT '0' COMMENT 'Whether human intervention/review is needed (0=not needed, 1=needed)',
   PRIMARY KEY (`message_id`),
   KEY `session_id` (`session_id`),
   KEY `mode` (`mode`),
@@ -178,7 +178,6 @@ CREATE TABLE `pdf_documents` (
   `keywords` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `keywords_encoded` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `pdf_path` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
-  -- 猜测: 在 search 功能的更新时, ziyi 在本地更新了数据库结构但是没有写到 .sql 里, 我猜测着改成 document_date 看一下能不能用
   -- `year` varchar(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `document_date` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `upload_time` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -199,7 +198,7 @@ LOCK TABLES `pdf_documents` WRITE;
 /*!40000 ALTER TABLE `pdf_documents` ENABLE KEYS */;
 UNLOCK TABLES;
 
--- 创建关键词表
+-- Create keywords table
 CREATE TABLE `all_keywords` (
   `id` int NOT NULL AUTO_INCREMENT,
   `keyword` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -208,7 +207,7 @@ CREATE TABLE `all_keywords` (
   UNIQUE KEY `keyword` (`keyword`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 插入初始关键词（从现有文档中提取）
+-- Insert initial keywords (extracted from existing documents)
 INSERT INTO `all_keywords` (`keyword`) VALUES 
 ('home'), ('directory'), ('homedir'), ('files'), ('fileserver'), ('sftp'), ('upload'), ('download'),
 ('account'), ('group'), ('class'), ('expiring'), ('expiry'),
@@ -230,7 +229,7 @@ CREATE TABLE `tickets` (
   `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `is_finished` tinyint(1) DEFAULT '0',
   `finished_time` datetime DEFAULT NULL,
-  `admin_notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '管理员处理备注',
+  `admin_notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Admin processing notes',
   PRIMARY KEY (`ticket_id`),
   KEY `session_id` (`session_id`),
   KEY `staff_id` (`staff_id`),
@@ -238,7 +237,7 @@ CREATE TABLE `tickets` (
   KEY `request_time` (`request_time`),
   CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `chat_history` (`session_id`),
   CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`staff_id`) REFERENCES `user_info` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='转人工请求工单表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Human assistance request ticket table';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

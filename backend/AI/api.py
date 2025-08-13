@@ -31,7 +31,7 @@ def ask():
     data = request.get_json() or {}
     question = data.get('question', '').strip()
     if not question:
-        return jsonify({"error": "question 不能为空"}), 400
+        return jsonify({"error": "question cannot be empty"}), 400
 
     payload = {
         "model": MODEL,
