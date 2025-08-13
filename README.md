@@ -1,5 +1,6 @@
 
-# CSE Help Desk System - Capstone Project
+# Faculty New Joiners Onboarding Hub
+
 
 A comprehensive help desk system for CSE (Computer Science and Engineering) students and staff, featuring AI-powered chat support, document search, and user management capabilities.
 
