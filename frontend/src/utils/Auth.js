@@ -4,7 +4,7 @@ export const Auth = {
     localStorage.setItem("role", user.role);
     localStorage.setItem("subrole", user.subrole ?? "none");
     localStorage.setItem("username", user.username);
-    localStorage.setItem("user_id", user.id); // 保存用户的唯一ID
+    localStorage.setItem("user_id", user.id);
   },
   clear: () => {
     localStorage.removeItem("token");
@@ -20,21 +20,3 @@ export const Auth = {
   getUsername: () => localStorage.getItem("username"),
   getUserId: () => localStorage.getItem("user_id"),
 };
-
-
-// 1. 前端登录时给后端的数据格式
-// [用户名, 密码, 角色(staff/admin)]
-// 2. 后端返回的格式 (依旧不明确)
-// [登录状态, token, 用户信息(id, username, role, subrole)]
-// {
-//     "success": true,
-//     "token": "eyJhbGciOiJIUzI1NiIsInR...",
-//     "user": {
-//         "id": 123,
-//         "username": "admin1",
-//         "role": "admin",
-//         "subrole": null
-//     }
-// }
-// 3. 前端保存的数据格式 (现在将包含 user_id)
-// [token, role, subrole, username, user_id]

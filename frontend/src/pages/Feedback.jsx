@@ -76,7 +76,7 @@ function Feedback() {
         setError(data.message || 'Submission failed, please try again');
       }
     } catch (err) {
-      console.log('Error submitting feedback:', err);
+      // console.log('Error submitting feedback:', err);
       setError('Network issue, please check your connection and try again');
     } finally {
       setLoading(false);

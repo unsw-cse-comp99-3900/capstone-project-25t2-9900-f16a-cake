@@ -57,7 +57,7 @@ function UploadDialog({ open, onClose, onUpload }) {
     formData.append('title', title.trim());
     formData.append('keywords', keywords.trim());
     if (documentDate) {
-      // 格式化为 yyyy-MM-dd
+      // Format to yyyy-MM-dd
       const formattedDate = documentDate instanceof Date ? documentDate.toISOString().slice(0, 10) : documentDate;
       formData.append('document_date', formattedDate);
     }

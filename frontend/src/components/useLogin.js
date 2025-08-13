@@ -4,13 +4,13 @@ import { Auth } from "../utils/Auth";
 import { Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
 
 /**
- * 通用登录Hook
+ * Universal Login Hook
  * @param {Object} options
- * @param {string} options.api 登录API路径，如"/api/staff-login"
- * @param {string} options.successRedirect 登录成功后跳转路径
- * @param {string} options.role 角色（staff/admin），会一并发送给后端
- * @param {function} [options.onSuccess] 登录成功后的回调
- * @param {function} [options.onError] 登录失败/异常的回调
+ * @param {string} options.api Login API path, e.g. "/api/staff-login"
+ * @param {string} options.successRedirect Redirect path after successful login
+ * @param {string} options.role Role (staff/admin), will be sent to backend
+ * @param {function} [options.onSuccess] Callback after successful login
+ * @param {function} [options.onError] Callback after login failure/error
  * @returns {Object}
  */
 function useLogin({ api, successRedirect, role, onSuccess, onError }) {
@@ -20,7 +20,7 @@ function useLogin({ api, successRedirect, role, onSuccess, onError }) {
   const [ssoDialogOpen, setSsoDialogOpen] = useState(false);
   const navigate = useNavigate();
 
-  // 普通登录
+  // Regular login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -34,13 +34,13 @@ function useLogin({ api, successRedirect, role, onSuccess, onError }) {
       try {
         data = await res.json();
       } catch {
-        // json 解析失败
+        // JSON parsing failed
         if (onError) onError("Server error, please try again later!");
         else alert("Server error, please try again later!");
         setLoading(false);
         return;
       }
-      // 登录成功
+      // Login successful
       if (res.status === 200 && data.success) {
         Auth.save(data.token, data.user);
         if (onSuccess) onSuccess(data);
@@ -63,12 +63,12 @@ function useLogin({ api, successRedirect, role, onSuccess, onError }) {
     }
   };
 
-  // SSO登录
+  // SSO login
   const handleSSOLogin = () => {
     setSsoDialogOpen(true);
   };
 
-  // 关闭SSO对话框
+  // Close SSO dialog
   const handleCloseSsoDialog = () => {
     setSsoDialogOpen(false);
   };

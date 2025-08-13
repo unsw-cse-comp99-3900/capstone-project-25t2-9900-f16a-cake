@@ -9,13 +9,13 @@ const FileManagement = forwardRef((props, ref) => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  // 日期格式化函数：将日期格式化为 DD/MM/YYYY
+  // Date formatting function: formats date to DD/MM/YYYY
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
       const date = new Date(dateString);
       const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() 返回 0-11
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() returns 0-11
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
     } catch (error) {

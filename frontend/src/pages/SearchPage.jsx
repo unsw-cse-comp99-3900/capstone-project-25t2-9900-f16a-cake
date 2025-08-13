@@ -16,22 +16,22 @@ import {
 
 export default function SearchPage() {
     // ——————————————————————————————
-    // 1. 搜索框状态
+    // 1. Search input state
     const [query, setQuery] = useState('');
-    // 2. 搜索结果状态（模拟数据，包含年份信息）
+    // 2. Search results state (mock data, includes year information)
     const [searchResult, setSearchResult] = useState([]);
-    // 3. 过滤器状态 - 支持年份和月份级联过滤
+    // 3. Filter state - supports year and month cascading filters
     const [yearFilter, setYearFilter] = useState('');
     const [monthFilter, setMonthFilter] = useState('');
     const [filteredResults, setFilteredResults] = useState([]);
 
-    // 日期格式化函数：将日期格式化为 DD/MM/YYYY
+    // Date formatting function: formats date to DD/MM/YYYY
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         try {
             const date = new Date(dateString);
             const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() 返回 0-11
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() returns 0-11
             const year = date.getFullYear();
             return `${day}/${month}/${year}`;
         } catch (error) {
@@ -40,8 +40,8 @@ export default function SearchPage() {
         }
     };
 
-    // ——————————————————————————————
-    // 4. 点击 Search 时，将 query 作为唯一结果或清空
+
+    // 4. When Search is clicked, set query as unique result or clear
     const handleSearch = async () => {
         if (!query) {
             setSearchResult([]);
@@ -51,7 +51,7 @@ export default function SearchPage() {
             return;
         }
         try {
-            // 调用 Flask 后端
+            // Call Flask backend
             const response = await fetch('/api/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -63,9 +63,9 @@ export default function SearchPage() {
             }
             
             const data = await response.json();
-            console.log('Search response:', data); // 调试日志
+            console.log('Search response:', data); // Debug log
             
-            // 直接保存对象数组
+            // Save object array directly
             setSearchResult(data.results || []);
             setFilteredResults(data.results || []);
             setYearFilter('');
@@ -77,11 +77,11 @@ export default function SearchPage() {
         }
     };
 
-    // 5. 应用级联过滤器
+    // 5. Apply cascading filters
     const applyFilter = () => {
-        console.log('Apply filter clicked. Year:', yearFilter, 'Month:', monthFilter); // 调试信息
+        console.log('Apply filter clicked. Year:', yearFilter, 'Month:', monthFilter); // Debug info
         
-        // 如果没有任何过滤条件，显示所有搜索结果
+        // If no filter conditions, show all search results
         if (!yearFilter && !monthFilter) {
             console.log('No filters active, showing all results');
             setFilteredResults(searchResult);
@@ -90,7 +90,7 @@ export default function SearchPage() {
         
         let filtered = [...searchResult];
         
-        // 第一步：按年份过滤
+        // Step 1: Filter by year
         if (yearFilter) {
             filtered = filtered.filter(item => {
                 if (item.document_date) {
@@ -109,12 +109,12 @@ export default function SearchPage() {
             console.log('After year filter:', filtered.length, 'results');
         }
         
-        // 第二步：在年份过滤结果基础上按月份过滤
+        // Step 2: Filter by month based on year filter results
         if (monthFilter) {
             filtered = filtered.filter(item => {
                 if (item.document_date) {
                     try {
-                        const itemMonth = new Date(item.document_date).getMonth() + 1; // getMonth() 返回 0-11
+                        const itemMonth = new Date(item.document_date).getMonth() + 1; // getMonth() returns 0-11
                         const match = String(itemMonth) === String(monthFilter);
                         console.log('Month filter:', item.title, 'month:', itemMonth, 'match:', match);
                         return match;
@@ -132,28 +132,28 @@ export default function SearchPage() {
         setFilteredResults(filtered);
     };
 
-    // 6. 清除所有过滤器
+    // 6. Clear all filters
     const clearAllFilters = () => {
         setYearFilter('');
         setMonthFilter('');
         setFilteredResults(searchResult);
     };
     
-    // 7. 清除年份过滤器
+    // 7. Clear year filter
     const clearYearFilter = () => {
         setYearFilter('');
-        // 重新应用剩余的过滤器
+        // Reapply remaining filters
         applyFilterWithValues('', monthFilter);
     };
     
-    // 8. 清除月份过滤器  
+    // 8. Clear month filter  
     const clearMonthFilter = () => {
         setMonthFilter('');
-        // 重新应用剩余的过滤器
+        // Reapply remaining filters
         applyFilterWithValues(yearFilter, '');
     };
     
-    // 9. 用指定值应用过滤器（避免状态更新延迟）
+    // 9. Apply filters with specified values (avoid state update delay)
     const applyFilterWithValues = (year, month) => {
         if (!year && !month) {
             setFilteredResults(searchResult);
@@ -193,7 +193,7 @@ export default function SearchPage() {
         setFilteredResults(filtered);
     };
 
-    // 当年份或月份过滤器变化时自动应用过滤器
+    // Automatically apply filters when year or month filter changes
     useEffect(() => {
         if (searchResult.length > 0) {
             applyFilterWithValues(yearFilter, monthFilter);
@@ -206,13 +206,13 @@ export default function SearchPage() {
 
     return (
         <>
-            {/* ———— 第一块：搜索栏 ———— */}
+            {/* ———— First Block: Search Bar ———— */}
             <Box
                 sx={{
-                    display: 'flex',          // Flex 容器
-                    alignItems: 'flex-end',   // 子元素底部对齐
-                    justifyContent: 'center', // 子元素水平居中
-                    mt: 15                    // 距离顶部 15
+                    display: 'flex',          // Flex container
+                    alignItems: 'flex-end',   // Align child elements to bottom
+                    justifyContent: 'center', // Center child elements horizontally
+                    mt: 15                    // Distance from top 15
                 }}
             >
                 <TextField
@@ -231,7 +231,7 @@ export default function SearchPage() {
                 </Button>
             </Box>
 
-            {/* ———— 第二块 & 第三块：并排布局容器 ———— */}
+            {/* ———— Second & Third Block: Side-by-side Layout Container ———— */}
             <Box
                 sx={{
                     display: 'flex',               
@@ -241,7 +241,7 @@ export default function SearchPage() {
                     px: 4                          
                 }}
             >
-                {/* —— 左侧过滤器 —— */}
+                {/* —— Left Side Filters —— */}
                 <Paper
                     elevation={3}
                     sx={{
@@ -252,12 +252,12 @@ export default function SearchPage() {
                         backgroundColor: '#f5f5f5'   
                     }}
                 >
-                    {/* 英文标题 */}
+                    {/* English Title */}
                     <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>
                         Filters
                     </Typography>
 
-                    {/* 年份过滤器 */}
+                    {/* Year Filter */}
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
                             Year Filter
@@ -285,7 +285,7 @@ export default function SearchPage() {
                         </Box>
                     </Box>
 
-                    {/* 月份过滤器 */}
+                    {/* Month Filter */}
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
                             Month Filter
@@ -327,7 +327,7 @@ export default function SearchPage() {
                         </Typography>
                     </Box>
 
-                    {/* 操作按钮（英文） */}
+                    {/* Action Buttons (English) */}
                     <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         {(yearFilter || monthFilter) && (
                             <Button
@@ -355,7 +355,7 @@ export default function SearchPage() {
                         )}
                     </Box>
 
-                    {/* 过滤结果统计（英文） */}
+                    {/* Filter Results Statistics (English) */}
                     <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary' }}>
                         {(() => {
                             const hasFilters = yearFilter || monthFilter;
@@ -374,13 +374,13 @@ export default function SearchPage() {
                         })()}
                     </Typography>
 
-                    {/* 说明文字（英文） */}
+                    {/* Description Text (English) */}
                     <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2, color: 'text.secondary' }}>
                         Cascade filtering: Apply year filter first, then optionally add month filter
                     </Typography>
                 </Paper>
 
-                {/* —— 右侧结果 —— */}
+                {/* —— Right Side Results —— */}
                 <Paper
                     elevation={3}
                     sx={{
@@ -393,7 +393,7 @@ export default function SearchPage() {
                     }}
                 >
                     {(() => {
-                        // 确定要显示的结果：如果设置了任何过滤器，显示过滤结果；否则显示搜索结果
+                        // Determine results to display: if any filters are set, show filtered results; otherwise show search results
                         const displayResults = (yearFilter || monthFilter) ? filteredResults : searchResult;
                         
                         return displayResults.length > 0 ? (

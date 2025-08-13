@@ -62,8 +62,8 @@ const AIchat = ({ showFab = true }) => {
     { value: "checklist", label: "Checklist" }
   ];
   const [mode, setMode] = useState("general");
-  const currentMode = MODES.find(m => m.value === mode); // 当前模式, 有上面一行决定, 现在是 general
-  const otherModes = MODES.filter(m => m.value !== mode); // 其他模式, 现在是 rag 和 general
+  const currentMode = MODES.find(m => m.value === mode);
+  const otherModes = MODES.filter(m => m.value !== mode);
 
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState("");
@@ -510,7 +510,7 @@ const AIchat = ({ showFab = true }) => {
             }}
           >
             <Typography variant="h6">
-              AI Chat - {currentMode.label} {/* 用来展示当前 ai 对话模式 */}
+              AI Chat - {currentMode.label}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Button

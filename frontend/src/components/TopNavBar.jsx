@@ -11,28 +11,28 @@ function TopNavBar() {
   const [profile, setProfile] = useState(null);
   const role = localStorage.getItem("role");
   
-  // 控制staff用户是否能看到布局切换按钮
+  // Control whether staff users can see the layout switch button
   const SHOW_LAYOUT_SWITCH_TO_STAFF = false;
   // const SHOW_LAYOUT_SWITCH_TO_STAFF = true;
 
-  // 点击 Log out 按钮时弹出 Dialog
+  // Show Dialog when Log out button is clicked
   const handleLogoutClick = () => {
     setOpen(true);
   };
 
-  // 确认登出, 因为用的 JWT 登录, 所以不需要后端登出接口, 直接清除 localStorage 即可
+  // Confirm logout, since using JWT login, no backend logout API needed, just clear localStorage
   const handleConfirmLogout = () => {
     Auth.clear();
     setOpen(false);
     navigate("/");
   };
 
-  // 取消登出
+  // Cancel logout
   const handleCancelLogout = () => {
     setOpen(false);
   };
 
-  // 获取配置
+  // Fetch configuration
   const fetchConfig = async () => {
     try {
       const response = await fetch('/api/readconfig');
@@ -43,7 +43,7 @@ function TopNavBar() {
     }
   };
 
-  // 更新配置
+  // Update configuration
   const updateConfig = async (layout) => {
     try {
       const response = await fetch('/api/updateconfig', {
@@ -60,21 +60,21 @@ function TopNavBar() {
     }
   };
 
-  // 处理布局切换
+  // Handle layout change
   const handleLayoutChange = (event) => {
     const newLayout = event.target.checked ? 'new' : 'old';
     setUseNewLayout(event.target.checked);
     updateConfig(newLayout);
   };
 
-  // 判断当前页面
+  // Determine current page
   const isSearchPage = location.pathname === "/search";
   const isProfilePage = location.pathname === "/staff-profile";
   const isLandingPage = location.pathname === "/staff-landing";
   const isFeedbackPage = location.pathname === "/feedback";
   const isHumanHelpPage = location.pathname === "/human-help";
 
-  // 获取用户信息
+  // Fetch user profile
   const fetchProfile = async () => {
     const token = Auth.getToken();
     if (!token) return;
@@ -97,7 +97,7 @@ function TopNavBar() {
     }
   };
 
-  // 组件加载时获取配置和用户信息
+  // Fetch configuration and user profile when component loads
   useEffect(() => {
     if (role === "admin" || role === "staff") {
       fetchConfig();
@@ -105,7 +105,7 @@ function TopNavBar() {
     }
   }, [role]);
 
-  // 根据当前页面更新浏览器标签栏标题
+  // Update browser tab title based on current page
   useEffect(() => {
     if (role === "admin") {
       document.title = "Admin Dashboard";
@@ -138,7 +138,7 @@ function TopNavBar() {
       }}
     >
       <Toolbar sx={{ minHeight: 64, px: { xs: 2, sm: 3 } }}>
-        {/* 左侧 Logo */}
+        {/* Left Logo */}
         <Box
           component="img"
           src="../../assets/unswlogo.png"
@@ -178,13 +178,13 @@ function TopNavBar() {
               {isProfilePage ? "My Profile" : isSearchPage ? "Search" : isFeedbackPage ? "Feedback" : isHumanHelpPage ? "Human Help" : "Homepage"}
             </Typography>
             <Button variant="outlined" sx={{ mx: 1 }} onClick={() => navigate('/search')}>Search</Button>
-            {/* 右侧头像和登出 */}
+            {/* Right avatar and logout */}
             <Box sx={{ flexGrow: 1 }} />
-            {/* 除了 staff-landing 页面外都显示 Back Home 按钮 */}
+            {/* Show Back Home button on all pages except staff-landing */}
             {!isLandingPage && (
               <Button variant="outlined" sx={{ mr: 1 }} onClick={() => navigate('/staff-landing')}>Back Home</Button>
             )}
-            {/* 根据配置决定是否显示布局切换按钮 */}
+            {/* Show layout switch button based on configuration */}
             {SHOW_LAYOUT_SWITCH_TO_STAFF && (
               <FormControlLabel
                 control={
@@ -213,7 +213,7 @@ function TopNavBar() {
           </>
         )}
       </Toolbar>
-      {/* logout 确认弹窗 */}
+      {/* Logout confirmation dialog */}
       <Dialog open={open} onClose={handleCancelLogout} PaperProps={{ sx: { borderRadius: 3, minWidth: 340 } }}>
         <DialogTitle sx={{ fontWeight: 700, textAlign: 'center', pt: 3 }}>Confirm Logout</DialogTitle>
         <DialogContent>

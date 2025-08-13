@@ -102,7 +102,7 @@ function StaffLandingNew() {
   useEffect(() => {
     fetchHistorySessions();
     fetchProfile();
-    // 只在组件挂载时执行一次，不需要依赖
+    // Only execute once when component mounts, no dependencies needed
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -148,7 +148,7 @@ function StaffLandingNew() {
       setMessages([...messages, newMessage]);
       setInputMessage("");
 
-      console.log('Debug - sessionTitle:', sessionTitle, 'messages.length:', messages.length, 'inputMessage:', inputMessage);
+      // console.log('Debug - sessionTitle:', sessionTitle, 'messages.length:', messages.length, 'inputMessage:', inputMessage);
 
       if (messages.length === 1 && sessionTitle !== inputMessage) {
         setSessionTitle(inputMessage);
@@ -271,7 +271,7 @@ function StaffLandingNew() {
       setHistorySessions(sessions);
       
       if (sessions.length > 0) {
-        const latestSession = sessions[0]; // 假设按时间倒序排列
+        const latestSession = sessions[0]; // Assume sorted by time in descending order
         handleSelectHistorySession(latestSession.session_id);
       }
     } catch (error) {

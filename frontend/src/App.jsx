@@ -26,7 +26,7 @@ function AppContent() {
   const isStaff = localStorage.getItem("role") === "staff";
   const [layout, setLayout] = useState("old");
 
-  // 获取布局配置
+  // Fetch layout configuration
   useEffect(() => {
     const fetchLayoutConfig = async () => {
       try {
@@ -43,7 +43,7 @@ function AppContent() {
     }
   }, [isLoggedIn, isStaff]);
 
-  // 判断是否应该显示 AIchat
+  // Determine whether AIchat should be displayed
   const shouldShowAIchat = isLoggedIn && !(isStaff && location.pathname === "/staff-landing" && layout === "new") && !(location.pathname === "/admin-landing");
 
   return (
@@ -51,7 +51,7 @@ function AppContent() {
       {showTopBar ? <TopBar /> : <TopNavBar />}
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <Routes>
-          {/* 未登录可访问 */}
+          {/* Accessible without login */}
           <Route path="/" element={
             <RequireNoAuth>
               <Entry />
@@ -68,7 +68,7 @@ function AppContent() {
             </RequireNoAuth>
           } />
 
-          {/* 需要登录才能访问 */}
+          {/* Requires login to access */}
           <Route path="/staff-landing" element={
             <RequireAuth>
               <RequireStaff>
@@ -108,11 +108,9 @@ function AppContent() {
         </Routes>
       </Box>
       
-      {/* // 只在 staff 端显示 feedback */}
+      {/* Only show feedback on staff side */}
       {isStaff && <SuggestButton />}
-      {/* // ai chat 是否只在 staff 端显示? 还是所有端都显示? */}
-      {/* // 为了测试方便, 目前在所有端都显示 */}
-      {/* {isStaff && <AIchat />} */}
+      
       {shouldShowAIchat && <AIchat />}
     </Box>
   );
