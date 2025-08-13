@@ -1,33 +1,78 @@
+"""
+HDingo Backend Application
+==========================
+
+This is the main Flask backend application for the HDingo project, a comprehensive
+AI-powered onboarding assistance system for the School of Computer Science and 
+Engineering (CSE) at UNSW.
+
+Project: Capstone Project 25T2-9900-F16A-CAKE
+Team: HDingo
+University: UNSW
+Course: COMP9900
+
+Features:
+- User authentication and authorization (JWT-based)
+- AI chat system with multiple modes (General, RAG, Checklist)
+- PDF document management and RAG (Retrieval-Augmented Generation)
+- Search functionality with keyword extraction and similarity matching
+- Human support ticket system
+- Email notifications
+- User engagement tracking
+- Admin dashboard and management tools
+
+API Endpoints:
+- Authentication: /api/login, /api/profile
+- Chat: /api/ask, /api/aichat/*
+- Document Management: /api/upload, /api/admin/*
+- Search: /api/search
+- Support: /api/save_ticket, /api/get_tickets
+- Configuration: /api/readconfig, /api/updateconfig
+
+Dependencies:
+- Flask: Web framework
+- Flask-CORS: Cross-origin resource sharing
+- Flask-Mail: Email functionality
+- JWT: JSON Web Token authentication
+- FAISS: Vector similarity search
+- SentenceTransformers: Text embeddings
+- PDFPlumber: PDF text extraction
+
+Author: HDingo Team
+Last Updated: 2024
+License: Internal UNSW Project
+"""
+
 from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from flask_mail import Mail, Message
 import database  # database.py
 from search import extract_keywords, multi_hot_encode, calculate_similarity
 import requests
-# v 生成 token 的库 v
+# JWT token generation library
 import jwt
-import datetime  # 用于 JWT 过期时间等
-# ^ 生成 token 的库 ^
+import datetime  # For JWT expiration time, etc.
+# JWT token generation library
 
-# ————————生成rag————————
+# RAG (Retrieval-Augmented Generation) imports
 import re
 import uuid
 import logging
 import pdfplumber
 from werkzeug.utils import secure_filename
 
-# —————————rag———————————
+# RAG (Retrieval-Augmented Generation) imports
 import faiss
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import json
-from datetime import datetime  # 用于文件时间展示
+from datetime import datetime  # For file time display
 import time
 import random
 import os
 
-# 配置文件路径
+# Configuration file path
 CONFIG_FILE = 'config.json'
 
 def load_config():
@@ -35,7 +80,7 @@ def load_config():
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        # 如果文件不存在，创建默认配置
+        # If file doesn't exist, create default configuration
         default_config = {"layout": "old"}
         save_config(default_config)
         return default_config
@@ -46,7 +91,7 @@ def save_config(config):
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-list_pdf = []  # 公用pdf列表
+list_pdf = []  # Public PDF list
 
 app = Flask(__name__)
 CORS(app)
@@ -61,40 +106,40 @@ app.config['MAIL_DEFAULT_SENDER'] = 'hdingo9900@gmail.com'
 
 mail = Mail(app)
 
-# 上传配置
+# Upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 RAG_FOLDER = os.path.join(os.path.dirname(__file__), 'rag')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RAG_FOLDER, exist_ok=True)
 
-# RAG 模型初始化
+# RAG model initialization
 ragMODEL = SentenceTransformer('all-MiniLM-L6-v2')
 PDF_URL_BASE = "http://localhost:8000/pdfs"
 
-# ———— AI 聊天配置区域 ————
+# AI Chat Configuration Section
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL = "Qwen/QwQ-32B"
 API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 
-# 生成 token 的密钥
+# Secret key for token generation
 SECRET_KEY = "hdingo_secret_key"
 
-# ————————————————————
+# End of AI Chat Configuration
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pdfs')
 ALLOWED_EXTENSIONS = {'pdf'}
-# flask 全局参数, 用来保存上传的文件的位置
+# Flask global parameter for storing uploaded file locations
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# ---- 测试接口 ----
+# ---- Test API ----
 @app.route("/api/hello")
 def hello():
     return jsonify(message="Hello from Flask! This is my test message, yeah!")
 
 
-# ---- 登录接口（查数据库 user_info）----
+# ---- Login API (Query database user_info) ----
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -107,12 +152,12 @@ def login():
 
     user = database.get_user(username)
     if user and user["password"] == password:
-        # 注意：user_info 表应有 role 字段！否则可用 identity/is_admin 判断
+        # Note: user_info table should have role field! Otherwise use identity/is_admin for judgment
         db_role = "admin" if user.get("is_admin") == 1 else "staff"
         if db_role != role:
             return jsonify({"success": False, "message": "Invalid role"}), 400
         
-        # 记录用户登录（排除admin用户）
+        # Record user login (exclude admin users)
         if db_role != "admin":
             ip_address = request.remote_addr
             user_agent = request.headers.get('User-Agent')
@@ -126,7 +171,7 @@ def login():
         }
         payload = {
             **user_obj,
-            # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # 可选
+            # "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Optional
         }
         token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
         return jsonify({
@@ -174,19 +219,19 @@ def api_get_sessions(user_id):
     return jsonify(sessions)
 
 
-# ---- SSO登录模拟 ----
+# ---- SSO Login Simulation ----
 @app.route('/api/sso-login', methods=['GET'])
 def sso_login():
     return jsonify({"success": True, "role": "staff", "message": "SSO Login success!"})
 
 
-# ---- search接口 ----
+# ---- Search API ----
 @app.route('/api/search', methods=['POST'])
 def search_api():
     data = request.get_json()
     query = data.get("query", "").strip()
 
-    # 从数据库获取文档
+    # Get documents from database
     documents, error = database.get_pdf_documents_for_search()
     if error:
         return jsonify({"success": False, "error": error}), 500
@@ -196,20 +241,20 @@ def search_api():
 
     results = []
     for doc in documents:
-        # 解析JSON格式的keywords_encoded
+        # Parse JSON format keywords_encoded
         try:
             keywords_encoded = json.loads(doc["keywords_encoded"])
         except:
             continue
             
         score = calculate_similarity(query_encoded, keywords_encoded, query, doc["title"])
-        # 处理document_date格式
+        # Handle document_date format
         document_date = doc.get("document_date", "")
         if document_date and hasattr(document_date, 'isoformat'):
-            # 如果是datetime对象，转换为ISO格式字符串
+            # If it's a datetime object, convert to ISO format string
             document_date = document_date.isoformat()
         elif document_date:
-            # 如果是字符串，保持原样
+            # If it's a string, keep as is
             document_date = str(document_date)
         
         results.append({
@@ -219,26 +264,26 @@ def search_api():
             "document_date": document_date
         })
 
-    # 设置更高的阈值，只返回真正有匹配度的结果
+    # Set higher threshold, only return results with real matching degree
     filtered = sorted([r for r in results if r["score"] > 0.1], key=lambda x: x["score"], reverse=True)[:5]
 
     return jsonify({"results": filtered})
 
 
-# ---- 获取用户个人资料接口 ----
+# ---- Get User Profile API ----
 @app.route('/api/profile', methods=['GET'])
 def get_profile():
-    # 1. 从请求头中获取 Authorization
+    # 1. Get Authorization from request header
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({"success": False, "message": "Authorization header is missing or invalid"}), 401
 
-    # 2. 提取并解码 JWT token
+    # 2. Extract and decode JWT token
     token = auth_header.split(" ")[1]
     try:
-        # 使用在文件顶部定义的 SECRET_KEY 解码
+        # Use SECRET_KEY defined at the top of the file for decoding
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        # 从 token 的载荷中获取 user_id（在登录时我们存的是'id'）
+        # Get user_id from token payload (we stored 'id' during login)
         user_id = payload.get('id')
         if not user_id:
             raise jwt.InvalidTokenError("Token payload is missing user ID")
@@ -248,12 +293,12 @@ def get_profile():
     except jwt.InvalidTokenError:
         return jsonify({"success": False, "message": "Invalid token"}), 401
 
-    # 3. 使用 user_id 从数据库中查询用户信息
+    # 3. Use user_id to query user information from database
     user_data = database.get_user(user_id)
     if not user_data:
         return jsonify({"success": False, "message": "User not found"}), 404
 
-    # 4. 整理并返回个人资料信息（不包含密码等敏感信息）
+    # 4. Organize and return profile information (excluding sensitive info like password)
     profile_info = {
         "userId": user_data.get("user_id"),
         "firstName": user_data.get("first_name"),
@@ -261,13 +306,13 @@ def get_profile():
         "email": user_data.get("email"),
         "phone": user_data.get("phone"),
         "department": user_data.get("department"),
-        "role": user_data.get("role")  # 这是详细的角色，如 'PhD Student', 'Tutor'
+        "role": user_data.get("role")  # This is the detailed role, such as 'PhD Student', 'Tutor'
     }
 
     return jsonify({"success": True, "profile": profile_info})
 
 
-# ---- 首页（仅演示跳转用）----
+# ---- Homepage (Demo redirect only) ----
 @app.route('/')
 def home():
     return 'Welcome to the demo backend!'
@@ -276,16 +321,16 @@ def home():
 # ---------------- RAG -----------------
 def list_pdf_names(pdfs_dir="pdfs"):
     """
-    返回指定目录下所有 .pdf 文件的文件名。
+    Returns the filenames of all .pdf files in the specified directory.
     """
     try:
         files = os.listdir(pdfs_dir)
     except FileNotFoundError:
-        # 如果目录不存在，返回空列表
+        # If directory doesn't exist, return empty list
         return []
     pdf_names = []
     for f in files:
-        # 忽略隐藏文件和非 .pdf 文件
+        # Ignore hidden files and non-.pdf files
         if not f.lower().endswith(".pdf"):
             continue
         name, _ = os.path.splitext(f)
@@ -294,25 +339,25 @@ def list_pdf_names(pdfs_dir="pdfs"):
 
 
 def rag_search(question, top_k=10, score_threshold=1.0):
-    # 1. 先拿到所有 PDF 的前缀名
+    # 1. First get all PDF prefix names
     pdf_list = list_pdf_names()
 
-    # 2. 生成 query 向量
+    # 2. Generate query vector
     model = SentenceTransformer("all-MiniLM-L6-v2")
     q_emb = model.encode([question])
 
     all_hits = []
     for prefix in pdf_list:
-        # 3. 构造索引 & 元数据路径
+        # 3. Construct index & metadata paths
         idx_path = os.path.join(BASE_DIR, "rag", f"{prefix}.index")
         ids_path = os.path.join(BASE_DIR, "rag", f"{prefix}_ids.pkl")
         docs_path = os.path.join(BASE_DIR, "rag", f"{prefix}_docs.json")
 
-        # 如果没有对应文件就跳过
+        # Skip if corresponding files don't exist
         if not (os.path.exists(idx_path) and os.path.exists(ids_path) and os.path.exists(docs_path)):
             continue
 
-        # 4. 加载索引和文档映射
+        # 4. Load index and document mapping
         index = faiss.read_index(idx_path)
         with open(ids_path, "rb") as f:
             ids = pickle.load(f)
@@ -320,7 +365,7 @@ def rag_search(question, top_k=10, score_threshold=1.0):
             docs = json.load(f)
         doc_map = {d["id"]: d for d in docs}
 
-        # 5. 检索 top_k
+        # 5. Retrieve top_k
         D, I = index.search(np.array(q_emb, dtype="float32"), top_k)
         for dist, idx in zip(D[0], I[0]):
             if dist > score_threshold:
@@ -331,25 +376,25 @@ def rag_search(question, top_k=10, score_threshold=1.0):
                 "pdf": prefix,
                 "question": entry.get("question", ""),
                 "answer": entry.get("answer", ""),
-                # 改这里：title 直接用 prefix；url 用 pdfs 目录下的文件路径
+                # Change here: title directly uses prefix; url uses file path under pdfs directory
                 "title": prefix,
                 "url": f"{PDF_URL_BASE}/{prefix}.pdf",
             })
 
-    # 6. 全部合并后排序并取最终 top_k
+    # 6. Merge all, sort and take final top_k
     all_hits = sorted(all_hits, key=lambda x: x["score"])[:top_k]
     if not all_hits:
         return {}
-    # 7. 组装返回值
+    # 7. Assemble return value
     parts = []
     ref_dict = {}
     for h in all_hits:
         prefix = h["pdf"]
         url = h["url"]
-        # 如果同一个 pdf 出现多次，这里会被后面的覆盖一次，最终得到唯一映射
+        # If the same pdf appears multiple times, it will be overwritten once here, finally getting unique mapping
         ref_dict[prefix] = url
 
-    # 构造 knowledge_str 同之前
+    # Construct knowledge_str same as before
     parts = [
         f"{i}. （{h['pdf']}）Question: {h['question']}\n"
         f"   Answer:   {h['answer']}"
@@ -361,14 +406,14 @@ def rag_search(question, top_k=10, score_threshold=1.0):
 
 
 def try_load_json(text: str):
-    """优先解析模型输出为 JSON，失败则返回 None 和异常"""
+    """Prioritize parsing model output as JSON, return None and exception if failed"""
     try:
         return json.loads(text), None
     except json.JSONDecodeError as e:
         return None, e
 
 
-# ---- AI 聊天接口 ----
+# ---- AI Chat API ----
 @app.route('/api/ask', methods=['POST'])
 def ask():
     data = request.get_json() or {}
@@ -380,30 +425,30 @@ def ask():
     if not all([question, session_id, user_id]):
         return jsonify({"error": "question, session_id, and user_id are required"}), 400
 
-    # 在写入消息前，检查并创建会话历史
+    # Before writing message, check and create session history
     ok, err = database.check_or_create_session(session_id, user_id,
                                                title=f"Chat on {datetime.now().strftime('%Y-%m-%d')}")
     if not ok:
         return jsonify({"error": f"Failed to ensure session exists: {err}"}), 500
 
-    # 1. 写入用户提问到数据库
+    # 1. Write user question to database
     _, user_err = database.add_message_db(session_id, user_role, question)
     if user_err:
-        # 即使写入失败，也可以选择继续，但最好记录日志
+        # Even if writing fails, we can choose to continue, but it's better to log
         print(f"Error writing user message to DB: {user_err}")
     result = rag_search(question)
-    # 如果 rag_search 返回 {}，表示没命中
+    # If rag_search returns {}, it means no match
     if not result:
         return jsonify({
             "answer": "ops, I couldn't find anything, Need I turn to real human?",
             "reference": {}
         })
-    # 2. RAG 检索
+    # 2. RAG retrieval
     knowledge, reference = result
     print(knowledge)
-    # 这里增加了如果找不到直接返回结果
+    # Added here: if nothing found, return result directly
 
-    # 3. 构造并请求 LLM
+    # 3. Construct and request LLM
     payload = {
         "model": MODEL,
         "messages": [
@@ -440,23 +485,23 @@ def ask():
     resp.raise_for_status()
     result = resp.json()
 
-    # 4. 解析 LLM 回复
+    # 4. Parse LLM response
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
     final_answer = ""
-    final_reference = reference  # 默认使用RAG的引用
+    final_reference = reference  # Default to using RAG reference
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if model_ref:  # 如果模型返回了引用，就用模型的
+        if model_ref:  # If model returns reference, use model's
             final_reference = model_ref
     else:
-        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        # Fallback: If model doesn't return in JSON format, use content directly as answer
         final_answer = content
 
-    # 5. 写入 AI 回复到数据库
+    # 5. Write AI response to database
     _, ai_err = database.add_message_db(session_id, "ai", final_answer)
     if ai_err:
         print(f"Error writing AI message to DB: {ai_err}")
@@ -473,10 +518,10 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# ————————生成rag————————
+# RAG Generation
 def extract_text_from_pdf(path):
     """
-    提取 PDF 中文本，并返回整个文档的字符串。
+    Extract text from PDF and return the entire document as a string.
     """
     texts = []
     with pdfplumber.open(path) as pdf:
@@ -484,7 +529,7 @@ def extract_text_from_pdf(path):
             try:
                 text = page.extract_text()
             except Exception as e:
-                logging.error(f"第{page_num}页提取文本时出错: {e}")
+                logging.error(f"Error extracting text from page {page_num}: {e}")
                 continue
             if text:
                 texts.append(text)
@@ -493,8 +538,9 @@ def extract_text_from_pdf(path):
 
 def parse_qa_pairs(full_text):
     """
-    从全文中提取问答对。
-    匹配问号结尾或数字标题行作为问题，后续内容作为答案。
+    Extract Q&A pairs from full text.
+    Match lines ending with question marks or numbered heading lines as questions, 
+    with subsequent content as answers.
     """
     docs = []
     lines = [line.strip() for line in full_text.splitlines()]
@@ -531,7 +577,7 @@ def parse_qa_pairs(full_text):
 
 def build_docs_from_pdf(pdf_path, title, url=None, last_edited=None):
     """
-    从 PDF 构建问答文档列表。
+    Build Q&A document list from PDF.
     """
     text = extract_text_from_pdf(pdf_path)
     qa = parse_qa_pairs(text)
@@ -550,7 +596,7 @@ def build_docs_from_pdf(pdf_path, title, url=None, last_edited=None):
 
 @app.route('/api/upload', methods=['POST'])
 def upload_and_generate_rag():
-    # 1. 文件接收及验证
+    # 1. File reception and validation
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file part'}), 400
     file = request.files['file']
@@ -559,7 +605,7 @@ def upload_and_generate_rag():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': 'Only PDF files are allowed'}), 400
 
-    # 2. 获取表单数据
+    # 2. Get form data
     title = request.form.get('title', '').strip()
     keywords = request.form.get('keywords', '').strip()
     document_date = request.form.get('document_date', '').strip()
@@ -569,19 +615,19 @@ def upload_and_generate_rag():
     if not keywords:
         return jsonify({'success': False, 'message': 'Keywords are required'}), 400
 
-    # 3. 保存 PDF
+    # 3. Save PDF
     filename = secure_filename(file.filename)
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(pdf_path)
     file_size = os.path.getsize(pdf_path)
 
-    # 4. 生成关键词编码
+    # 4. Generate keyword encoding
     from search import multi_hot_encode
     keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
     keywords_encoded = multi_hot_encode(keyword_list)
     keywords_encoded_json = json.dumps(keywords_encoded)
 
-    # 5. 解析 PDF，生成问答对
+    # 5. Parse PDF, generate Q&A pairs
     docs = build_docs_from_pdf(
         pdf_path=pdf_path,
         title=title,
@@ -589,7 +635,7 @@ def upload_and_generate_rag():
         last_edited=None
     )
 
-    # 6. 准备 texts 并生成 embeddings
+    # 6. Prepare texts and generate embeddings
     texts = [d['question'] + ' ' + d['answer'] for d in docs]
     if not texts:
         return jsonify({
@@ -606,12 +652,12 @@ def upload_and_generate_rag():
     if emb_array.ndim == 1:
         emb_array = np.vstack(emb_array)
 
-    # 7. 构建 FAISS 索引
+    # 7. Build FAISS index
     dim = emb_array.shape[1]
     index = faiss.IndexFlatL2(dim)
     index.add(emb_array)
 
-    # 8. 写入磁盘
+    # 8. Write to disk
     base = os.path.splitext(filename)[0]
     index_file = os.path.join(RAG_FOLDER, f"{base}.index")
     faiss.write_index(index, index_file)
@@ -625,8 +671,8 @@ def upload_and_generate_rag():
     with open(ids_file, 'wb') as f:
         pickle.dump(ids, f)
 
-    # 9. 保存到数据库
-    uploader_id = None  # 可以从token中获取，暂时设为None
+    # 9. Save to database
+    uploader_id = None  # Can be obtained from token, temporarily set to None
     success, error = database.save_pdf_document(
         title, keywords, keywords_encoded_json, filename, document_date, uploader_id, file_size
     )
@@ -637,18 +683,18 @@ def upload_and_generate_rag():
             'message': f'Failed to save document metadata: {error}'
         }), 500
 
-    # 10. 更新关键词数据库并重新编码所有文档
+    # 10. Update keyword database and re-encode all documents
     keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
     success, msg = database.add_keywords_to_db(keyword_list)
     if not success:
         print(f"Warning: Failed to add keywords to database: {msg}")
     
-    # 重新编码所有文档
+    # Re-encode all documents
     success, msg = database.update_all_documents_encoding()
     if not success:
         print(f"Warning: Failed to update document encodings: {msg}")
 
-    # 11. 返回结果
+    # 11. Return result
     return jsonify({
         'success': True,
         'message': 'Upload succeeded, new RAG files have been generated',
@@ -661,7 +707,7 @@ def upload_and_generate_rag():
 
 
 
-# 获取所有pdf文件
+# Get all PDF files
 @app.route('/api/admin/getpdfs', methods=['GET'])
 def list_pdfs():
     documents, error = database.get_all_pdf_documents()
@@ -675,7 +721,7 @@ def list_pdfs():
             'filename': doc['pdf_path'],
             'title': doc['title'],
             'keywords': doc['keywords'],
-            # 猜测: 根据现在对 .sql 的猜测修改, 这里得改成这样符合 document_date 的格式
+            # Note: Based on current .sql structure, this needs to be modified to match document_date format
             # document_date': doc['document_date'].isoformat() if doc['document_date'] else None,
             'document_date': doc['document_date'] if doc['document_date'] else None,
             'size': doc['file_size'],
@@ -684,10 +730,10 @@ def list_pdfs():
     return jsonify({'success': True, 'pdfs': pdfs})
 
 
-# 删除指定pdf文件
+# Delete specified PDF file
 @app.route('/api/admin/deletepdf/<int:document_id>', methods=['DELETE'])
 def delete_pdf(document_id):
-    # 1. 从数据库获取文档信息
+    # 1. Get document information from database
     documents, error = database.get_all_pdf_documents()
     if error:
         return jsonify({'success': False, 'error': error}), 500
@@ -701,7 +747,7 @@ def delete_pdf(document_id):
     if not target_doc:
         return jsonify({'success': False, 'error': 'Document not found'}), 404
     
-    # 2. 删除物理PDF文件
+    # 2. Delete physical PDF file
     pdf_dir = app.config['UPLOAD_FOLDER']
     file_path = os.path.join(pdf_dir, target_doc['pdf_path'])
     if os.path.isfile(file_path):
@@ -710,7 +756,7 @@ def delete_pdf(document_id):
         except Exception as e:
             return jsonify({'success': False, 'error': f'Failed to delete PDF file: {str(e)}'}), 500
     
-    # 3. 删除相关的RAG文件
+    # 3. Delete related RAG files
     base = os.path.splitext(target_doc['pdf_path'])[0]
     rag_files = [
         os.path.join(RAG_FOLDER, f"{base}.index"),
@@ -726,18 +772,18 @@ def delete_pdf(document_id):
             except Exception as e:
                 print(f"Warning: Failed to delete RAG file {rag_file}: {str(e)}")
     
-    # 4. 删除数据库记录
+    # 4. Delete database record
     success, error = database.delete_pdf_document(document_id)
     if not success:
         return jsonify({'success': False, 'error': f'Failed to delete database record: {error}'}), 500
     
-    # 5. 更新关键词数据库并重新编码所有文档
-    # 重新构建关键词数据库（从剩余文档中提取）
+    # 5. Update keyword database and re-encode all documents
+    # Rebuild keyword database (extract from remaining documents)
     success, msg = database.rebuild_keywords_database()
     if not success:
         print(f"Warning: Failed to rebuild keywords database: {msg}")
     
-    # 重新编码所有文档
+    # Re-encode all documents
     success, msg = database.update_all_documents_encoding()
     if not success:
         print(f"Warning: Failed to update document encodings: {msg}")
@@ -753,7 +799,7 @@ def aichat_general():
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     
-    # 保存用户消息到数据库
+    # Save user message to database
     database.add_message_db(session_id, 'user', question, mode='general')
     
     payload = {
@@ -792,7 +838,7 @@ def aichat_general():
     resp.raise_for_status()
     result = resp.json()
 
-    # 4. 解析 LLM 回复
+    # 4. Parse LLM response
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
@@ -804,15 +850,15 @@ def aichat_general():
         final_answer = data_json.get("answer", "")
         final_reference = data_json.get("reference", {})
     else:
-        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        # Fallback: If model doesn't return in JSON format, use content directly as answer
         final_answer = content
-        # 如果解析失败，可能需要人工介入
+        # If parsing fails, human intervention may be needed
         need_human = True
 
     ai_reply = final_answer
     reference_str = json.dumps(final_reference) if final_reference else None
 
-    # 保存 AI 回复到数据库，包含参考资料和模式信息
+    # Save AI reply to database, including reference materials and mode information
     database.add_message_db(session_id, 'ai', ai_reply, 
                            reference=reference_str, 
                            mode='general',
@@ -821,7 +867,7 @@ def aichat_general():
     return jsonify({"answer": ai_reply})
 
 
-# AI chat 的 rag 模式
+# AI chat RAG mode
 @app.route('/api/aichat/rag', methods=['POST'])
 def aichat_rag():
     data = request.get_json() or {}
@@ -830,14 +876,14 @@ def aichat_rag():
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     
-    # 保存用户消息到数据库
+    # Save user message to database
     database.add_message_db(session_id, 'user', question, mode='rag')
 
     result = rag_search(question)
 
-    # 如果 rag_search 返回 {}，表示没有需要的结果
+    # If rag_search returns {}, it means no relevant results
     if not result:
-        # 没有找到相关资料时，标记为需要人工介入
+        # When no relevant materials found, mark as needing human intervention
         database.add_message_db(session_id, 'ai', 
                                "ops, I couldn't find anything, Need I turn to real human?",
                                mode='rag',
@@ -847,10 +893,10 @@ def aichat_rag():
             "reference": {}
         })
 
-    # 2. RAG 检索
+    # 2. RAG retrieval
     knowledge, reference = result
 
-    # 3. 构造并请求 LLM
+    # 3. Construct and request LLM
     payload = {
         "model": MODEL,
         "messages": [
@@ -887,30 +933,30 @@ def aichat_rag():
     resp.raise_for_status()
     result = resp.json()
 
-    # 4. 解析 LLM 回复
+    # 4. Parse LLM response
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
     final_answer = ""
-    final_reference = reference  # 默认使用RAG的引用
+    final_reference = reference  # Default to using RAG reference
     need_human = False
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if model_ref:  # 如果模型返回了引用，就用模型的
+        if model_ref:  # If model returns reference, use model's
             final_reference = model_ref
     else:
-        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        # Fallback: If model doesn't return in JSON format, use content directly as answer
         final_answer = content
-        # 如果解析失败，可能需要人工介入
+        # If parsing fails, human intervention may be needed
         need_human = True
     
     ai_reply = final_answer
     reference_str = json.dumps(final_reference) if final_reference else None
     print(reference)
 
-    # 保存 AI 回复到数据库，包含参考资料
+    # Save AI reply to database, including reference materials
     database.add_message_db(session_id, 'ai', ai_reply,
                            reference=reference_str,
                            mode='rag',
@@ -925,9 +971,9 @@ from typing import Dict, Any, List
 
 def parse_checklist_to_items(text: str) -> Dict[str, Any]:
     """
-    将形如
+    Parse text in the form of:
       "Here's a checklist to access your CSE files from your own computer: step1. … step2. …"
-    的文本解析为：
+    into:
     {
       "answer": "Here's a checklist to access your CSE files from your own computer",
       "checklist": [
@@ -937,11 +983,11 @@ def parse_checklist_to_items(text: str) -> Dict[str, Any]:
       ]
     }
     """
-    # 1. 提取 answer（第一个冒号之前的内容）
+    # 1. Extract answer (content before first colon)
     prefix, _, rest = text.partition(':')
     answer = prefix.strip()
 
-    # 2. 按 stepX. 分块
+    # 2. Split by stepX. chunks
     chunks = re.split(r'(?=(?:step\d+)\.)', rest)
 
     items: List[Dict[str, Any]] = []
@@ -949,12 +995,12 @@ def parse_checklist_to_items(text: str) -> Dict[str, Any]:
         chunk = chunk.strip()
         if not chunk:
             continue
-        # 匹配 stepX. 以及后面的描述
+        # Match stepX. and the description that follows
         m = re.match(r'step(\d+)\.\s*(.*)', chunk, flags=re.DOTALL)
         if m:
             idx = int(m.group(1))
             desc = m.group(2).strip()
-            # 构造 "Step {idx}: {desc}"
+            # Construct "Step {idx}: {desc}"
             item_text = f"Step {idx}: {desc}"
             items.append({"item": item_text, "done": False})
 
@@ -962,7 +1008,7 @@ def parse_checklist_to_items(text: str) -> Dict[str, Any]:
         "answer": answer,
         "checklist": items
     }
-# AI chat 的 checklist 模式
+# AI chat checklist mode
 @app.route('/api/aichat/checklist', methods=['POST'])
 def aichat_checklist():
     data = request.get_json() or {}
@@ -971,7 +1017,7 @@ def aichat_checklist():
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     
-    # 保存用户消息到数据库
+    # Save user message to database
     database.add_message_db(session_id, 'user', question, mode='checklist')
     
     knowledge, reference = rag_search(question)
@@ -1014,37 +1060,37 @@ def aichat_checklist():
     resp.raise_for_status()
     result = resp.json()
 
-    # 4. 解析 LLM 回复
+    # 4. Parse LLM response
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
     final_answer = ""
-    final_reference = reference  # 默认使用RAG的引用
+    final_reference = reference  # Default to using RAG reference
     need_human = False
 
     if data_json is not None:
         final_answer = data_json.get("answer", "")
         model_ref = data_json.get("reference", {})
-        if model_ref:  # 如果模型返回了引用，就用模型的
+        if model_ref:  # If model returns reference, use model's
             final_reference = model_ref
     else:
-        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        # Fallback: If model doesn't return in JSON format, use content directly as answer
         final_answer = content
-        # 如果解析失败，可能需要人工介入
+        # If parsing fails, human intervention may be needed
         need_human = True
 
-    # 3. 调用解析函数
+    # 3. Call parsing function
     result = parse_checklist_to_items(final_answer)
 
-    # 4. 拆包到 ai_reply 和 checklist
+    # 4. Unpack to ai_reply and checklist
     ai_reply = result["answer"]
     checklist = result["checklist"]
     
-    # 将checklist转换为JSON字符串存储
+    # Convert checklist to JSON string for storage
     checklist_str = json.dumps(checklist) if checklist else None
     reference_str = json.dumps(final_reference) if final_reference else None
     
-    # 保存 AI 回复到数据库，包含checklist
+    # Save AI reply to database, including checklist
     database.add_message_db(session_id, 'ai', ai_reply,
                            reference=reference_str,
                            checklist=checklist_str,
@@ -1083,7 +1129,7 @@ def delete_session():
 
 @app.route('/api/user-engagement', methods=['GET'])
 def get_user_engagement():
-    # 获取真实的用户登录统计数据
+    # Get real user login statistics
     stats, error = database.get_daily_login_stats(7)
     if error:
         return jsonify({
@@ -1099,7 +1145,7 @@ def get_user_engagement():
 
 @app.route('/api/feedback', methods=['POST'])
 def submit_feedback():
-    # 从请求头获取token
+    # Get token from request header
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1110,11 +1156,11 @@ def submit_feedback():
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get('username')
         
-        # 从数据库获取用户详细信息
+        # Get user detailed information from database
         user = database.get_user(user_id)
         if not user:
             return jsonify({
@@ -1124,7 +1170,7 @@ def submit_feedback():
         
         data = request.get_json()
         
-        # 验证必需字段
+        # Validate required fields
         required_fields = ['category', 'subject', 'description']
         for field in required_fields:
             if not data.get(field):
@@ -1133,7 +1179,7 @@ def submit_feedback():
                     "message": f"Missing required field: {field}"
                 }), 400
         
-        # 构建反馈数据，包含用户信息
+        # Build feedback data, including user information
         feedback_data = {
             "user_id": user_id,
             "name": f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
@@ -1146,7 +1192,7 @@ def submit_feedback():
             "timestamp": datetime.now().isoformat()
         }
         
-        # 获取所有admin邮箱
+        # Get all admin emails
         admins, err = database.get_all_admins()
         if err:
             print(f"Error getting admin emails: {err}")
@@ -1162,13 +1208,13 @@ def submit_feedback():
                 "message": "No admin users found"
             }), 500
         
-        # 发送邮件给所有admin
+        # Send email to all admins
         admin_emails = [admin['email'] for admin in admins]
         
-        # 构建邮件内容
+        # Build email content
         subject = f"[HDingo Feedback] {feedback_data['subject']}"
         
-        # 邮件正文
+        # Email body
         body = f"""
 New feedback received from HDingo system:
 
@@ -1187,7 +1233,7 @@ Timestamp: {feedback_data['timestamp']}
         """.strip()
         
         try:
-            # 发送邮件
+            # Send email
             msg = Message(
                 subject=subject,
                 recipients=admin_emails,
@@ -1222,12 +1268,12 @@ Timestamp: {feedback_data['timestamp']}
             "message": f"Server error: {str(e)}"
         }), 500
 
-# ==================== 新增的消息管理API ====================
+# ==================== New Message Management API ====================
 
 @app.route('/api/admin/messages/need-human', methods=['GET'])
 def get_messages_need_human_api():
-    """获取所有需要人工介入的消息"""
-    # 这里可以添加管理员权限验证
+    """Get all messages that need human intervention"""
+    # Admin permission verification can be added here
     messages, error = database.get_messages_need_human()
     if error:
         return jsonify({'success': False, 'error': error}), 500
@@ -1241,7 +1287,7 @@ def get_messages_need_human_api():
 
 @app.route('/api/admin/messages/stats', methods=['GET'])
 def get_message_stats_api():
-    """获取消息统计信息"""
+    """Get message statistics information"""
     stats, error = database.get_message_stats_by_mode()
     if error:
         return jsonify({'success': False, 'error': error}), 500
@@ -1254,7 +1300,7 @@ def get_message_stats_api():
 
 @app.route('/api/admin/messages/by-mode/<mode>', methods=['GET'])
 def get_messages_by_mode_api(mode):
-    """根据模式获取消息"""
+    """Get messages by mode"""
     if mode not in ['general', 'rag', 'checklist', 'human_ticket']:
         return jsonify({'success': False, 'error': 'Invalid mode'}), 400
     
@@ -1272,7 +1318,7 @@ def get_messages_by_mode_api(mode):
 
 @app.route('/api/admin/message/<int:message_id>/mark-human', methods=['POST'])
 def mark_message_human_api(message_id):
-    """标记消息需要人工介入"""
+    """Mark message as needing human intervention"""
     data = request.get_json() or {}
     need_human = data.get('need_human', True)
     
@@ -1291,7 +1337,7 @@ def mark_message_human_api(message_id):
 
 @app.route('/api/admin/message/<int:message_id>/update-reference', methods=['POST'])
 def update_message_reference_api(message_id):
-    """更新消息的参考资料"""
+    """Update message reference materials"""
     data = request.get_json() or {}
     reference = data.get('reference', '')
     
@@ -1310,11 +1356,11 @@ def update_message_reference_api(message_id):
 
 @app.route('/api/admin/message/<int:message_id>/update-checklist', methods=['POST'])
 def update_message_checklist_api(message_id):
-    """更新消息的检查清单"""
+    """Update message checklist"""
     data = request.get_json() or {}
     checklist = data.get('checklist', [])
     
-    # 将checklist转换为JSON字符串
+    # Convert checklist to JSON string
     checklist_str = json.dumps(checklist) if checklist else None
     
     success, error = database.update_message_checklist(message_id, checklist_str)
@@ -1332,7 +1378,7 @@ def update_message_checklist_api(message_id):
 
 @app.route('/api/message/<int:message_id>/details', methods=['GET'])
 def get_message_details_api(message_id):
-    """获取单个消息的详细信息"""
+    """Get detailed information of a single message"""
     conn = database.get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -1350,7 +1396,7 @@ def get_message_details_api(message_id):
         if not message:
             return jsonify({'success': False, 'error': 'Message not found'}), 404
         
-        # 处理布尔值转换和JSON解析
+        # Handle boolean conversion and JSON parsing
         message['need_human'] = bool(message['need_human'])
         if message['checklist']:
             try:
@@ -1362,7 +1408,7 @@ def get_message_details_api(message_id):
             try:
                 message['reference'] = json.loads(message['reference'])
             except json.JSONDecodeError:
-                pass  # 保持原始字符串
+                pass  # Keep original string
         
         return jsonify({
             'success': True,
@@ -1376,12 +1422,12 @@ def get_message_details_api(message_id):
         conn.close()
 
 
-# ==================== 转人工工单系统API ====================
+# ==================== Human Support Ticket System API ====================
 
 @app.route('/api/save_ticket', methods=['POST'])
 def save_ticket_api():
-    """保存转人工请求工单"""
-    # 从请求头获取token进行身份验证
+    """Save human support request ticket"""
+    # Get token from request header for authentication
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1392,7 +1438,7 @@ def save_ticket_api():
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         staff_id = payload.get('username') or payload.get('id')
         
@@ -1402,7 +1448,7 @@ def save_ticket_api():
                 "message": "Invalid token: missing user ID"
             }), 401
         
-        # 从数据库获取用户详细信息
+        # Get detailed user information from database
         user = database.get_user(staff_id)
         if not user:
             return jsonify({
@@ -1412,7 +1458,7 @@ def save_ticket_api():
         
         data = request.get_json()
         
-        # 验证必需字段
+        # Validate required fields
         required_fields = ['session_id', 'content']
         for field in required_fields:
             if not data.get(field):
@@ -1425,7 +1471,7 @@ def save_ticket_api():
         content = data.get('content')
         staff_email = user.get('email', '')
         
-        # 保存工单到数据库
+        # Save ticket to database
         ticket_id, error = database.save_ticket(session_id, staff_id, staff_email, content)
         
         if error:
@@ -1434,7 +1480,7 @@ def save_ticket_api():
                 "message": f"Failed to save ticket: {error}"
             }), 500
         
-        # 不再发送邮件，直接返回成功
+        # No longer send email, return success directly
         return jsonify({
             "success": True,
             "message": "Ticket created successfully",
@@ -1455,8 +1501,8 @@ def save_ticket_api():
 
 @app.route('/api/get_tickets', methods=['GET'])
 def get_tickets_api():
-    """获取工单列表"""
-    # 从请求头获取token进行管理员权限验证
+    """Get ticket list"""
+    # Get token from request header for admin permission verification
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1467,18 +1513,18 @@ def get_tickets_api():
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_role = payload.get('role')
         
-        # 检查是否是管理员
+        # Check if user is admin
         if user_role != 'admin':
             return jsonify({
                 "success": False,
                 "message": "Admin access required"
             }), 403
         
-        # 获取查询参数
+        # Get query parameters
         show_all = request.args.get('all', 'false').lower() == 'true'
         limit = request.args.get('limit', 100, type=int)
         
@@ -1513,8 +1559,8 @@ def get_tickets_api():
 
 @app.route('/api/finish_ticket', methods=['POST'])
 def finish_ticket_api():
-    """完成工单处理"""
-    # 从请求头获取token进行管理员权限验证
+    """Complete ticket processing"""
+    # Get token from request header for admin permission verification
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1525,11 +1571,11 @@ def finish_ticket_api():
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_role = payload.get('role')
         
-        # 检查是否是管理员
+        # Check if user is admin
         if user_role != 'admin':
             return jsonify({
                 "success": False,
@@ -1538,7 +1584,7 @@ def finish_ticket_api():
         
         data = request.get_json()
         
-        # 验证必需字段
+        # Validate required fields
         if not data.get('ticket_id'):
             return jsonify({
                 "success": False,
@@ -1548,7 +1594,7 @@ def finish_ticket_api():
         ticket_id = data.get('ticket_id')
         admin_notes = data.get('admin_notes', '')
         
-        # 更新工单状态
+        # Update ticket status
         success, error = database.finish_ticket(ticket_id, admin_notes)
         
         if error:
@@ -1582,8 +1628,8 @@ def finish_ticket_api():
 
 @app.route('/api/tickets/stats', methods=['GET'])
 def get_tickets_stats_api():
-    """获取工单统计信息"""
-    # 从请求头获取token进行管理员权限验证
+    """Get ticket statistics information"""
+    # Get token from request header for admin permission verification
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1594,11 +1640,11 @@ def get_tickets_stats_api():
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_role = payload.get('role')
         
-        # 检查是否是管理员
+        # Check if user is admin
         if user_role != 'admin':
             return jsonify({
                 "success": False,
@@ -1632,8 +1678,8 @@ def get_tickets_stats_api():
 
 @app.route('/api/ticket/<int:ticket_id>', methods=['GET'])
 def get_ticket_details_api(ticket_id):
-    """获取单个工单详情"""
-    # 从请求头获取token进行权限验证
+    """Get single ticket details"""
+    # Get token from request header for permission verification
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1644,12 +1690,12 @@ def get_ticket_details_api(ticket_id):
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_role = payload.get('role')
         user_id = payload.get('username') or payload.get('id')
         
-        # 获取工单详情
+        # Get ticket details
         ticket, error = database.get_ticket_by_id(ticket_id)
         
         if error:
@@ -1664,7 +1710,7 @@ def get_ticket_details_api(ticket_id):
                 "message": "Ticket not found"
             }), 404
         
-        # 权限检查：管理员可以查看所有工单，普通用户只能查看自己的工单
+        # Permission check: Admin can view all tickets, regular users can only view their own tickets
         if user_role != 'admin' and ticket['staff_id'] != user_id:
             return jsonify({
                 "success": False,
@@ -1690,8 +1736,8 @@ def get_ticket_details_api(ticket_id):
 
 @app.route('/api/my_tickets', methods=['GET'])
 def get_my_tickets_api():
-    """获取当前用户的工单列表"""
-    # 从请求头获取token进行身份验证
+    """Get current user's ticket list"""
+    # Get token from request header for authentication
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
@@ -1702,7 +1748,7 @@ def get_my_tickets_api():
     token = auth_header.split(' ')[1]
     
     try:
-        # 解码token获取用户信息
+        # Decode token to get user information
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         staff_id = payload.get('username') or payload.get('id')
         
@@ -1712,7 +1758,7 @@ def get_my_tickets_api():
                 "message": "Invalid token: missing user ID"
             }), 401
         
-        # 获取查询参数
+        # Get query parameters
         limit = request.args.get('limit', 50, type=int)
         
         tickets, error = database.get_tickets_by_staff(staff_id, limit)
@@ -1740,7 +1786,7 @@ def get_my_tickets_api():
             "message": f"Server error: {str(e)}"
         }), 500
 
-# 新版 旧版 布局的切换和保存
+# New/old layout switching and saving
 @app.route('/api/readconfig', methods=['GET'])
 def read_config():
     config = load_config()
@@ -1762,7 +1808,7 @@ def update_config():
     return jsonify({'success': True, 'config': config})
 
 
-# mock ai chat api for frontend development
+# Mock AI chat API for frontend development
 
 mockmd = """---
 __Advertisement :)__
@@ -2018,10 +2064,10 @@ def aichat_general_mock():
     session_id = data.get('session_id')
     if not question or not session_id:
         return jsonify({"error": "question and session_id cannot be empty"}), 400
-    # 保存用户消息到数据库
+    # Save user message to database
     database.add_message_db(session_id, 'user', question, mode='general')
 
-    # ai 生成部分修改 这里 vvv
+    # AI generation part modification here vvv
     payload = {
         "model": MODEL,
         "messages": [
@@ -2058,7 +2104,7 @@ def aichat_general_mock():
     resp.raise_for_status()
     result = resp.json()
 
-    # 4. 解析 LLM 回复
+    # 4. Parse LLM response
     content = result['choices'][0]['message']['content'].strip()
     data_json, err = try_load_json(content)
 
@@ -2070,15 +2116,15 @@ def aichat_general_mock():
         final_answer = data_json.get("answer", "")
         final_reference = data_json.get("reference", {})
     else:
-        # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+        # Fallback: If model doesn't return in JSON format, use content directly as answer
         final_answer = content
-        # 如果解析失败，可能需要人工介入
+        # If parsing fails, human intervention may be needed
         need= True
 
     if need:
-        # 需要人工
+        # Need human intervention
         ai_reply = "AI cant answer this question.  \n\nYou can press the button below to ask for human help."
-        # 回复存到数据库
+        # Save reply to database
         database.add_message_db(session_id, 'ai', ai_reply, mode='general', need_human=True)
         return jsonify({
             "answer": ai_reply,
@@ -2088,11 +2134,11 @@ def aichat_general_mock():
             "need_human": True
         })
     else:
-        # 不需要人工
+        # No human intervention needed
         ai_reply = final_answer
-        # 回复存到数据库
+        # Save reply to database
         database.add_message_db(session_id, 'ai', ai_reply, mode='general')
-        # 返回给前端
+        # Return to frontend
         return jsonify({
             "answer": ai_reply,
             "reference": [],
@@ -2101,7 +2147,7 @@ def aichat_general_mock():
             "need_human": False
         })
 
-    # ai 生成部分修改 这里 ^^^
+    # AI generation part modification here ^^^
 
 
 
@@ -2115,22 +2161,22 @@ def aichat_rag_mock():
         return jsonify({"error": "question and session_id cannot be empty"}), 400
     database.add_message_db(session_id, 'user', question, mode='rag')
 
-#RAG 搜索
+# RAG search
     result = rag_search(question)
     need = False
-    # 如果 rag_search 返回 {}，表示没有需要的结果
+    # If rag_search returns {}, it means no relevant results
     if not result:
         need = True
-        # # 没有找到相关资料时，标记为需要人工介入
+        # # When no relevant materials found, mark as needing human intervention
         # database.add_message_db(session_id, 'ai',
         #                         "ops, I couldn't find anything, Need I turn to real human?",
         #                         mode='rag',
         #                         need_human=True)
     else:
-        # 2. RAG 检索
+        # 2. RAG retrieval
         knowledge, reference = result
 
-        # 3. 构造并请求 LLM
+        # 3. Construct and request LLM
         payload = {
             "model": MODEL,
             "messages": [
@@ -2167,26 +2213,26 @@ def aichat_rag_mock():
         resp.raise_for_status()
         result = resp.json()
 
-        # 4. 解析 LLM 回复
+        # 4. Parse LLM response
         content = result['choices'][0]['message']['content'].strip()
         data_json, err = try_load_json(content)
 
-        final_reference = reference  # 默认使用RAG的引用
+        final_reference = reference  # Default to using RAG reference
         print(final_reference)
 
         if data_json is not None:
             final_answer = data_json.get("answer", "")
             # model_ref = data_json.get("reference", {})
-            # if model_ref:  # 如果模型返回了引用，就用模型的
+            # if model_ref:  # If model returns reference, use model's
             #     final_reference = model_ref
         else:
-            # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+            # Fallback: If model doesn't return in JSON format, use content directly as answer
             final_answer = content
-            # 如果解析失败，可能需要人工介入
+            # If parsing fails, human intervention may be needed
             need = True
 
     if need:
-        # 需要人工
+        # Need human intervention
         ai_reply = "There is no reference for this RAG question.  \n\nYou can press the button below to ask for human help."
 
         database.add_message_db(session_id, 'ai', ai_reply, need_human=need, mode='rag')
@@ -2198,17 +2244,17 @@ def aichat_rag_mock():
             "need_human": True
         })
     else:
-        # 不需要人工, reference 要存到数据库
+        # No human intervention needed, reference needs to be saved to database
         ai_reply = final_answer
         ai_reference = final_reference
         # ai_reply = "I can find the answer in the following documents."
         # ai_reference = {
-        #     # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
+        #     # If there's an issue with PDF not opening in frontend, check if dictionary value follows this format, especially underscores
         #     "Account_Disabled_-_CSE_taggi": "http://localhost:8000/pdfs/Account_Disabled_-_CSE_taggi.pdf",
         #     # "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
         # }
-        # 保存 AI 回复到数据库, 还有 reference 也要存到数据库
-        # 需要将字典转换为JSON字符串
+        # Save AI reply to database, reference also needs to be saved to database
+        # Need to convert dictionary to JSON string
         reference_str = json.dumps(ai_reference) if ai_reference else None
         database.add_message_db(session_id, 'ai', ai_reply, reference=reference_str, need_human=need, mode='rag')
         return jsonify({
@@ -2226,11 +2272,11 @@ from typing import Any, Dict, List
 
 def checklist_to_items(text: str) -> Dict[str, Any]:
     """
-    将形如
+    Parse text in the form of:
       "Here's a checklist ...: step1. … step2. …"
-    或者
+    or
       "Here's a checklist ...:\n1. …\n2. …\n..."
-    的文本解析为：
+    into:
     {
       "answer": "...",
       "ai_checklist": [
@@ -2239,14 +2285,14 @@ def checklist_to_items(text: str) -> Dict[str, Any]:
          ...
       ]
     }
-    同时会去除输入中的 Markdown 格式符号。
+    Also removes Markdown formatting symbols from input.
     """
-    # 1. 提取 answer（第一个冒号之前的内容）
+    # 1. Extract answer (content before first colon)
     prefix, sep, rest = text.partition(':')
     answer = prefix.strip()
-    body = rest if sep else text  # 如果没有冒号，就全部作为 body
+    body = rest if sep else text  # If no colon, use entire text as body
 
-    # 2. 首先尝试使用 stepX. 分块
+    # 2. First try using stepX. chunks
     step_chunks = re.split(r'(?=(?:step\d+)\.)', body, flags=re.IGNORECASE)
     items: List[str] = []
 
@@ -2262,7 +2308,7 @@ def checklist_to_items(text: str) -> Dict[str, Any]:
         desc = re.sub(r'[`*_~]', '', desc)
         items.append(f"Step {idx}: {desc}")
 
-    # 3. 如果没有 stepX.，再按数字列表（1. 2. 3.）解析
+    # 3. If no stepX., parse by numbered list (1. 2. 3.)
     if not items:
         lines = body.splitlines()
         idx_counter = 0
@@ -2294,16 +2340,16 @@ def aichat_checklist_mock():
     result = rag_search(question)
 
     need = False
-    # 如果 rag_search 返回 {}，表示没有需要的结果
+    # If rag_search returns {}, it means no relevant results
     if not result:
         need = True
-        # # 没有找到相关资料时，标记为需要人工介入
+        # # When no relevant materials found, mark as needing human intervention
         # database.add_message_db(session_id, 'ai',
         #                         "ops, I couldn't find anything, Need I turn to real human?",
         #                         mode='rag',
         #                         need_human=True)
     else:
-        # 2. RAG 检索
+        # 2. RAG retrieval
         knowledge, reference = result
 
         payload = {
@@ -2344,39 +2390,39 @@ def aichat_checklist_mock():
         resp.raise_for_status()
         result = resp.json()
 
-        # 4. 解析 LLM 回复
+        # 4. Parse LLM response
         content = result['choices'][0]['message']['content'].strip()
         data_json, err = try_load_json(content)
 
-        final_reference = reference  # 默认使用RAG的引用
+        final_reference = reference  # Default to using RAG reference
 
         if data_json is not None:
             final_answer = data_json.get("answer", "")
             # model_ref = data_json.get("reference", {})
-            # if model_ref:  # 如果模型返回了引用，就用模型的
+            # if model_ref:  # If model returns reference, use model's
             #     final_reference = model_ref
         else:
-            # Fallback: 如果模型没按 JSON 格式返回，直接使用其内容作为答案
+            # Fallback: If model doesn't return in JSON format, use content directly as answer
             final_answer = content
-            # 如果解析失败，可能需要人工介入
+            # If parsing fails, human intervention may be needed
             need= True
         # print(final_answer)
-        # 3. 调用解析函数
+        # 3. Call parsing function
         result = checklist_to_items(final_answer)
         # print(result)
-        # 4. 拆包到 ai_reply 和 checklist
+        # 4. Unpack to ai_reply and checklist
         ai_reply = result["answer"]
         ai_checklist = result["ai_checklist"]
-        """-----输出结果一直返回500---"""
-        """--------这里是AI的结果参考--------"""
-        # print("AI 回复：", ai_reply)
+        """-----Output result always returns 500---"""
+        """--------Here is AI result reference--------"""
+        # print("AI reply:", ai_reply)
         # for item in ai_checklist:
         #     print("-", item)
         # ai_reference=final_reference
         # print(ai_reference)
-        """--------这里是AI的结果参考--------"""
+        """--------Here is AI result reference--------"""
     if need:
-        # 需要人工
+        # Need human intervention
         ai_reply = "There is no reference for this Checklist question.  \n\nYou can press the button below to ask for human help."
 
         database.add_message_db(session_id, 'ai', ai_reply, need_human=need, mode='checklist')
@@ -2388,24 +2434,24 @@ def aichat_checklist_mock():
             "need_human": True
         })
     else:
-        # # 不需要人工, checklist 要存到数据库
+        # # No human intervention needed, checklist needs to be saved to database
         # ai_reply = "Here's a checklist to access your CSE files from your own computer:"
         # ai_reference = {
-        #     # 如果出现在前端打不开 pdf 的问题, 关注一下字典的 value 是否是下面这个格式的, 特别关注一下下划线
+        #     # If there's an issue with PDF not opening in frontend, check if dictionary value follows this format, especially underscores
         #     "Account_expiry_-_CSE_taggi": "http://localhost:8000/pdfs/Account_expiry_-_CSE_taggi.pdf"
         # }
         #
-        # # ai 生成部分, 让 ai 生成的 checklist 存到这个变量(可能需要分割字符串等等处理之后再放到这里)
+        # # AI generation part, let AI generated checklist be stored in this variable (may need string splitting and other processing before putting here)
         # ai_checklist = [
-        #     "Step 1: 登录到CSE文件服务器 (sftp.cse.unsw.edu.au)",
-        #     "Step 2: 使用您的CSE用户名和密码进行身份验证",
-        #     "Step 3: 导航到您的home directory (/home/your_username)",
-        #     "Step 4: 创建或选择要上传文件的目录",
-        #     "Step 5: 使用put命令上传文件到服务器",
-        #     "Step 6: 验证文件上传成功并检查文件权限"
+        #     "Step 1: Login to CSE file server (sftp.cse.unsw.edu.au)",
+        #     "Step 2: Use your CSE username and password for authentication",
+        #     "Step 3: Navigate to your home directory (/home/your_username)",
+        #     "Step 4: Create or select directory to upload files",
+        #     "Step 5: Use put command to upload files to server",
+        #     "Step 6: Verify file upload success and check file permissions"
         # ]
         #
-        # 直接转换为checklist items格式, 符合数据库的格式
+        # Directly convert to checklist items format, conforming to database format
         ai_checklist_items = [
             {
                 "item": item,
@@ -2414,7 +2460,7 @@ def aichat_checklist_mock():
             for item in ai_checklist
         ]
 
-        # 保存 AI 回复到数据库, 包含checklist和reference
+        # Save AI reply to database, including checklist and reference
         # reference_str = json.dumps(ai_reference) if ai_reference else None
         reference_str = json.dumps(final_reference) if final_reference else None
         checklist_str = json.dumps(ai_checklist_items) if ai_checklist_items else None
@@ -2427,7 +2473,7 @@ def aichat_checklist_mock():
         if not success:
             return jsonify({"error": f"Failed to save message: {error}"}), 500
         
-        # checklist 返回成功时还需要返回一个 message_id, 方便前端更新 checklist 状态
+        # When checklist returns successfully, also need to return a message_id for frontend to update checklist status
         return jsonify({
             "answer": ai_reply,
             # "reference": ai_reference,
@@ -2441,7 +2487,7 @@ def aichat_checklist_mock():
 @app.route('/api/message/<int:message_id>/update-checklist-item', methods=['POST'])
 def update_checklist_item_api(message_id):
     """
-    更新单个checklist项目的状态
+    Update the status of a single checklist item
     """
     data = request.get_json() or {}
     item_index = data.get('item_index')
@@ -2476,7 +2522,7 @@ def reply_ticket_api():
     if not ticket_id or not admin_notes:
         return jsonify({"success": False, "message": "Missing ticket_id or admin_notes"}), 400
 
-    # 获取管理员信息
+    # Get admin information
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({"success": False, "message": "Authorization token required"}), 401
@@ -2489,12 +2535,12 @@ def reply_ticket_api():
     except Exception as e:
         admin_name = "(unknown admin)"
 
-    # 1. 查找 ticket
+    # 1. Find ticket
     ticket, error = database.get_ticket_by_id(ticket_id)
     if error or not ticket:
         return jsonify({"success": False, "message": "Ticket not found"}), 404
 
-    # 2. 发送邮件给用户
+    # 2. Send email to user
     subject = f"[HDingo Support] Your ticket #{ticket_id} has been answered"
     body = f"""
 Dear {ticket['first_name']} {ticket['last_name']}:
@@ -2526,7 +2572,7 @@ Request time: {ticket['request_time']}
         print(f"Error sending reply email to user: {str(e)}")
         return jsonify({"success": False, "message": "Failed to send email to user"}), 500
 
-    # 3. 更新 ticket 状态为已处理
+    # 3. Update ticket status to processed
     success, error = database.finish_ticket(ticket_id, admin_notes)
     if not success:
         return jsonify({"success": False, "message": "Failed to update ticket status"}), 500

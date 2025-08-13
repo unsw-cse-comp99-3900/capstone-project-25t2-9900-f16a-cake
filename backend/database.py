@@ -1,19 +1,61 @@
+"""
+Database Management Module for Chat System
+
+This module provides comprehensive database operations for a chat system with the following features:
+- User management and authentication
+- Chat session management
+- Message storage and retrieval
+- PDF document management with keyword encoding
+- Human intervention ticket system
+- User activity logging and statistics
+
+Database Schema:
+- user_info: User account information and permissions
+- chat_history: Chat session metadata
+- messages: Individual chat messages with metadata
+- pdf_documents: PDF document storage with keyword encoding
+- all_keywords: Keyword vocabulary for document search
+- tickets: Human intervention request tickets
+- user_login_logs: User login activity tracking
+
+Author: Capstone Project Team
+Version: 1.0
+Date: 2024
+"""
+
 import mysql.connector
 import uuid
 from datetime import datetime, timedelta
 import json
 
+# Database configuration
+# Note: Update these values according to your local database setup
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': '', # 需要是自己数据库的密码
+    'password': '', # Update with your database password
     'database': 'chat_system'
 }
 
 def get_db_connection():
+    """
+    Create and return a new database connection
+    
+    Returns:
+        mysql.connector.connection: Database connection object
+    """
     return mysql.connector.connect(**db_config)
 
 def get_user(username):
+    """
+    Retrieve user information by username
+    
+    Args:
+        username (str): User ID to search for
+        
+    Returns:
+        dict: User information dictionary or None if not found
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -25,6 +67,16 @@ def get_user(username):
         conn.close()
 
 def start_session_db(user_id, title="Untitled Session"):
+    """
+    Create a new chat session for a user
+    
+    Args:
+        user_id (str): ID of the user starting the session
+        title (str): Session title, defaults to "Untitled Session"
+        
+    Returns:
+        tuple: (session_id, error) - session ID on success, error message on failure
+    """
     session_id = str(uuid.uuid4())
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -43,19 +95,19 @@ def start_session_db(user_id, title="Untitled Session"):
 
 def add_message_db(session_id, role, content, reference=None, checklist=None, mode='general', need_human=False):
     """
-    添加消息到数据库
+    Add a message to the database
     
     Args:
-        session_id: 会话ID
-        role: 消息角色('user' 或 'ai')
-        content: 消息内容
-        reference: 参考资料(可选)
-        checklist: 检查清单JSON字符串(可选)
-        mode: 消息模式('general', 'rag', 'checklist', 'human_ticket')
-        need_human: 是否需要人工介入(布尔值)
+        session_id (str): Session ID for the message
+        role (str): Message role ('user' or 'ai')
+        content (str): Message content text
+        reference (str, optional): Reference materials
+        checklist (str, optional): Checklist JSON string
+        mode (str): Message mode ('general', 'rag', 'checklist', 'human_ticket')
+        need_human (bool): Whether human intervention is needed
     
     Returns:
-        (success, message_id, error): 成功状态、消息ID、错误信息
+        tuple: (success, message_id, error) - success status, message ID, error message
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -75,7 +127,13 @@ def add_message_db(session_id, role, content, reference=None, checklist=None, mo
 
 def get_messages_db(session_id):
     """
-    获取会话的所有消息
+    Retrieve all messages for a specific session
+    
+    Args:
+        session_id (str): Session ID to retrieve messages for
+        
+    Returns:
+        tuple: (messages_list, error) - list of messages or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -85,7 +143,7 @@ def get_messages_db(session_id):
             (session_id,)
         )
         messages = cursor.fetchall()
-        # 处理布尔值转换
+        # Convert boolean values
         for message in messages:
             message['need_human'] = bool(message['need_human'])
         return messages, None
@@ -96,6 +154,15 @@ def get_messages_db(session_id):
         conn.close()
 
 def session_exists(session_id):
+    """
+    Check if a session exists in the database
+    
+    Args:
+        session_id (str): Session ID to check
+        
+    Returns:
+        bool: True if session exists, False otherwise
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -106,14 +173,25 @@ def session_exists(session_id):
         conn.close()
 
 def check_or_create_session(session_id, user_id, title="New Chat"):
+    """
+    Check if session exists, create if it doesn't
+    
+    Args:
+        session_id (str): Session ID to check/create
+        user_id (str): User ID for the session
+        title (str): Session title
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     if session_exists(session_id):
         return True, None
 
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # chat_history中的user_id也受外键user_info(user_id)的约束
-        # 所以需要确保user_id是有效的
+        # chat_history user_id is constrained by foreign key user_info(user_id)
+        # so we need to ensure user_id is valid
         cursor.execute(
             "INSERT INTO chat_history (user_id, session_id, title) VALUES (%s, %s, %s)",
             (user_id, session_id, title)
@@ -127,6 +205,15 @@ def check_or_create_session(session_id, user_id, title="New Chat"):
         conn.close()
 
 def get_sessions_db(user_id):
+    """
+    Get all chat sessions for a specific user
+    
+    Args:
+        user_id (str): User ID to get sessions for
+        
+    Returns:
+        tuple: (sessions_list, error) - list of sessions or error message
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -143,6 +230,16 @@ def get_sessions_db(user_id):
         conn.close()
 
 def update_session_title(session_id, new_title):
+    """
+    Update the title of a chat session
+    
+    Args:
+        session_id (str): Session ID to update
+        new_title (str): New title for the session
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -159,14 +256,23 @@ def update_session_title(session_id, new_title):
         conn.close()
 
 def delete_session(session_id):
+    """
+    Delete a chat session and all related data
+    
+    Args:
+        session_id (str): Session ID to delete
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # 先删除 tickets 表中该 session 的所有工单
+        # First delete all tickets for this session
         cursor.execute("DELETE FROM tickets WHERE session_id = %s", (session_id,))
-        # 再删除 messages 表中该 session 的所有消息
+        # Then delete all messages for this session
         cursor.execute("DELETE FROM messages WHERE session_id = %s", (session_id,))
-        # 最后删除 chat_history 表中的 session
+        # Finally delete the session from chat_history
         cursor.execute("DELETE FROM chat_history WHERE session_id = %s", (session_id,))
         conn.commit()
         return True, None
@@ -177,6 +283,12 @@ def delete_session(session_id):
         conn.close()
 
 def get_all_admins():
+    """
+    Get all admin users from the database
+    
+    Returns:
+        tuple: (admins_list, error) - list of admin users or error message
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -191,7 +303,17 @@ def get_all_admins():
 
 
 def record_user_login(user_id, ip_address=None, user_agent=None):
-    """记录用户登录"""
+    """
+    Record user login activity
+    
+    Args:
+        user_id (str): User ID who logged in
+        ip_address (str, optional): IP address of the login
+        user_agent (str, optional): User agent string
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -209,11 +331,19 @@ def record_user_login(user_id, ip_address=None, user_agent=None):
 
 
 def get_daily_login_stats(days=7):
-    """获取每日登录统计"""
+    """
+    Get daily login statistics for the specified number of days
+    
+    Args:
+        days (int): Number of days to get stats for (default: 7)
+        
+    Returns:
+        tuple: (stats_list, error) - list of daily stats or error message
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # 获取最近N天的每日登录次数，排除admin用户
+        # Get daily login counts for the last N days, excluding admin users
         cursor.execute("""
             SELECT 
                 DATE(ull.login_time) as date, 
@@ -228,7 +358,7 @@ def get_daily_login_stats(days=7):
         
         results = cursor.fetchall()
         
-        # 确保返回完整的7天数据，没有记录的日期返回0
+        # Ensure complete N days of data, return 0 for dates with no records
         stats = []
         for i in range(days):
             date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
@@ -247,7 +377,7 @@ def get_daily_login_stats(days=7):
                     'active_users': 0
                 })
         
-        # 按日期正序排列
+        # Sort by date in ascending order
         stats.reverse()
         return stats, None
     except mysql.connector.Error as err:
@@ -258,7 +388,21 @@ def get_daily_login_stats(days=7):
 
 
 def save_pdf_document(title, keywords, keywords_encoded, pdf_path, document_date, uploader_id, file_size):
-    """保存PDF文档元数据到数据库"""
+    """
+    Save PDF document metadata to database
+    
+    Args:
+        title (str): Document title
+        keywords (str): Comma-separated keywords
+        keywords_encoded (str): JSON string of encoded keywords
+        pdf_path (str): File path to the PDF
+        document_date (str): Document date
+        uploader_id (str): ID of the user who uploaded the document
+        file_size (int): File size in bytes
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -276,7 +420,12 @@ def save_pdf_document(title, keywords, keywords_encoded, pdf_path, document_date
 
 
 def get_all_pdf_documents():
-    """获取所有PDF文档"""
+    """
+    Get all PDF documents from database
+    
+    Returns:
+        tuple: (documents_list, error) - list of documents or error message
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -291,7 +440,12 @@ def get_all_pdf_documents():
 
 
 def get_pdf_documents_for_search():
-    """获取用于搜索的PDF文档（包含编码数据）"""
+    """
+    Get PDF documents for search operations (includes encoded data)
+    
+    Returns:
+        tuple: (documents_list, error) - list of documents or error message
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -306,7 +460,15 @@ def get_pdf_documents_for_search():
 
 
 def delete_pdf_document(document_id):
-    """删除PDF文档记录"""
+    """
+    Delete a PDF document record from database
+    
+    Args:
+        document_id (int): ID of the document to delete
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -321,7 +483,16 @@ def delete_pdf_document(document_id):
 
 
 def update_keywords_encoded(document_id, keywords_encoded):
-    """更新文档的关键词编码"""
+    """
+    Update the keyword encoding for a document
+    
+    Args:
+        document_id (int): ID of the document to update
+        keywords_encoded (str): New encoded keywords JSON string
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -338,7 +509,12 @@ def update_keywords_encoded(document_id, keywords_encoded):
         conn.close()
 
 def get_all_keywords_from_db():
-    """从数据库获取所有关键词"""
+    """
+    Get all keywords from the database
+    
+    Returns:
+        tuple: (keywords_list, error) - list of keywords or error message
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -352,7 +528,15 @@ def get_all_keywords_from_db():
         conn.close()
 
 def add_keywords_to_db(keywords_list):
-    """添加新关键词到数据库"""
+    """
+    Add new keywords to the database
+    
+    Args:
+        keywords_list (list): List of keywords to add
+        
+    Returns:
+        tuple: (success, message) - success status and result message
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -362,7 +546,7 @@ def add_keywords_to_db(keywords_list):
                 cursor.execute("INSERT INTO all_keywords (keyword) VALUES (%s)", (keyword,))
                 added_count += 1
             except mysql.connector.IntegrityError:
-                # 关键词已存在，忽略
+                # Keyword already exists, ignore
                 pass
         conn.commit()
         return True, f"Added {added_count} new keywords"
@@ -373,16 +557,21 @@ def add_keywords_to_db(keywords_list):
         conn.close()
 
 def update_all_documents_encoding():
-    """更新所有文档的关键词编码"""
+    """
+    Update keyword encoding for all documents
+    
+    Returns:
+        tuple: (success, message) - success status and result message
+    """
     from search import multi_hot_encode
     import json
     
-    # 获取所有关键词
+    # Get all keywords
     all_keywords, error = get_all_keywords_from_db()
     if error:
         return False, f"Failed to get keywords: {error}"
     
-    # 获取所有文档
+    # Get all documents
     documents, error = get_all_pdf_documents()
     if error:
         return False, f"Failed to get documents: {error}"
@@ -397,12 +586,12 @@ def update_all_documents_encoding():
             if not keywords:
                 continue
                 
-            # 重新编码关键词
+            # Re-encode keywords
             keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
             keywords_encoded = multi_hot_encode(keyword_list)
             keywords_encoded_json = json.dumps(keywords_encoded)
             
-            # 更新数据库
+            # Update database
             cursor.execute(
                 "UPDATE pdf_documents SET keywords_encoded = %s WHERE id = %s",
                 (keywords_encoded_json, doc['id'])
@@ -418,13 +607,18 @@ def update_all_documents_encoding():
         conn.close()
 
 def rebuild_keywords_database():
-    """重新构建关键词数据库（从剩余文档中提取）"""
-    # 获取所有文档的关键词
+    """
+    Rebuild the keywords database from remaining documents
+    
+    Returns:
+        tuple: (success, message) - success status and result message
+    """
+    # Get keywords from all documents
     documents, error = get_all_pdf_documents()
     if error:
         return False, f"Failed to get documents: {error}"
     
-    # 收集所有关键词
+    # Collect all keywords
     all_keywords = set()
     for doc in documents:
         keywords = doc.get('keywords', '')
@@ -432,13 +626,13 @@ def rebuild_keywords_database():
             keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
             all_keywords.update(keyword_list)
     
-    # 清空现有关键词表
+    # Clear existing keywords table
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM all_keywords")
         
-        # 插入新的关键词
+        # Insert new keywords
         for keyword in sorted(all_keywords):
             cursor.execute("INSERT INTO all_keywords (keyword) VALUES (%s)", (keyword,))
         
@@ -451,11 +645,18 @@ def rebuild_keywords_database():
         conn.close()
 
 
-# ==================== 新增的消息管理相关函数 ====================
+# ==================== Message Management Functions ====================
 
 def update_message_reference(message_id, reference):
     """
-    更新消息的参考资料
+    Update the reference materials for a message
+    
+    Args:
+        message_id (int): ID of the message to update
+        reference (str): New reference materials
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -475,7 +676,14 @@ def update_message_reference(message_id, reference):
 
 def update_message_checklist(message_id, checklist):
     """
-    更新消息的检查清单
+    Update the checklist for a message
+    
+    Args:
+        message_id (int): ID of the message to update
+        checklist (str): New checklist JSON string
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -494,10 +702,21 @@ def update_message_checklist(message_id, checklist):
 
 
 def update_checklist_item_status(message_id, item_index, checked):
+    """
+    Update the status of a specific checklist item
+    
+    Args:
+        message_id (int): ID of the message containing the checklist
+        item_index (int): Index of the checklist item to update
+        checked (bool): New checked status
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # get current checklist
+        # Get current checklist
         cursor.execute(
             "SELECT checklist FROM messages WHERE message_id = %s",
             (message_id,)
@@ -510,20 +729,20 @@ def update_checklist_item_status(message_id, item_index, checked):
         if not checklist_str:
             return False, "No checklist found"
         
-        # parse checklist JSON
+        # Parse checklist JSON
         try:
             checklist = json.loads(checklist_str)
         except json.JSONDecodeError:
             return False, "Invalid checklist format"
         
-        # check if index is valid
+        # Check if index is valid
         if item_index < 0 or item_index >= len(checklist):
             return False, "Invalid item index"
         
-        # update the status of the specified item
+        # Update the status of the specified item
         checklist[item_index]['done'] = checked
         
-        # save the updated checklist back to database
+        # Save the updated checklist back to database
         updated_checklist_str = json.dumps(checklist)
         cursor.execute(
             "UPDATE messages SET checklist = %s WHERE message_id = %s",
@@ -540,7 +759,14 @@ def update_checklist_item_status(message_id, item_index, checked):
 
 def mark_message_need_human(message_id, need_human=True):
     """
-    标记消息是否需要人工介入
+    Mark whether a message needs human intervention
+    
+    Args:
+        message_id (int): ID of the message to mark
+        need_human (bool): Whether human intervention is needed
+        
+    Returns:
+        tuple: (success, error) - success status and error message if any
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -560,7 +786,14 @@ def mark_message_need_human(message_id, need_human=True):
 
 def get_messages_by_mode(mode, limit=100):
     """
-    根据模式获取消息
+    Get messages by specific mode
+    
+    Args:
+        mode (str): Message mode to filter by
+        limit (int): Maximum number of messages to return
+        
+    Returns:
+        tuple: (messages_list, error) - list of messages or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -572,7 +805,7 @@ def get_messages_by_mode(mode, limit=100):
             (mode, limit)
         )
         messages = cursor.fetchall()
-        # 处理布尔值转换
+        # Convert boolean values
         for message in messages:
             message['need_human'] = bool(message['need_human'])
         return messages, None
@@ -585,7 +818,10 @@ def get_messages_by_mode(mode, limit=100):
 
 def get_messages_need_human():
     """
-    获取所有需要人工介入的消息
+    Get all messages that need human intervention
+    
+    Returns:
+        tuple: (messages_list, error) - list of messages or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -598,7 +834,7 @@ def get_messages_need_human():
             "WHERE m.need_human = 1 ORDER BY m.timestamp DESC"
         )
         messages = cursor.fetchall()
-        # 处理布尔值转换
+        # Convert boolean values
         for message in messages:
             message['need_human'] = bool(message['need_human'])
         return messages, None
@@ -611,7 +847,10 @@ def get_messages_need_human():
 
 def get_message_stats_by_mode():
     """
-    获取各种模式的消息统计
+    Get message statistics grouped by mode
+    
+    Returns:
+        tuple: (stats_list, error) - list of statistics or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -630,20 +869,20 @@ def get_message_stats_by_mode():
         conn.close()
 
 
-# ==================== 转人工工单管理相关函数 ====================
+# ==================== Human Intervention Ticket Management Functions ====================
 
 def save_ticket(session_id, staff_id, staff_email, content):
     """
-    保存转人工请求工单
+    Save a human intervention request ticket
     
     Args:
-        session_id: 会话ID
-        staff_id: 员工ID
-        staff_email: 员工邮箱
-        content: 请求内容
+        session_id (str): Session ID for the ticket
+        staff_id (str): Staff member ID
+        staff_email (str): Staff member email
+        content (str): Request content
     
     Returns:
-        tuple: (ticket_id, error) - 成功返回工单ID，失败返回错误信息
+        tuple: (ticket_id, error) - ticket ID on success, error message on failure
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -664,13 +903,13 @@ def save_ticket(session_id, staff_id, staff_email, content):
 
 def get_unfinished_tickets(limit=100):
     """
-    获取所有未处理的工单
+    Get all unfinished tickets
     
     Args:
-        limit: 返回数量限制
+        limit (int): Maximum number of tickets to return
         
     Returns:
-        tuple: (tickets_list, error)
+        tuple: (tickets_list, error) - list of tickets or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -690,7 +929,7 @@ def get_unfinished_tickets(limit=100):
         )
         tickets = cursor.fetchall()
         
-        # 处理布尔值转换
+        # Convert boolean values
         for ticket in tickets:
             ticket['is_finished'] = bool(ticket['is_finished'])
             
@@ -704,13 +943,13 @@ def get_unfinished_tickets(limit=100):
 
 def get_all_tickets(limit=500):
     """
-    获取所有工单（包括已处理和未处理）
+    Get all tickets (including finished and unfinished)
     
     Args:
-        limit: 返回数量限制
+        limit (int): Maximum number of tickets to return
         
     Returns:
-        tuple: (tickets_list, error)
+        tuple: (tickets_list, error) - list of tickets or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -729,7 +968,7 @@ def get_all_tickets(limit=500):
         )
         tickets = cursor.fetchall()
         
-        # 处理布尔值转换
+        # Convert boolean values
         for ticket in tickets:
             ticket['is_finished'] = bool(ticket['is_finished'])
             
@@ -743,14 +982,14 @@ def get_all_tickets(limit=500):
 
 def finish_ticket(ticket_id, admin_notes=None):
     """
-    完成工单处理
+    Mark a ticket as finished
     
     Args:
-        ticket_id: 工单ID
-        admin_notes: 管理员处理备注（可选）
+        ticket_id (int): ID of the ticket to finish
+        admin_notes (str, optional): Admin processing notes
         
     Returns:
-        tuple: (success, error)
+        tuple: (success, error) - success status and error message if any
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -770,13 +1009,13 @@ def finish_ticket(ticket_id, admin_notes=None):
 
 def get_ticket_by_id(ticket_id):
     """
-    根据ID获取单个工单详情
+    Get a single ticket by ID
     
     Args:
-        ticket_id: 工单ID
+        ticket_id (int): ID of the ticket to retrieve
         
     Returns:
-        tuple: (ticket_info, error)
+        tuple: (ticket_info, error) - ticket information or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -795,7 +1034,7 @@ def get_ticket_by_id(ticket_id):
         ticket = cursor.fetchone()
         
         if ticket:
-            # 处理布尔值转换
+            # Convert boolean values
             ticket['is_finished'] = bool(ticket['is_finished'])
             
         return ticket, None
@@ -808,10 +1047,10 @@ def get_ticket_by_id(ticket_id):
 
 def get_tickets_stats():
     """
-    获取工单统计信息
+    Get ticket statistics
     
     Returns:
-        tuple: (stats, error)
+        tuple: (stats, error) - statistics dictionary or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -837,14 +1076,14 @@ def get_tickets_stats():
 
 def get_tickets_by_staff(staff_id, limit=50):
     """
-    获取特定员工的工单列表
+    Get tickets for a specific staff member
     
     Args:
-        staff_id: 员工ID
-        limit: 返回数量限制
+        staff_id (str): Staff member ID
+        limit (int): Maximum number of tickets to return
         
     Returns:
-        tuple: (tickets_list, error)
+        tuple: (tickets_list, error) - list of tickets or error message
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -862,7 +1101,7 @@ def get_tickets_by_staff(staff_id, limit=50):
         )
         tickets = cursor.fetchall()
         
-        # 处理布尔值转换
+        # Convert boolean values
         for ticket in tickets:
             ticket['is_finished'] = bool(ticket['is_finished'])
             

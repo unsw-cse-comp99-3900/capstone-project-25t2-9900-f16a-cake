@@ -1,14 +1,28 @@
+"""
+Flask-based Chat API Gateway for SiliconFlow Qwen/QwQ-32B Model
+
+This project provides a simple HTTP API endpoint (`/ask`) to handle chat requests
+from a frontend and forward them to the SiliconFlow API. It wraps the interaction
+with the Qwen/QwQ-32B large language model, handles CORS for browser-based clients,
+and serves a static HTML frontend from the `static/` directory.
+
+Main Features:
+- Accepts POST requests with a 'question' payload.
+- Sends the question to SiliconFlow's `chat/completions` endpoint.
+- Returns the AI-generated answer to the client in JSON format.
+- Serves the frontend from the `/` route.
+"""
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 
-# ———— 配置区域 ————
+# ———— Configuration Section ————
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 MODEL   = "Qwen/QwQ-32B"
 API_KEY = "sk-xlrowobsoqpeykasamsgwlbjiilruinjklvbryuvbiukhekt"
 # ——————————————————
 
-# 创建 Flask 应用，把 static_folder 指向 static/
+# Create the Flask application and set the static folder to `static/`
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
@@ -30,18 +44,18 @@ def ask():
         "Content-Type": "application/json"
     }
 
-    # 调用 SiliconFlow API
+    # call SiliconFlow API
     resp = requests.post(API_URL, json=payload, headers=headers)
     resp.raise_for_status()
     result = resp.json()
 
-    # 提取回答
+    # Extract the model's answer
     answer = result['choices'][0]['message']['content'].strip()
     return jsonify({"answer": answer})
 
 @app.route('/')
 def index():
-    # 直接返回 static/index.html
+    # return static/index.html
     return app.send_static_file('index.html')
 
 if __name__ == '__main__':
