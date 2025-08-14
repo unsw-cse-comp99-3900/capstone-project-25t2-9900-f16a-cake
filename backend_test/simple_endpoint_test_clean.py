@@ -31,10 +31,10 @@ class SimpleEndpointTester:
                 config = json.load(f)
                 return config.get('endpoints', [])
         except FileNotFoundError:
-            print(f"❌ {self.config_file} not found")
+            print(f"ERROR: {self.config_file} not found")
             return []
         except json.JSONDecodeError:
-            print(f"❌ Invalid JSON in {self.config_file}")
+            print(f"ERROR: Invalid JSON in {self.config_file}")
             return []
     
     def test_single_endpoint(self, endpoint: Dict) -> Dict:
@@ -43,7 +43,7 @@ class SimpleEndpointTester:
         method = endpoint['method']
         description = endpoint.get('description', 'No description')
         
-        print(f"🔍 Testing: {method} {path}")
+        print(f"Testing: {method} {path}")
         print(f"   Description: {description}")
         
         start_time = time.time()
@@ -100,15 +100,15 @@ class SimpleEndpointTester:
             }
             
             if success:
-                print(f"   ✅ Success: {response.status_code} ({response_time:.3f}s)")
+                print(f"   SUCCESS: {response.status_code} ({response_time:.3f}s)")
             else:
-                print(f"   ❌ Failed: {response.status_code} ({response_time:.3f}s)")
+                print(f"   FAILED: {response.status_code} ({response_time:.3f}s)")
             
             return result
             
         except requests.exceptions.ConnectionError:
             response_time = time.time() - start_time
-            print(f"   ❌ Connection Error: Cannot connect to {self.base_url}")
+            print(f"   ERROR: Connection Error: Cannot connect to {self.base_url}")
             return {
                 'endpoint': path,
                 'method': method,
@@ -120,7 +120,7 @@ class SimpleEndpointTester:
             }
         except requests.exceptions.Timeout:
             response_time = time.time() - start_time
-            print(f"   ⏰ Timeout: Request took too long")
+            print(f"   TIMEOUT: Request took too long")
             return {
                 'endpoint': path,
                 'method': method,
@@ -132,7 +132,7 @@ class SimpleEndpointTester:
             }
         except Exception as e:
             response_time = time.time() - start_time
-            print(f"   💥 Error: {str(e)}")
+            print(f"   ERROR: {str(e)}")
             return {
                 'endpoint': path,
                 'method': method,
@@ -154,10 +154,10 @@ class SimpleEndpointTester:
         
         endpoints = self.load_endpoints()
         if not endpoints:
-            print("❌ No endpoints found to test")
+            print("ERROR: No endpoints found to test")
             return []
         
-        print(f"📋 Found {len(endpoints)} endpoints to test")
+        print(f"Found {len(endpoints)} endpoints to test")
         print("=" * 80)
         
         results = []
@@ -200,9 +200,9 @@ class SimpleEndpointTester:
         report_lines.append("")
         report_lines.append("OVERALL RESULTS:")
         report_lines.append(f"  Total Endpoints: {total_endpoints}")
-        report_lines.append(f"  ✅ Successful: {successful_endpoints}")
-        report_lines.append(f"  ❌ Failed: {failed_endpoints}")
-        report_lines.append(f"  📊 Success Rate: {successful_endpoints/total_endpoints:.1%}")
+        report_lines.append(f"  SUCCESSFUL: {successful_endpoints}")
+        report_lines.append(f"  FAILED: {failed_endpoints}")
+        report_lines.append(f"  SUCCESS RATE: {successful_endpoints/total_endpoints:.1%}")
         report_lines.append("")
         
         # Status breakdown
@@ -218,7 +218,7 @@ class SimpleEndpointTester:
             report_lines.append("FAILED ENDPOINTS:")
             for result in self.results:
                 if not result['success']:
-                    report_lines.append(f"  ❌ {result['method']} {result['endpoint']}")
+                    report_lines.append(f"  FAILED: {result['method']} {result['endpoint']}")
                     report_lines.append(f"      Error: {result['error']}")
                     report_lines.append(f"      Description: {result['description']}")
             report_lines.append("")
@@ -228,7 +228,7 @@ class SimpleEndpointTester:
             report_lines.append("SUCCESSFUL ENDPOINTS:")
             for result in self.results:
                 if result['success']:
-                    report_lines.append(f"  ✅ {result['method']} {result['endpoint']}")
+                    report_lines.append(f"  SUCCESS: {result['method']} {result['endpoint']}")
                     report_lines.append(f"      Status: {result['status_code']}")
                     report_lines.append(f"      Response Time: {result['response_time']}s")
             report_lines.append("")
@@ -254,9 +254,9 @@ class SimpleEndpointTester:
         try:
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.results, f, indent=2, ensure_ascii=False)
-            print(f"📁 Results saved to: {filename}")
+            print(f"Results saved to: {filename}")
         except Exception as e:
-            print(f"❌ Failed to save results: {e}")
+            print(f"ERROR: Failed to save results: {e}")
 
 def main():
     """Main function"""
@@ -265,7 +265,7 @@ def main():
     
     # Use default base URL and clean config
     base_url = "http://localhost:8000"
-    config_file = "test_config_clean.json"
+    config_file = "test_config.json"
     print(f"Using base URL: {base_url}")
     print(f"Using config file: {config_file}")
     
@@ -284,16 +284,16 @@ def main():
             # Save results
             tester.save_results()
             
-            print("\n🎉 Endpoint availability test completed!")
-            print("📊 Check the summary above for results.")
+            print("\nEndpoint availability test completed!")
+            print("Check the summary above for results.")
             
         else:
-            print("❌ No endpoints were tested")
+            print("ERROR: No endpoints were tested")
             
     except KeyboardInterrupt:
-        print("\n⚠️  Test interrupted by user")
+        print("\nWARNING: Test interrupted by user")
     except Exception as e:
-        print(f"❌ Error during testing: {e}")
+        print(f"ERROR: Error during testing: {e}")
 
 if __name__ == "__main__":
     main()

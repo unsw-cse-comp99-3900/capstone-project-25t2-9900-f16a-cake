@@ -31,7 +31,7 @@ from datetime import datetime
 from typing import Dict, List
 
 class CleanStressTest:
-    def __init__(self, base_url: str = "http://localhost:8000", config_file: str = "test_config_clean.json"):
+    def __init__(self, base_url: str = "http://localhost:8000", config_file: str = "test_config.json"):
         self.base_url = base_url
         self.config_file = config_file
         self.endpoints = []
